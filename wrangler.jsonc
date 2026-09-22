@@ -16,6 +16,16 @@
 			"bucket_name": "thijmen-dev","preview_bucket_name": "thijmen-dev",
 		},
 	],
+	"previews": {
+		"vars": {
+			"ENVIRONMENT": "preview"
+		},
+		"kv_namespaces": [
+			{
+				"binding": "SESSION", "id": "a2745f6cbd7248ba9c4770ce3e3ddd49"
+			}
+		]
+	},
 	// Sandboxed plugins require Worker Loader, available on Workers paid plans. Uncomment to enable:
 	// "worker_loaders": [{ "binding": "LOADER" }],
 	// General maintenance cron trigger
