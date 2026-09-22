@@ -24,6 +24,11 @@
 			{
 				"binding": "SESSION", "id": "a2745f6cbd7248ba9c4770ce3e3ddd49"
 			}
+		],
+		"d1_databases": [
+			{
+				"binding": "DB", "database_name": "thijmen-dev-preview", "database_id": "db7c702c-16e0-4ae3-80e4-becfe7048d8a"
+			}
 		]
 	},
 	// Sandboxed plugins require Worker Loader, available on Workers paid plans. Uncomment to enable:
