@@ -19,11 +19,11 @@ export default defineConfig({
 			// Cloudflare Access (Zero Trust) is the exclusive auth method in
 			// production — passkeys, magic links and invites are disabled there.
 			// Local dev automatically falls back to passkey login.
-			// auth: access({
-			// 	teamDomain: "thijmen.cloudflareaccess.com",
-			// 	audienceEnvVar: "CF_ACCESS_AUDIENCE",
-			// 	defaultRole: 50, // Admin — the Access policy itself restricts who gets in
-			// }),
+			auth: access({
+				teamDomain: "thijmen.cloudflareaccess.com",
+				audienceEnvVar: "CF_ACCESS_AUDIENCE",
+				defaultRole: 50, // Admin — the Access policy itself restricts who gets in
+			}),
 		}),
 	],
 	fonts: [
