@@ -24,5 +24,8 @@ npm-debug.log*
 .dev.vars
 .dev.vars.*
 
+# Wrangler local state
+.wrangler/
+
 # macOS
 .DS_Store
