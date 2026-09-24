@@ -1,0 +1,234 @@
+---
+import { getEmDashCollection, getSiteSettings } from "emdash";
+import Base from "../layouts/Base.astro";
+import SectionLabel from "../components/SectionLabel.astro";
+import Timeline from "../components/Timeline.astro";
+import Window from "../components/Window.astro";
+import { asArray, emphasize, getProfile } from "../lib/content";
+
+const [settings, { profile, cacheHint: profileHint }, rolesRes, postsRes] = await Promise.all([
+	getSiteSettings(),
+	getProfile(),
+	getEmDashCollection("roles", { orderBy: { position: "asc" } }),
+	getEmDashCollection("posts", { limit: 200 }),
+]);
+
+if (Astro.cache?.enabled) {
+	if (profileHint) Astro.cache.set(profileHint);
+	Astro.cache.set(rolesRes.cacheHint);
+	Astro.cache.set(postsRes.cacheHint);
+}
+
+const name = settings?.title || "Thijmen Stavenuiter";
+const roles = rolesRes.entries.map((e) => e.data);
+const postCount = postsRes.entries.length;
+const skills = asArray<{ k: string; items: string[] | string }>(profile?.skills);
+const email = profile?.email;
+const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+---
+
+<Base title="Resume" description={profile?.resume_intro} glow="right">
+	<main class="page resume">
+		<header class="head">
+			<div class="head-row">
+				<div class="hero">
+					<span class="kicker"><span class="sigil">$</span> cat resume.yml</span>
+					<h1 class="display">{name}</h1>
+					{profile?.status_line && <span class="role">{profile.status_line}</span>}
+				</div>
+				<div class="actions">
+					<button type="button" class="btn btn-primary" data-print>Download PDF ↓</button>
+					{email && <a href={`mailto:${email}`} class="btn">Get in touch</a>}
+				</div>
+			</div>
+		</header>
+
+		<div class="layout">
+			<section class="card history">
+				<SectionLabel label="HISTORY" note="git log --stat" />
+				<Timeline roles={roles as any} variant="full" />
+			</section>
+
+			<aside class="side">
+				{
+					skills.length > 0 && (
+						<Window title="skills.yml" class="skills">
+							<div class="skills-body">
+								{skills.map((s) => (
+									<div>
+										<span class="k">{s.k}</span>: [
+										<span class="s">{Array.isArray(s.items) ? s.items.join(", ") : s.items}</span>]
+									</div>
+								))}
+							</div>
+						</Window>
+					)
+				}
+				<div class="card speaking">
+					<div class="label">SPEAKING &amp; WRITING</div>
+					<a href="/blog" class="posts-link">{postCount} posts on this blog →</a>
+					{profile?.speaking_note && <span class="muted">{profile.speaking_note}</span>}
+				</div>
+				<div class="accent-card contact">
+					{profile?.cta_resume && <span class="contact-text" set:html={emphasize(profile.cta_resume)} />}
+					<div class="contact-links">
+						{email && <a href={`mailto:${email}`}>{email}</a>}
+						{profile?.linkedin_url && <a href={profile.linkedin_url}>{bare(profile.linkedin_url)}</a>}
+						{profile?.github_url && <a href={profile.github_url}>{bare(profile.github_url)}</a>}
+					</div>
+				</div>
+			</aside>
+		</div>
+	</main>
+</Base>
+
+<script>
+	document.querySelector("[data-print]")?.addEventListener("click", () => window.print());
+</script>
+
+<style>
+	.resume {
+		gap: 56px;
+	}
+
+	.head {
+		display: flex;
+		flex-direction: column;
+		gap: 28px;
+		padding-bottom: 36px;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.head-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 28px 48px;
+		align-items: flex-end;
+		justify-content: space-between;
+	}
+
+	.head .hero {
+		gap: 14px;
+		max-width: 820px;
+	}
+
+	.role {
+		font-family: var(--font-heading);
+		font-style: italic;
+		font-size: clamp(24px, 2.6vw, 32px);
+		color: var(--color-brand);
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+
+	.layout {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 20px;
+		align-items: flex-start;
+	}
+
+	.history {
+		flex: 1 1 560px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		padding: clamp(24px, 3vw, 36px);
+		border-radius: var(--radius-xl);
+	}
+
+	.side {
+		flex: 1 1 300px;
+		max-width: 440px;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.side :global(.skills) {
+		font-size: 13px;
+		line-height: 1.9;
+	}
+
+	.skills-body {
+		padding: 16px 20px 20px;
+		overflow-wrap: anywhere;
+	}
+
+	.k {
+		color: var(--syntax-keyword);
+	}
+
+	.s {
+		color: var(--syntax-string);
+	}
+
+	.speaking {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 22px 24px;
+	}
+
+	.label {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		color: var(--color-brand);
+	}
+
+	.posts-link {
+		font-family: var(--font-heading);
+		font-size: 22px;
+		color: var(--color-text);
+	}
+
+	.posts-link:hover {
+		color: var(--color-brand);
+		text-decoration: none;
+	}
+
+	.muted {
+		font-size: 14px;
+		color: var(--color-muted);
+	}
+
+	.contact {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		padding: 24px;
+	}
+
+	.contact-text {
+		font-family: var(--font-heading);
+		font-size: 26px;
+		line-height: 1.2;
+	}
+
+	.contact-links {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-family: var(--font-mono);
+		font-size: 13px;
+	}
+
+	@media print {
+		:global(.site-header),
+		:global(.site-footer),
+		.actions {
+			display: none;
+		}
+
+		.resume {
+			padding: 0;
+		}
+	}
+</style>

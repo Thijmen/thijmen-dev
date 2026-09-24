@@ -1,170 +1,265 @@
 ---
 import { getEmDashCollection, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
+import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
+import SectionLabel from "../components/SectionLabel.astro";
+import Timeline from "../components/Timeline.astro";
+import Window from "../components/Window.astro";
+import { asArray, emphasize, getProfile, toPostSummary } from "../lib/content";
 
-// Fetch settings + the 4 featured projects in parallel. Limiting and
-// sorting in the database avoids loading every project just to slice
-// off the first 4 in JS (a full-table read on sites with lots of work).
-const [settings, { entries: featuredProjects, cacheHint }] = await Promise.all([
+const [settings, { profile, cacheHint: profileHint }, postsRes, rolesRes, projectsRes] = await Promise.all([
 	getSiteSettings(),
-	getEmDashCollection("projects", {
-		orderBy: { published_at: "desc" },
-		limit: 4,
-	}),
+	getProfile(),
+	getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 4 }),
+	getEmDashCollection("roles", { orderBy: { position: "asc" }, limit: 3 }),
+	// Booleans are stored as 0/1; `where` takes strings and SQLite coerces "1".
+	getEmDashCollection("projects", { where: { featured: "1" }, orderBy: { position: "asc" }, limit: 2 }),
 ]);
 
-if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+if (Astro.cache?.enabled) {
+	if (profileHint) Astro.cache.set(profileHint);
+	for (const r of [postsRes, rolesRes, projectsRes]) Astro.cache.set(r.cacheHint);
+}
+
+const [first, ...restNames] = (settings?.title || "Thijmen Stavenuiter").split(" ");
+const posts = postsRes.entries.map(toPostSummary);
+const [feature, ...others] = posts;
+const roles = rolesRes.entries.map((e) => e.data);
+const projects = projectsRes.entries.map((e) => e.data);
+const lines = asArray<{ k: string; v: string; kind?: string }>(profile?.profile_lines);
+const email = profile?.email;
 ---
 
-<Base>
-	<section class="hero">
-		<h1 class="hero-title">{settings?.title || "Studio"}</h1>
-		<p class="hero-tagline">{settings?.tagline || "Design & Development"}</p>
-	</section>
-
-	{
-		featuredProjects.length > 0 ? (
-			<section class="featured">
-				<header class="section-header">
-					<h2 class="section-title">Selected Work</h2>
-					<a href="/work" class="section-link">
-						View all projects &rarr;
-					</a>
-				</header>
-				<div class="projects-grid">
-					{featuredProjects.map((project) => (
-						<ProjectCard
-							title={project.data.title ?? "Untitled"}
-							summary={project.data.summary}
-							featuredImage={project.data.featured_image ?? ""}
-							href={`/work/${project.id}`}
-							client={project.data.client}
-							year={project.data.year}
-						/>
-					))}
+<Base glow="right">
+	<main class="home">
+		<section class="hero-grid">
+			<div class="intro">
+				{profile?.status_line && <span class="status-pill">{profile.status_line}</span>}
+				<h1 class="name">{first}<br />{restNames.join(" ")}<em>.</em></h1>
+				{profile?.hero_intro && <p class="tagline">{profile.hero_intro}</p>}
+				<div class="ctas">
+					<a href="/blog" class="btn btn-primary">Read the blog →</a>
+					<a href="/resume" class="btn">Resume</a>
+					<span class="kicker"><span class="sigil">$</span> man {first.toLowerCase()}<span class="cursor"></span></span>
 				</div>
-			</section>
-		) : (
-			<section class="empty-state">
-				<h2>No projects yet</h2>
-				<p>Add your first project in the admin panel.</p>
-				<a href="/_emdash/admin/content/projects/new" class="btn">
-					Add a project
-				</a>
-			</section>
-		)
-	}
+			</div>
+			{
+				lines.length > 0 && (
+					<Window title="~/.profile" class="profile">
+						<div class="profile-body">
+							{lines.map((l) => (
+								<div>
+									<span class="k">{l.k}</span>=
+									{l.kind === "list" ? (
+										<>
+											(<span class="s">{l.v}</span>)
+										</>
+									) : l.kind === "number" ? (
+										<span class="n">{l.v}</span>
+									) : (
+										<span class="s">"{l.v}"</span>
+									)}
+								</div>
+							))}
+						</div>
+					</Window>
+				)
+			}
+		</section>
+
+		{
+			feature && (
+				<section class="writing">
+					<SectionLabel label="WRITING" href="/blog" linkText="ls blog/ →" rule />
+					<div class="writing-grid">
+						<PostCard post={feature} variant="feature" />
+						<div class="rows">
+							{others.map((p) => (
+								<PostCard post={p} variant="row" />
+							))}
+						</div>
+					</div>
+				</section>
+			)
+		}
+
+		<section class="split">
+			{
+				roles.length > 0 && (
+					<div class="card history">
+						<SectionLabel label="HISTORY" href="/resume" linkText="resume(7) →" />
+						<Timeline roles={roles as any} variant="compact" />
+					</div>
+				)
+			}
+			<div class="side">
+				{
+					projects.length > 0 && (
+						<div class="projects">
+							{projects.map((p) => (
+								<ProjectCard project={p as any} variant="compact" />
+							))}
+						</div>
+					)
+				}
+				{
+					email && (
+						<a href={`mailto:${email}`} class="accent-card cta">
+							{profile?.cta_home && <span class="cta-text" set:html={emphasize(profile.cta_home)} />}
+							<span class="cta-mail">$ mail {email} →</span>
+						</a>
+					)
+				}
+			</div>
+		</section>
+	</main>
 </Base>
 
 <style>
-	.hero {
+	.home {
+		position: relative;
+		width: 100%;
 		max-width: var(--wide-width);
 		margin: 0 auto;
-		padding: var(--spacing-4xl) var(--spacing-lg);
-		text-align: center;
-	}
-
-	.hero-title {
-		font-size: var(--font-size-4xl);
-		font-weight: var(--font-weight-display);
-		margin-bottom: var(--spacing-md);
-		letter-spacing: var(--tracking-tight);
-	}
-
-	.hero-tagline {
-		font-size: var(--font-size-xl);
-		color: var(--color-muted);
-		font-family: var(--font-heading);
-		font-style: italic;
-	}
-
-	.featured {
-		max-width: var(--wide-width);
-		margin: 0 auto;
-		padding: 0 var(--spacing-lg) var(--spacing-4xl);
-	}
-
-	.section-header {
+		padding: 0 var(--gutter);
 		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		margin-bottom: var(--spacing-2xl);
-		padding-bottom: var(--spacing-md);
-		border-bottom: 1px solid var(--color-border);
+		flex-direction: column;
 	}
 
-	.section-title {
-		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-heading);
-	}
-
-	.section-link {
-		font-size: var(--font-size-sm);
-		color: var(--color-muted);
-		text-decoration: none;
-		transition: color var(--transition-fast);
-	}
-
-	.section-link:hover {
-		color: var(--color-text);
-	}
-
-	.projects-grid {
+	.hero-grid {
+		padding: clamp(48px, 8vw, 88px) 0 80px;
 		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: var(--spacing-2xl);
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+		gap: 48px 64px;
+		align-items: end;
 	}
 
-	.empty-state {
-		text-align: center;
-		padding: var(--spacing-4xl) var(--spacing-lg);
-		max-width: 400px;
-		margin: 0 auto;
+	.intro {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		min-width: 0;
 	}
 
-	.empty-state h2 {
-		font-size: var(--font-size-xl);
-		margin-bottom: var(--spacing-sm);
+	.name {
+		margin: 0;
+		font-family: var(--font-heading);
+		font-size: clamp(60px, 8.5vw, 96px);
+		line-height: 0.96;
+		font-weight: 400;
+		letter-spacing: -0.03em;
 	}
 
-	.empty-state p {
+	.name em {
+		font-style: italic;
+		color: var(--color-brand);
+	}
+
+	.tagline {
+		margin: 0;
+		max-width: 560px;
+		font-size: 20px;
+		line-height: 1.55;
 		color: var(--color-muted);
-		margin-bottom: var(--spacing-lg);
+		text-wrap: pretty;
 	}
 
-	.btn {
-		display: inline-block;
-		padding: var(--spacing-sm) var(--spacing-lg);
-		background: var(--color-text);
-		color: var(--color-bg);
+	.ctas {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 14px 18px;
+	}
+
+	.hero-grid :global(.profile) {
+		font-size: 13px;
+		line-height: 1.95;
+	}
+
+	.profile-body {
+		padding: 16px 22px 20px;
+		overflow-wrap: anywhere;
+	}
+
+	.k {
+		color: var(--syntax-keyword);
+	}
+
+	.s {
+		color: var(--syntax-string);
+	}
+
+	.n {
+		color: var(--syntax-number);
+	}
+
+	.writing {
+		padding-bottom: 80px;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.writing-grid,
+	.split {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+		gap: 20px;
+	}
+
+	.rows {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.split {
+		padding-bottom: 96px;
+	}
+
+	.history {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		padding: 26px 28px;
+	}
+
+	.side {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.projects {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+		gap: 20px;
+	}
+
+	.cta {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 18px;
+		padding: 26px 28px;
 		text-decoration: none;
-		border-radius: var(--radius);
-		font-size: var(--font-size-sm);
-		transition: opacity var(--transition-fast);
 	}
 
-	.btn:hover {
-		opacity: 0.85;
+	.cta:hover {
+		text-decoration: none;
 	}
 
-	@media (max-width: 768px) {
-		.hero {
-			padding: var(--spacing-3xl) var(--spacing-lg);
-		}
+	.cta-text {
+		font-family: var(--font-heading);
+		font-size: 30px;
+		line-height: 1.2;
+		text-wrap: balance;
+	}
 
-		.hero-title {
-			font-size: var(--font-size-3xl);
-		}
-
-		.projects-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.section-header {
-			flex-direction: column;
-			gap: var(--spacing-sm);
-			align-items: flex-start;
-		}
+	.cta-mail {
+		font-family: var(--font-mono);
+		font-size: 13px;
 	}
 </style>

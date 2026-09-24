@@ -1,19 +1,18 @@
 /*
-  tokens.css -- the design tokens for this template. These are the
+  tokens.css -- the design tokens for this site. These are the
   defaults; to customize the site, override any variable in
   src/styles/theme.css rather than editing this file. Declarations in
   theme.css are unlayered, so they always beat these @layer base
   defaults -- no specificity tricks needed.
 
   Colors use light-dark(): the first value applies in light mode, the
-  second in dark mode. Overriding a color with a plain value changes
-  both modes at once; use light-dark(<light>, <dark>) in an override to
-  keep them distinct.
+  second in dark mode. The header toggle stamps data-theme="light" or
+  "dark" on <html>, which pins color-scheme below. Overriding a color
+  with a plain value changes both modes at once.
 
-  --font-heading (the serif display face) is defined by the font
-  pipeline in astro.config.mjs, not here. To swap it, edit the fonts
-  entry there. --font-body is the deliberately quiet system sans stack
-  below.
+  The three faces (--font-heading Newsreader, --font-body Geist,
+  --font-mono JetBrains Mono) are loaded by the Fonts API in
+  astro.config.mjs, not here.
 */
 
 @layer base {
@@ -21,76 +20,47 @@
 		color-scheme: light dark;
 
 		/* Colors */
-		--color-bg: light-dark(#fafafa, #0a0a0a);
-		--color-text: light-dark(#1a1a1a, #f5f5f5);
-		--color-muted: light-dark(#6b7280, #a1a1aa);
-		--color-border: light-dark(#e5e7eb, #27272a);
-		--color-surface: light-dark(#ffffff, #18181b);
-		--color-brand: light-dark(#7c3aed, #a78bfa); /* the single accent, used sparingly */
-		--color-on-brand: white; /* text on brand-colored surfaces */
-		--color-brand-ring: color-mix(in srgb, var(--color-brand) 10%, transparent);
-		--color-danger: light-dark(#dc2626, #f87171);
+		--color-bg: light-dark(oklch(0.985 0.004 300), oklch(0.17 0.018 295));
+		--color-surface: light-dark(oklch(0.962 0.008 300), oklch(0.205 0.022 295));
+		--color-text: light-dark(oklch(0.23 0.03 295), oklch(0.94 0.01 300));
+		--color-muted: light-dark(oklch(0.47 0.03 295), oklch(0.73 0.03 295));
+		--color-border: light-dark(oklch(0.9 0.012 300), oklch(0.3 0.03 295));
+		--color-brand: light-dark(oklch(0.52 0.2 295), oklch(0.77 0.14 295));
+		--color-brand-soft: light-dark(oklch(0.94 0.035 300), oklch(0.27 0.06 295));
+		--color-on-brand: light-dark(#fff, oklch(0.17 0.02 295));
+		--color-shadow: oklch(0.2 0.05 295 / 0.45);
 
-		/* Typography */
-		--font-body: system-ui, -apple-system, sans-serif;
-		--font-weight-heading: 500; /* serif headings and titles */
-		--font-weight-display: 500; /* hero and page titles */
+		/* Syntax (code blocks, terminal windows) */
+		--syntax-keyword: light-dark(oklch(0.52 0.2 295), oklch(0.77 0.14 295));
+		--syntax-string: light-dark(oklch(0.5 0.13 150), oklch(0.8 0.13 150));
+		--syntax-fn: light-dark(oklch(0.52 0.14 240), oklch(0.78 0.11 230));
+		--syntax-comment: light-dark(oklch(0.55 0.02 295), oklch(0.62 0.03 295));
+		--syntax-number: light-dark(oklch(0.55 0.15 50), oklch(0.8 0.12 60));
 
-		/* Type scale */
-		--font-size-xs: 0.75rem;
-		--font-size-sm: 0.875rem;
-		--font-size-base: 1.0625rem;
-		--font-size-lg: 1.25rem;
-		--font-size-xl: 1.5rem;
-		--font-size-2xl: 2rem;
-		--font-size-3xl: 2.75rem;
-		--font-size-4xl: 3.5rem;
-
-		/* Line heights */
-		--leading-tight: 1.1; /* hero and project titles */
-		--leading-snug: 1.2; /* headings */
-		--leading-normal: 1.6; /* body copy */
-		--leading-relaxed: 1.7; /* long-form content */
-
-		/* Letter spacing */
-		--tracking-tight: -0.02em; /* site title, hero title */
-		--tracking-wide: 0.05em; /* uppercase meta lines, tag chips */
-
-		/* Spacing */
-		--spacing-xs: 0.25rem;
-		--spacing-sm: 0.5rem;
-		--spacing-md: 1rem;
-		--spacing-lg: 1.5rem;
-		--spacing-xl: 2rem;
-		--spacing-2xl: 3rem;
-		--spacing-3xl: 4rem;
-		--spacing-4xl: 6rem;
+		/* Fixed "player" palette on the Uses page (dark in both modes) */
+		--player-bg: oklch(0.2 0.03 295);
+		--player-text: oklch(0.96 0.01 300);
+		--player-accent: oklch(0.77 0.14 295);
+		--player-on-accent: oklch(0.17 0.02 295);
 
 		/* Layout */
-		--max-width: 720px;
 		--wide-width: 1200px;
-		--radius: 4px;
+		--gutter: clamp(20px, 5vw, 64px);
+		--radius-pill: 999px;
+		--radius-xl: 22px;
+		--radius-lg: 18px;
+		--radius-md: 16px;
+		--radius-sm: 10px;
 
 		/* Transitions */
 		--transition-fast: 150ms ease;
-		--transition-base: 200ms ease;
-		--transition-slow: 300ms ease;
 	}
 
-	/*
-	 * Light-mode values for browsers without light-dark() (Safari < 17.5,
-	 * Chrome < 123). Must mirror the light values above.
-	 */
-	@supports not (color: light-dark(#000, #fff)) {
-		:root {
-			color-scheme: light;
-			--color-bg: #fafafa;
-			--color-text: #1a1a1a;
-			--color-muted: #6b7280;
-			--color-border: #e5e7eb;
-			--color-surface: #ffffff;
-			--color-brand: #7c3aed;
-			--color-danger: #dc2626;
-		}
+	:root[data-theme="light"] {
+		color-scheme: light;
+	}
+
+	:root[data-theme="dark"] {
+		color-scheme: dark;
 	}
 }

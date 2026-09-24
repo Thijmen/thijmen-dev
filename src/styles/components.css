@@ -1,0 +1,228 @@
+/*
+  components.css -- shared building blocks used by several pages
+  (page shell, hero, buttons, chips, cards). Page-specific layout lives in
+  each page's scoped <style>. Layered, so theme.css still wins.
+*/
+
+@layer base {
+	/* Page shell ------------------------------------------------------- */
+	.page {
+		position: relative;
+		width: 100%;
+		max-width: var(--wide-width);
+		margin: 0 auto;
+		padding: clamp(48px, 7vw, 80px) var(--gutter) 96px;
+		display: flex;
+		flex-direction: column;
+		gap: 48px;
+	}
+
+	.hero {
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+		max-width: 760px;
+	}
+
+	.kicker {
+		font-family: var(--font-mono);
+		font-size: 13px;
+		color: var(--color-muted);
+	}
+
+	.kicker .sigil {
+		color: var(--color-brand);
+	}
+
+	.display {
+		margin: 0;
+		font-family: var(--font-heading);
+		font-size: clamp(52px, 7vw, 84px);
+		line-height: 0.98;
+		font-weight: 400;
+		letter-spacing: -0.03em;
+	}
+
+	.display em,
+	.accent-em {
+		font-style: italic;
+		color: var(--color-brand);
+	}
+
+	.lede {
+		margin: 0;
+		font-size: 19px;
+		line-height: 1.55;
+		color: var(--color-muted);
+		text-wrap: pretty;
+	}
+
+	.mono {
+		font-family: var(--font-mono);
+	}
+
+	.serif {
+		font-family: var(--font-heading);
+	}
+
+	/* Status pill: "● Staff Engineer at …" */
+	.status-pill {
+		align-self: flex-start;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 14px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+		background: var(--color-bg);
+		font-size: 13px;
+		color: var(--color-muted);
+	}
+
+	.status-pill::before {
+		content: "";
+		flex: none;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--syntax-string);
+	}
+
+	/* Buttons ------------------------------------------------------------ */
+	.btn {
+		display: inline-block;
+		padding: 12px 20px;
+		border-radius: var(--radius-pill);
+		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+		color: var(--color-text);
+		font: inherit;
+		font-size: 15px;
+		font-weight: 500;
+		white-space: nowrap;
+		text-decoration: none;
+		cursor: pointer;
+		transition: border-color var(--transition-fast);
+	}
+
+	.btn:hover {
+		border-color: var(--color-brand);
+		text-decoration: none;
+	}
+
+	.btn-primary {
+		border-color: transparent;
+		background: var(--color-text);
+		color: var(--color-bg);
+	}
+
+	.btn-primary:hover {
+		border-color: transparent;
+	}
+
+	/* Chips -------------------------------------------------------------- */
+	.chip {
+		display: inline-block;
+		padding: 8px 14px;
+		border-radius: var(--radius-pill);
+		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+		color: var(--color-text);
+		font-family: var(--font-mono);
+		font-size: 12px;
+		white-space: nowrap;
+		text-decoration: none;
+		cursor: pointer;
+		transition: border-color var(--transition-fast);
+	}
+
+	.chip:hover {
+		border-color: var(--color-brand);
+		text-decoration: none;
+	}
+
+	.chip.active,
+	.chip[aria-pressed="true"],
+	.chip[aria-current="page"] {
+		background: var(--color-brand);
+		border-color: var(--color-brand);
+		color: var(--color-on-brand);
+	}
+
+	.chip .count {
+		opacity: 0.65;
+	}
+
+	.chip-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.tag-soft {
+		padding: 5px 11px;
+		border-radius: var(--radius-pill);
+		background: var(--color-brand-soft);
+		color: var(--color-brand);
+	}
+
+	/* Cards -------------------------------------------------------------- */
+	.card {
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		background: var(--color-bg);
+		color: var(--color-text);
+		text-decoration: none;
+		transition: border-color var(--transition-fast);
+	}
+
+	a.card:hover,
+	.card.hoverable:hover {
+		border-color: var(--color-brand);
+		text-decoration: none;
+	}
+
+	.accent-card {
+		border-radius: var(--radius-lg);
+		background: var(--color-brand);
+		color: var(--color-on-brand);
+	}
+
+	.accent-card a {
+		color: inherit;
+	}
+
+	/* Gradient placeholder for missing covers */
+	.placeholder {
+		display: grid;
+		place-items: center;
+		background: linear-gradient(135deg, var(--color-brand-soft), var(--color-surface));
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.cover-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	/* Blinking terminal cursor */
+	.cursor {
+		display: inline-block;
+		width: 0.55em;
+		height: 1.05em;
+		margin-left: 6px;
+		vertical-align: -0.18em;
+		background: var(--color-brand);
+		animation: blink 1.1s steps(1) infinite;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.cursor {
+			animation: none;
+		}
+	}
+}

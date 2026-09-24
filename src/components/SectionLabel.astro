@@ -1,0 +1,44 @@
+---
+/** Mono uppercase section label ("WRITING") with an optional right-hand link or note. */
+interface Props {
+	label: string;
+	href?: string;
+	linkText?: string;
+	note?: string;
+	rule?: boolean;
+}
+
+const { label, href, linkText, note, rule = false } = Astro.props;
+---
+
+<div class:list={["section-label", { rule }]}>
+	<span class="label">{label}</span>
+	{href && <a href={href}>{linkText}</a>}
+	{note && <span class="note">{note}</span>}
+</div>
+
+<style>
+	.section-label {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 12px;
+		font-family: var(--font-mono);
+		font-size: 13px;
+	}
+
+	.rule {
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.label {
+		font-weight: 700;
+		color: var(--color-brand);
+		letter-spacing: 0.06em;
+	}
+
+	.note {
+		color: var(--color-muted);
+	}
+</style>

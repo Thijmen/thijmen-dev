@@ -1,0 +1,111 @@
+---
+/**
+ * Portable Text `code` block: terminal-window chrome with the filename,
+ * a copy button, a line-number gutter and Shiki highlighting through the
+ * css-variables theme (token colours map to --syntax-* in tokens.css).
+ */
+import { highlight } from "../../lib/highlight";
+import Window from "../Window.astro";
+
+const { node } = Astro.props as { node: { code?: string; language?: string; filename?: string } };
+const code = (node.code ?? "").replace(/\n+$/, "");
+const lines = code.split("\n").length;
+const html = code ? await highlight(code, node.language) : null;
+---
+
+{
+	code && (
+		<Window title={node.filename || node.language || "snippet"} class="code-window">
+			<button type="button" class="copy" slot="aside" data-copy>copy</button>
+			<div class="code-body">
+				<div class="gutter" aria-hidden="true">
+					{Array.from({ length: lines }, (_, i) => (
+						<span>{i + 1}</span>
+					))}
+				</div>
+				{html ? <Fragment set:html={html} /> : <pre class="shiki"><code>{code}</code></pre>}
+			</div>
+		</Window>
+	)
+}
+
+<script>
+	document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
+		btn.addEventListener("click", () => {
+			const code = btn.closest(".code-window")?.querySelector("pre")?.textContent ?? "";
+			navigator.clipboard?.writeText(code).catch(() => {});
+			btn.textContent = "copied ✓";
+			setTimeout(() => (btn.textContent = "copy"), 1400);
+		});
+	});
+</script>
+
+<style>
+	:global(.code-window) {
+		font-size: 14px;
+		line-height: 1.75;
+		border-radius: var(--radius-md);
+	}
+
+	:global(.code-window .window-bar) {
+		padding: 10px 14px;
+	}
+
+	:global(.code-window .window-title) {
+		font-size: 12px;
+	}
+
+	.copy {
+		font: inherit;
+		font-size: 11px;
+		padding: 3px 10px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+		background: var(--color-bg);
+		color: var(--color-text);
+		cursor: pointer;
+	}
+
+	.copy:hover {
+		border-color: var(--color-brand);
+	}
+
+	.code-body {
+		display: grid;
+		grid-template-columns: 40px minmax(0, 1fr);
+		padding: 14px 0;
+	}
+
+	.gutter {
+		display: flex;
+		flex-direction: column;
+		padding-right: 14px;
+		text-align: right;
+		color: var(--syntax-comment);
+		user-select: none;
+	}
+
+	.code-body :global(pre.shiki) {
+		margin: 0;
+		padding: 0 16px 0 6px;
+		overflow-x: auto;
+		background: transparent !important;
+		color: var(--color-text);
+		font: inherit;
+		--shiki-foreground: var(--color-text);
+		--shiki-background: transparent;
+		--shiki-token-keyword: var(--syntax-keyword);
+		--shiki-token-string: var(--syntax-string);
+		--shiki-token-string-expression: var(--syntax-string);
+		--shiki-token-function: var(--syntax-fn);
+		--shiki-token-constant: var(--syntax-number);
+		--shiki-token-comment: var(--syntax-comment);
+		--shiki-token-parameter: var(--color-text);
+		--shiki-token-punctuation: var(--color-text);
+		--shiki-token-link: var(--color-brand);
+	}
+
+	.code-body :global(code) {
+		font-family: var(--font-mono);
+	}
+</style>

@@ -1,0 +1,224 @@
+---
+/**
+ * Career history rendered as a git log. `compact` (home) shows one line per
+ * role; `full` (resume) adds highlights, +/- stats and stack chips.
+ */
+export interface Role {
+	title: string;
+	org?: string;
+	period?: string;
+	commit_hash?: string;
+	ref?: string;
+	summary?: string;
+	highlights?: string[];
+	additions?: string;
+	deletions?: string;
+	stack?: string[];
+}
+
+interface Props {
+	roles: Role[];
+	variant?: "compact" | "full";
+}
+
+const { roles, variant = "compact" } = Astro.props;
+const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
+---
+
+<ol class:list={["timeline", variant]}>
+	{
+		roles.map((r) => (
+			<li class="commit">
+				<div class="rail">
+					<span class="node" />
+					<span class="line" />
+				</div>
+				<div class="body">
+					<div class="meta">
+						{r.commit_hash && <span class="hash">{r.commit_hash}</span>}
+						{r.ref && <span class="ref">({r.ref})</span>}
+						{r.period && <span class="when">{r.period}</span>}
+					</div>
+					{variant === "compact" ? (
+						<div class="msg">
+							{r.title}
+							{r.org && ` · ${r.org}`}
+						</div>
+					) : (
+						<div class="title">
+							{r.title} {r.org && <span class="org">at {r.org}</span>}
+						</div>
+					)}
+					{r.summary && <div class="summary">{r.summary}</div>}
+					{variant === "full" && list(r.highlights).length > 0 && (
+						<ul class="points">
+							{list(r.highlights).map((p) => (
+								<li>{p}</li>
+							))}
+						</ul>
+					)}
+					{variant === "full" && (
+						<div class="stats">
+							{r.additions && <span class="stat plus">+{r.additions}</span>}
+							{r.deletions && <span class="stat minus">-{r.deletions}</span>}
+							{list(r.stack).map((s) => (
+								<span class="tag-soft">{s}</span>
+							))}
+						</div>
+					)}
+				</div>
+			</li>
+		))
+	}
+</ol>
+
+<style>
+	.timeline {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.commit {
+		display: grid;
+		grid-template-columns: 18px minmax(0, 1fr);
+		gap: 14px;
+	}
+
+	.full .commit {
+		gap: 16px;
+	}
+
+	.rail {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.node {
+		flex: none;
+		width: 11px;
+		height: 11px;
+		margin-top: 4px;
+		border-radius: 50%;
+		border: 2px solid var(--color-brand);
+		background: var(--color-bg);
+	}
+
+	.full .node {
+		margin-top: 5px;
+	}
+
+	.line {
+		flex: 1;
+		width: 2px;
+		background: var(--color-border);
+	}
+
+	.body {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding-bottom: 20px;
+	}
+
+	.full .body {
+		gap: 10px;
+		padding-bottom: 36px;
+	}
+
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-muted);
+	}
+
+	.full .meta {
+		gap: 10px;
+		font-size: 12px;
+	}
+
+	.hash {
+		color: var(--syntax-number);
+	}
+
+	.ref {
+		color: var(--color-brand);
+		white-space: nowrap;
+	}
+
+	.compact .when {
+		white-space: nowrap;
+	}
+
+	.msg {
+		font-size: 16px;
+		font-weight: 500;
+	}
+
+	.title {
+		font-family: var(--font-heading);
+		font-size: 30px;
+		line-height: 1.15;
+	}
+
+	.org {
+		font-style: italic;
+		color: var(--color-muted);
+	}
+
+	.summary {
+		font-size: 14px;
+		line-height: 1.5;
+		color: var(--color-muted);
+	}
+
+	.full .summary {
+		font-size: 16px;
+		line-height: 1.6;
+		text-wrap: pretty;
+	}
+
+	.points {
+		margin: 0;
+		padding-left: 1.1em;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 16px;
+		line-height: 1.55;
+	}
+
+	.stats {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		padding-top: 2px;
+		font-family: var(--font-mono);
+		font-size: 11px;
+	}
+
+	.stats .tag-soft {
+		padding: 4px 10px;
+	}
+
+	.stat {
+		padding: 4px 10px;
+		border-radius: var(--radius-pill);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+	}
+
+	.plus {
+		color: var(--syntax-string);
+	}
+
+	.minus {
+		color: var(--syntax-number);
+	}
+</style>

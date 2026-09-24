@@ -1,0 +1,45 @@
+---
+/**
+ * Blockquotes in post bodies render as the design's NOTE callout. EmDash
+ * groups runs of blockquote blocks into one `blockquoteGroup` node (passed as
+ * `node`); a single blockquote comes through Block.astro as slotted content.
+ */
+import { PortableText } from "emdash/ui";
+
+const { node } = Astro.props as { node?: { blocks?: Array<Record<string, unknown>> } };
+const paragraphs = (node?.blocks ?? []).map((b) => ({ ...b, style: "normal" }));
+---
+
+<aside class="note">
+	<span class="note-label">NOTE</span>
+	<div class="note-body">{node ? <PortableText value={paragraphs as any} /> : <p><slot /></p>}</div>
+</aside>
+
+<style>
+	.note {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 20px 24px;
+		border-radius: var(--radius-md);
+		background: var(--color-brand-soft);
+	}
+
+	.note-label {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		color: var(--color-brand);
+	}
+
+	.note-body {
+		font-size: 19px;
+		line-height: 1.55;
+		text-wrap: pretty;
+	}
+
+	.note-body :global(p) {
+		margin: 0;
+	}
+</style>

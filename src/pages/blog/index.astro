@@ -1,0 +1,102 @@
+---
+import { getEmDashCollection, getTaxonomyTermsWithCacheHint } from "emdash";
+import Base from "../../layouts/Base.astro";
+import PostCard from "../../components/PostCard.astro";
+import { emphasize, getProfile, toPostSummary } from "../../lib/content";
+
+const [{ profile, cacheHint: profileHint }, { data: allTags, cacheHint: tagsHint }] = await Promise.all([
+	getProfile(),
+	getTaxonomyTermsWithCacheHint("tag"),
+]);
+
+const tagTerms = allTags.filter((t) => (t.count ?? 0) > 0);
+const requested = Astro.url.searchParams.get("tag");
+const active = tagTerms.find((t) => t.slug === requested)?.slug ?? null;
+
+// A personal blog stays small: load every post once and filter by tag here,
+// so the header count and the #all chip always show the full total.
+const { entries, cacheHint } = await getEmDashCollection("posts", {
+	orderBy: { date: "desc" },
+	limit: 200,
+});
+
+if (Astro.cache?.enabled) {
+	Astro.cache.set(cacheHint);
+	Astro.cache.set(tagsHint);
+	if (profileHint) Astro.cache.set(profileHint);
+}
+
+const total = entries.length;
+const posts = entries.map(toPostSummary).filter((p) => !active || p.tags.some((t) => t.slug === active));
+const [feature, ...rest] = posts;
+---
+
+<Base title="Blog" description={profile?.blog_intro} glow="left">
+	<main class="page blog">
+		<div class="head">
+			<div class="hero">
+				<span class="kicker"><span class="sigil">$</span> ls -lt blog/ | wc -l <span class="ink">→ {total}</span></span>
+				<h1 class="display" set:html={emphasize(profile?.blog_title || "Writing *from production.*")} />
+				{profile?.blog_intro && <p class="lede">{profile.blog_intro}</p>}
+			</div>
+			<a href="/rss.xml" class="chip rss">rss(5) ↗</a>
+		</div>
+
+		<nav class="chip-row" aria-label="Filter by tag">
+			<a href="/blog" class="chip" aria-current={active ? undefined : "page"}>
+				#all <span class="count">{total}</span>
+			</a>
+			{
+				tagTerms.map((t) => (
+					<a href={`/blog?tag=${t.slug}`} class="chip" aria-current={t.slug === active ? "page" : undefined}>
+						#{t.slug} <span class="count">{t.count}</span>
+					</a>
+				))
+			}
+		</nav>
+
+		{feature ? <PostCard post={feature} variant="feature" wide /> : <p class="lede">No posts yet.</p>}
+
+		{
+			rest.length > 0 && (
+				<div class="grid">
+					{rest.map((p) => (
+						<PostCard post={p} variant="grid" />
+					))}
+				</div>
+			)
+		}
+	</main>
+</Base>
+
+<style>
+	.blog {
+		gap: 40px;
+	}
+
+	.head {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px 48px;
+		align-items: flex-end;
+		justify-content: space-between;
+	}
+
+	.head .hero {
+		max-width: 720px;
+	}
+
+	.ink {
+		color: var(--color-text);
+	}
+
+	.rss {
+		padding: 9px 16px;
+	}
+
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+		gap: 20px;
+	}
+</style>

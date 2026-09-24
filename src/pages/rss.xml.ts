@@ -1,30 +1,32 @@
 import type { APIRoute } from "astro";
 import { getEmDashCollection, getSiteSettings } from "emdash";
+import { plainTitle } from "../lib/content";
 
 export const GET: APIRoute = async ({ site, url }) => {
-	const siteUrl = site?.toString() || url.origin;
+	const siteUrl = site?.toString().replace(/\/$/, "") || url.origin;
 	const settings = await getSiteSettings();
-	const siteTitle = settings?.title || "Studio";
-	const siteDescription = settings?.tagline || "Design & Development";
+	const siteTitle = settings?.title || "Thijmen Stavenuiter";
+	const siteDescription = settings?.tagline || "";
 
-	const { entries: projects } = await getEmDashCollection("projects", {
-		orderBy: { published_at: "desc" },
+	const { entries: posts } = await getEmDashCollection("posts", {
+		orderBy: { date: "desc" },
 		limit: 20,
 	});
 
-	const items = projects
-		.map((project) => {
-			if (!project.data.publishedAt) return null;
-			const pubDate = project.data.publishedAt.toUTCString();
+	const items = posts
+		.map((post) => {
+			const date = post.data.date ?? post.data.publishedAt;
+			if (!date) return null;
+			const pubDate = new Date(date).toUTCString();
 
-			const projectUrl = `${siteUrl}/work/${project.id}`;
-			const title = escapeXml(project.data.title || "Untitled");
-			const description = escapeXml(project.data.summary || "");
+			const postUrl = `${siteUrl}/blog/${post.id}`;
+			const title = escapeXml(plainTitle(post.data.title) || "Untitled");
+			const description = escapeXml(post.data.excerpt || "");
 
 			return `    <item>
       <title>${title}</title>
-      <link>${projectUrl}</link>
-      <guid isPermaLink="true">${projectUrl}</guid>
+      <link>${postUrl}</link>
+      <guid isPermaLink="true">${postUrl}</guid>
       <pubDate>${pubDate}</pubDate>
       <description>${description}</description>
     </item>`;

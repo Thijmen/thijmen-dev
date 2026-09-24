@@ -1,0 +1,46 @@
+---
+import { getEmDashCollection } from "emdash";
+import Base from "../layouts/Base.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { emphasize, getProfile } from "../lib/content";
+
+const [{ profile, cacheHint: profileHint }, { entries, cacheHint }] = await Promise.all([
+	getProfile(),
+	getEmDashCollection("projects", { orderBy: { position: "asc" } }),
+]);
+
+if (Astro.cache?.enabled) {
+	Astro.cache.set(cacheHint);
+	if (profileHint) Astro.cache.set(profileHint);
+}
+---
+
+<Base title="Projects" description={profile?.projects_intro} glow="left">
+	<main class="page">
+		<div class="hero">
+			<span class="kicker"><span class="sigil">$</span> ls -la projects/</span>
+			<h1 class="display" set:html={emphasize(profile?.projects_title || "Projects *& open source.*")} />
+			{profile?.projects_intro && <p class="lede">{profile.projects_intro}</p>}
+		</div>
+
+		{
+			entries.length > 0 ? (
+				<div class="grid">
+					{entries.map((e) => (
+						<ProjectCard project={e.data as any} />
+					))}
+				</div>
+			) : (
+				<p class="lede">Nothing here yet.</p>
+			)
+		}
+	</main>
+</Base>
+
+<style>
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+		gap: 20px;
+	}
+</style>
