@@ -49,6 +49,7 @@ Workers Builds deploys the site: build command `pnpm build`, production deploy c
 
 - Each deploy script applies EmDash core migrations to its D1 (`thijmen-dev` / `thijmen-dev-preview`, selected with `--account-id` + `--d1`), then deploys, then runs `emdash migrate --check`. The steps are chained with `&&`, so a failed migrate never ships code. `deploy:prod` first logs a D1 Time Travel bookmark.
 - Preview must deploy with `wrangler preview`: the `previews` block in `wrangler.jsonc` (preview D1/R2/KV) only applies there. `wrangler versions upload` would bind the prod DB.
+- Prod sets `EMDASH_SITE_URL` in `wrangler.jsonc` `vars` (read through `nodejs_compat_populate_process_env`). EmDash 0.41's setup wizard refuses to run without a configured site URL. Previews have no fixed hostname: to rerun the wizard on a reset preview D1, add the branch's preview URL to `previews.vars` in a temporary commit and revert it afterwards.
 - The Worker runs with `migrations.runtime: "check"`: it returns 503 while known migrations are pending and never migrates itself. Dev stays `auto`.
 - The `--expected-target-fingerprint` values in `package.json` are the reviewed targets. Update one only after `pnpm migrate:status:prod|preview` shows the intended account and database.
 - The Workers Builds API token needs **D1 Edit**. Locally, the status scripts need `CLOUDFLARE_API_TOKEN` (the `wrangler login` session is not used).
