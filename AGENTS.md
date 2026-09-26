@@ -56,6 +56,13 @@ Workers Builds deploys the site: build command `pnpm build`, production deploy c
 - Spotify secrets: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN` (`wrangler secret put`, plus `.dev.vars` locally). Get the refresh token with `node scripts/spotify-auth.mjs` (redirect URI `http://127.0.0.1:8888/callback`).
 - All branches share the preview D1. If a branch with a newer EmDash migrated it, older branches fail their build on unknown migration records: rebase, or reset preview from a prod export.
 
+## Dependency updates
+
+- Renovate (`renovate.json`) opens grouped PRs Monday mornings; the Dependency Dashboard issue lists everything pending. `.github/workflows/ci.yml` (install, `astro check`, build) gates them.
+- Minor/patch of `wrangler`, `@cloudflare/workers-types` (monthly), `@astrojs/check` and `shiki` automerge on green CI. Astro, React and all majors wait for review.
+- EmDash (`emdash`, `@emdash-cms/*`) needs approval in the dashboard before Renovate creates a branch, because that branch's preview deploy migrates the shared preview D1. Merge it by hand, then check `pnpm migrate:status:prod`.
+- Renovate's `minimumReleaseAge` mirrors the pnpm cooldown in `pnpm-workspace.yaml`; change both together.
+
 ## This Site
 
 Personal site of Thijmen Stavenuiter, Staff Engineer: a blog, resume, open-source projects and a /uses page. The design came from a claude.ai/design project ("Responsive Preview"). Its voice is an engineer's terminal: `$ ls -lt blog/`, `~/.profile` windows, git-log timelines, `man thijmen`, a ⌘K command palette. Near-monochrome surfaces with one purple accent.
