@@ -1,0 +1,58 @@
+---
+import { Image } from "emdash/ui";
+import { hasImage } from "../../lib/content";
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { label?: string | null; items?: Array<{ image?: unknown; caption?: string | null }> | null };
+}
+
+const { value } = Astro.props;
+const items = (value.items ?? []).filter((i) => hasImage(i.image));
+---
+
+{
+	items.length > 0 && (
+		<BlockSection label={value.label} note={`ls *.jpg | wc -l → ${items.length}`}>
+			<div class="gallery">
+				{items.map((i) => (
+					<figure>
+						<div class="frame">
+							<Image image={i.image as any} class="cover-img" />
+						</div>
+						{i.caption && <figcaption>{i.caption}</figcaption>}
+					</figure>
+				))}
+			</div>
+		</BlockSection>
+	)
+}
+
+<style>
+	.gallery {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+		gap: 20px;
+	}
+
+	figure {
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.frame {
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+		border-radius: var(--radius-lg);
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+
+	figcaption {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+</style>

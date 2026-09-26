@@ -1,0 +1,14 @@
+---
+import CodeBlock from "../pt/CodeBlock.astro";
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { title?: string | null; language?: string | null; code: string };
+}
+
+const { value } = Astro.props;
+---
+
+<BlockSection narrow>
+	<CodeBlock node={{ code: value.code, language: value.language ?? undefined, filename: value.title ?? undefined }} />
+</BlockSection>

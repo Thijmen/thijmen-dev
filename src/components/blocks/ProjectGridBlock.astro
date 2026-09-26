@@ -1,0 +1,48 @@
+---
+import { getEmDashCollection } from "emdash";
+import ProjectCard from "../ProjectCard.astro";
+import { projectHref } from "../../lib/content";
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { label?: string | null; featured_only?: boolean | null; limit?: number | null; variant?: string | null };
+}
+
+const { value } = Astro.props;
+const variant = value.variant === "full" ? "full" : "compact";
+
+// Booleans are stored as 0/1; `where` takes strings and SQLite coerces "1".
+const { entries, cacheHint } = await getEmDashCollection("projects", {
+	...(value.featured_only ? { where: { featured: "1" } } : {}),
+	orderBy: { position: "asc" },
+	...(value.limit ? { limit: value.limit } : {}),
+});
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+---
+
+{
+	entries.length > 0 && (
+		<BlockSection label={value.label} note="ls -la projects/">
+			<div class:list={["projects", variant]}>
+				{entries.map((e) => (
+					<ProjectCard project={e.data as any} variant={variant} href={projectHref(e)} />
+				))}
+			</div>
+		</BlockSection>
+	)
+}
+
+<style>
+	.projects {
+		display: grid;
+		gap: 20px;
+	}
+
+	.compact {
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+	}
+
+	.full {
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+	}
+</style>

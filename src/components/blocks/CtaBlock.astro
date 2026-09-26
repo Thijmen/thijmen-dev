@@ -1,0 +1,45 @@
+---
+import { sanitizeHref } from "emdash";
+import { emphasize } from "../../lib/content";
+
+interface Props {
+	value: { text: string; link_label?: string | null; link_url: string };
+}
+
+const { value } = Astro.props;
+---
+
+<a href={sanitizeHref(value.link_url)} class="accent-card cta">
+	<span class="cta-text" set:html={emphasize(value.text)} />
+	<span class="cta-link">{value.link_label || `$ open ${value.link_url} →`}</span>
+</a>
+
+<style>
+	/* Same card as the home page's mail CTA. */
+	.cta {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 18px;
+		max-width: 700px;
+		padding: 26px 28px;
+		text-decoration: none;
+	}
+
+	.cta:hover {
+		text-decoration: none;
+	}
+
+	.cta-text {
+		font-family: var(--font-heading);
+		font-size: 30px;
+		line-height: 1.2;
+		text-wrap: balance;
+	}
+
+	.cta-link {
+		font-family: var(--font-mono);
+		font-size: 13px;
+		overflow-wrap: anywhere;
+	}
+</style>

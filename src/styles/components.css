@@ -193,6 +193,68 @@
 		color: inherit;
 	}
 
+	/* Prose: Portable Text bodies (posts, the `prose` block) ------------ */
+	.prose {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		font-family: var(--font-heading);
+		font-size: 21px;
+		line-height: 1.65;
+	}
+
+	.prose p {
+		margin: 0;
+		text-wrap: pretty;
+	}
+
+	.prose h2 {
+		margin: 24px 0 0;
+		font-size: 36px;
+		line-height: 1.15;
+		font-weight: 400;
+		letter-spacing: -0.015em;
+		scroll-margin-top: 24px;
+	}
+
+	.prose h3 {
+		margin: 12px 0 0;
+		font-size: 26px;
+		font-weight: 400;
+	}
+
+	.prose ul,
+	.prose ol {
+		margin: 0;
+		padding-left: 1.2em;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.prose p code,
+	.prose li code {
+		font-family: var(--font-mono);
+		font-size: 0.78em;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		padding: 2px 7px;
+	}
+
+	.prose blockquote {
+		margin: 0;
+	}
+
+	.prose a {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.prose img {
+		border-radius: var(--radius-md);
+	}
+
 	/* Gradient placeholder for missing covers */
 	.placeholder {
 		display: grid;

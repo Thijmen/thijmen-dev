@@ -21,15 +21,18 @@ interface Props {
 	project: Project;
 	variant?: "full" | "compact";
 	showImage?: boolean;
+	/** Case-study page; the title links here instead of the repo. */
+	href?: string;
 }
 
-const { project: p, variant = "full", showImage = true } = Astro.props;
+const { project: p, variant = "full", showImage = true, href } = Astro.props;
+const titleHref = href ?? p.url;
 const status = (p.project_status ?? "active").toLowerCase();
 ---
 
 {
 	variant === "compact" ? (
-		<a href="/projects" class="card compact">
+		<a href={href ?? "/projects"} class="card compact">
 			<span class="name">{p.title}</span>
 			{p.summary && <span class="desc">{p.summary}</span>}
 			{p.language && <span class="lang">● {p.language}</span>}
@@ -47,8 +50,8 @@ const status = (p.project_status ?? "active").toLowerCase();
 			)}
 			<div class="body">
 				<div class="head">
-					{p.url ? (
-						<a href={p.url} class="name">
+					{titleHref ? (
+						<a href={titleHref} class="name">
 							{p.title}
 						</a>
 					) : (

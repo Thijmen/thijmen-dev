@@ -1,8 +1,8 @@
 ---
 import { getEmDashCollection } from "emdash";
-import Base from "../layouts/Base.astro";
-import ProjectCard from "../components/ProjectCard.astro";
-import { emphasize, getProfile } from "../lib/content";
+import Base from "../../layouts/Base.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import { emphasize, getProfile, projectHref } from "../../lib/content";
 
 const [{ profile, cacheHint: profileHint }, { entries, cacheHint }] = await Promise.all([
 	getProfile(),
@@ -27,7 +27,7 @@ if (Astro.cache?.enabled) {
 			entries.length > 0 ? (
 				<div class="grid">
 					{entries.map((e) => (
-						<ProjectCard project={e.data as any} />
+						<ProjectCard project={e.data as any} href={projectHref(e)} />
 					))}
 				</div>
 			) : (

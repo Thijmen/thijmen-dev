@@ -3,7 +3,7 @@
 
 /// <reference types="emdash/locals" />
 
-import type { ContentBylineCredit, TaxonomyTerm, PortableTextBlock } from "emdash";
+import type { BylineSummary, ContentBylineCredit, TaxonomyTerm, PortableTextBlock } from "emdash";
 
 export interface DeskItem {
   id: string;
@@ -16,6 +16,157 @@ export interface DeskItem {
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
+export interface PageBodyProseV1Block {
+  _type: "prose";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "body": PortableTextBlock[];
+}
+
+export type PageBodyProseBlock = PageBodyProseV1Block;
+
+export interface PageBodyNoteV1Block {
+  _type: "note";
+  _version: 1;
+  _key: string;
+  "body": string;
+}
+
+export type PageBodyNoteBlock = PageBodyNoteV1Block;
+
+export interface PageBodyTerminalV1Block {
+  _type: "terminal";
+  _version: 1;
+  _key: string;
+  "title"?: string | null;
+  "language"?: "shellscript" | "typescript" | "tsx" | "javascript" | "json" | "yaml" | "kotlin" | "java" | "go" | "python" | "sql" | "css" | "html" | "diff" | null;
+  "code": string;
+}
+
+export type PageBodyTerminalBlock = PageBodyTerminalV1Block;
+
+export interface PageBodyFigureV1Block {
+  _type: "figure";
+  _version: 1;
+  _key: string;
+  "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  "caption"?: string | null;
+  "width"?: "normal" | "wide" | null;
+}
+
+export type PageBodyFigureBlock = PageBodyFigureV1Block;
+
+export interface PageBodyGalleryV1Block {
+  _type: "gallery";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
+}
+
+export type PageBodyGalleryBlock = PageBodyGalleryV1Block;
+
+export interface PageBodyCtaV1Block {
+  _type: "cta";
+  _version: 1;
+  _key: string;
+  "text": string;
+  "link_label"?: string | null;
+  "link_url": string;
+}
+
+export type PageBodyCtaBlock = PageBodyCtaV1Block;
+
+export interface PageBodyLinksV1Block {
+  _type: "links";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "title": string; "url": string; "meta"?: string | null }[] | null;
+}
+
+export type PageBodyLinksBlock = PageBodyLinksV1Block;
+
+export interface PageBodyFaqV1Block {
+  _type: "faq";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "question": string; "answer": string }[] | null;
+}
+
+export type PageBodyFaqBlock = PageBodyFaqV1Block;
+
+export interface PageBodyPostListV1Block {
+  _type: "post_list";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "tag"?: string | null;
+  "limit"?: number | null;
+  "variant"?: "row" | "grid" | "feature" | null;
+}
+
+export type PageBodyPostListBlock = PageBodyPostListV1Block;
+
+export interface PageBodyProjectGridV1Block {
+  _type: "project_grid";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "featured_only"?: boolean | null;
+  "limit"?: number | null;
+  "variant"?: "compact" | "full" | null;
+}
+
+export type PageBodyProjectGridBlock = PageBodyProjectGridV1Block;
+
+export interface PageBodyHistoryV1Block {
+  _type: "history";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "limit"?: number | null;
+  "variant"?: "compact" | "full" | null;
+}
+
+export type PageBodyHistoryBlock = PageBodyHistoryV1Block;
+
+export interface PageBodyNowPlayingV1Block {
+  _type: "now_playing";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "note"?: string | null;
+  "show_queue"?: boolean | null;
+  "show_playlists"?: boolean | null;
+}
+
+export type PageBodyNowPlayingBlock = PageBodyNowPlayingV1Block;
+
+export type PageBodyBlock = PageBodyProseBlock | PageBodyNoteBlock | PageBodyTerminalBlock | PageBodyFigureBlock | PageBodyGalleryBlock | PageBodyCtaBlock | PageBodyLinksBlock | PageBodyFaqBlock | PageBodyPostListBlock | PageBodyProjectGridBlock | PageBodyHistoryBlock | PageBodyNowPlayingBlock;
+
+export interface Page {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  kicker?: string;
+  lede?: string;
+  glow?: "left" | "right";
+  description?: string;
+  og_image?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  body?: PageBodyBlock[];
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
@@ -31,9 +182,85 @@ export interface Playlist {
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
+
+export interface PostSectionsNoteV1Block {
+  _type: "note";
+  _version: 1;
+  _key: string;
+  "body": string;
+}
+
+export type PostSectionsNoteBlock = PostSectionsNoteV1Block;
+
+export interface PostSectionsFigureV1Block {
+  _type: "figure";
+  _version: 1;
+  _key: string;
+  "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  "caption"?: string | null;
+  "width"?: "normal" | "wide" | null;
+}
+
+export type PostSectionsFigureBlock = PostSectionsFigureV1Block;
+
+export interface PostSectionsGalleryV1Block {
+  _type: "gallery";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
+}
+
+export type PostSectionsGalleryBlock = PostSectionsGalleryV1Block;
+
+export interface PostSectionsCtaV1Block {
+  _type: "cta";
+  _version: 1;
+  _key: string;
+  "text": string;
+  "link_label"?: string | null;
+  "link_url": string;
+}
+
+export type PostSectionsCtaBlock = PostSectionsCtaV1Block;
+
+export interface PostSectionsLinksV1Block {
+  _type: "links";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "title": string; "url": string; "meta"?: string | null }[] | null;
+}
+
+export type PostSectionsLinksBlock = PostSectionsLinksV1Block;
+
+export interface PostSectionsFaqV1Block {
+  _type: "faq";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "question": string; "answer": string }[] | null;
+}
+
+export type PostSectionsFaqBlock = PostSectionsFaqV1Block;
+
+export interface PostSectionsPostListV1Block {
+  _type: "post_list";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "tag"?: string | null;
+  "limit"?: number | null;
+  "variant"?: "row" | "grid" | "feature" | null;
+}
+
+export type PostSectionsPostListBlock = PostSectionsPostListV1Block;
+
+export type PostSectionsBlock = PostSectionsNoteBlock | PostSectionsFigureBlock | PostSectionsGalleryBlock | PostSectionsCtaBlock | PostSectionsLinksBlock | PostSectionsFaqBlock | PostSectionsPostListBlock;
 
 export interface Post {
   id: string;
@@ -45,9 +272,11 @@ export interface Post {
   featured_image?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   cover_caption?: string;
   content?: PortableTextBlock[];
+  sections?: PostSectionsBlock[];
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
@@ -79,9 +308,83 @@ export interface Profile {
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
+
+export interface ProjectBodyProseV1Block {
+  _type: "prose";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "body": PortableTextBlock[];
+}
+
+export type ProjectBodyProseBlock = ProjectBodyProseV1Block;
+
+export interface ProjectBodyNoteV1Block {
+  _type: "note";
+  _version: 1;
+  _key: string;
+  "body": string;
+}
+
+export type ProjectBodyNoteBlock = ProjectBodyNoteV1Block;
+
+export interface ProjectBodyTerminalV1Block {
+  _type: "terminal";
+  _version: 1;
+  _key: string;
+  "title"?: string | null;
+  "language"?: "shellscript" | "typescript" | "tsx" | "javascript" | "json" | "yaml" | "kotlin" | "java" | "go" | "python" | "sql" | "css" | "html" | "diff" | null;
+  "code": string;
+}
+
+export type ProjectBodyTerminalBlock = ProjectBodyTerminalV1Block;
+
+export interface ProjectBodyFigureV1Block {
+  _type: "figure";
+  _version: 1;
+  _key: string;
+  "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  "caption"?: string | null;
+  "width"?: "normal" | "wide" | null;
+}
+
+export type ProjectBodyFigureBlock = ProjectBodyFigureV1Block;
+
+export interface ProjectBodyGalleryV1Block {
+  _type: "gallery";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
+}
+
+export type ProjectBodyGalleryBlock = ProjectBodyGalleryV1Block;
+
+export interface ProjectBodyLinksV1Block {
+  _type: "links";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "title": string; "url": string; "meta"?: string | null }[] | null;
+}
+
+export type ProjectBodyLinksBlock = ProjectBodyLinksV1Block;
+
+export interface ProjectBodyFaqV1Block {
+  _type: "faq";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "question": string; "answer": string }[] | null;
+}
+
+export type ProjectBodyFaqBlock = ProjectBodyFaqV1Block;
+
+export type ProjectBodyBlock = ProjectBodyProseBlock | ProjectBodyNoteBlock | ProjectBodyTerminalBlock | ProjectBodyFigureBlock | ProjectBodyGalleryBlock | ProjectBodyLinksBlock | ProjectBodyFaqBlock;
 
 export interface Project {
   id: string;
@@ -97,9 +400,11 @@ export interface Project {
   url?: string;
   featured?: boolean;
   position?: number;
+  body?: ProjectBodyBlock[];
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
@@ -122,6 +427,7 @@ export interface Role {
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
@@ -138,6 +444,7 @@ export interface Tool {
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
@@ -155,6 +462,7 @@ export interface Track {
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  byline?: BylineSummary | null;
   bylines?: ContentBylineCredit[];
   terms?: Record<string, TaxonomyTerm[]>;
 }
@@ -162,6 +470,7 @@ export interface Track {
 declare module "emdash" {
   interface EmDashCollections {
     desk_items: DeskItem;
+    pages: Page;
     playlists: Playlist;
     posts: Post;
     profile: Profile;

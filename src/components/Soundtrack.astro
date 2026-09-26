@@ -1,0 +1,679 @@
+---
+/**
+ * SOUNDTRACK: Spotify now playing (or last played) with the top-tracks
+ * queue and playlists. Without Spotify it simulates playback over the CMS
+ * `tracks`. Used on /uses and by the `now_playing` block.
+ */
+import { getEmDashCollection } from "emdash";
+import { Image } from "emdash/ui";
+import SectionLabel from "./SectionLabel.astro";
+import { hasImage } from "../lib/content";
+import { getNowPlaying, getPlaylist, getTopTracks } from "../lib/spotify";
+
+interface Props {
+	label?: string;
+	note?: string;
+	showQueue?: boolean;
+	showPlaylists?: boolean;
+}
+
+const { label = "SOUNDTRACK", note, showQueue = true, showPlaylists = true } = Astro.props;
+
+const byPosition = { orderBy: { position: "asc" as const } };
+const [tracksRes, playlistsRes, nowPlaying, topTracks] = await Promise.all([
+	getEmDashCollection("tracks", byPosition),
+	showPlaylists ? getEmDashCollection("playlists", byPosition) : null,
+	getNowPlaying(),
+	getTopTracks(5),
+]);
+// Name, cover and track count from Spotify; the CMS entry is the fallback.
+const spotifyPlaylists = await Promise.all((playlistsRes?.entries ?? []).map((e) => getPlaylist(e.data.url)));
+
+if (Astro.cache?.enabled) {
+	Astro.cache.set(tracksRes.cacheHint);
+	if (playlistsRes) Astro.cache.set(playlistsRes.cacheHint);
+	if (nowPlaying) Astro.cache.set({ maxAge: 30 });
+}
+
+// Fallback album art when a track or playlist has no cover image.
+const ARTS = [
+	"linear-gradient(135deg,oklch(0.55 0.2 295),oklch(0.4 0.15 330))",
+	"linear-gradient(135deg,oklch(0.6 0.15 250),oklch(0.35 0.12 290))",
+	"linear-gradient(135deg,oklch(0.7 0.14 60),oklch(0.45 0.18 20))",
+	"linear-gradient(135deg,oklch(0.55 0.18 340),oklch(0.3 0.1 280))",
+	"linear-gradient(135deg,oklch(0.85 0.02 300),oklch(0.5 0.03 300))",
+];
+const art = (i: number) => ARTS[i % ARTS.length];
+const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+const ago = (iso: string) => {
+	const min = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+	if (min < 60) return `${min}m ago`;
+	if (min < 60 * 24) return `${Math.round(min / 60)}h ago`;
+	return `${Math.round(min / 60 / 24)}d ago`;
+};
+
+// Queue: Spotify top tracks (last ~4 weeks), else the CMS `tracks`.
+type Row = { title: string; artist: string; album: string; s: number; len: string; url: string | null; thumb: string | null; image?: unknown };
+const tracks: Row[] = topTracks.length
+	? topTracks.map((t) => ({ ...t, len: fmt(t.s) }))
+	: tracksRes.entries.map((e) => {
+			const s = Number(e.data.duration_seconds) || 0;
+			return { title: e.data.title, artist: e.data.artist ?? "", album: e.data.album ?? "", s, len: fmt(s), url: null, thumb: null, image: e.data.cover };
+		});
+
+// Live mode: the player shows Spotify's now playing and polls /api/now-playing.
+// Otherwise it simulates playback over the queue, as before.
+const live = nowPlaying !== null;
+const playerData = JSON.stringify(
+	live ? { live: nowPlaying } : { tracks: tracks.map(({ title, artist, album, s, len }) => ({ title, artist, album, s, len })) },
+);
+const first = live ? { ...nowPlaying, len: fmt(nowPlaying.s) } : tracks[0];
+const firstStatus = !live || nowPlaying.playing ? "NOW PLAYING" : nowPlaying.playedAt ? `LAST PLAYED · ${ago(nowPlaying.playedAt)}` : "PAUSED";
+const firstElapsed = live ? Math.min(nowPlaying.progress, nowPlaying.s) : 0;
+
+const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
+	const sp = spotifyPlaylists[i];
+	return { title: sp?.name || e.data.title, meta: sp?.meta || e.data.meta, url: sp?.url || e.data.url, cover: sp?.cover ?? null };
+});
+---
+
+{
+	first && (
+		<section class="soundtrack">
+			<SectionLabel label={label} note={note || undefined} rule />
+			<div class:list={["music", { solo: !showQueue, paused: live && !nowPlaying.playing }]} data-player={playerData}>
+				<div class="player">
+					<div class="cover">
+						{live ? (
+							<div class="cover-art" style={`background:${art(0)}`}>
+								<img
+									class="cover-img"
+									src={nowPlaying.cover ?? undefined}
+									alt=""
+									width="180"
+									height="180"
+									data-cover-img
+									hidden={!nowPlaying.cover}
+								/>
+							</div>
+						) : (
+							tracks.map((t, i) => (
+								<div class="cover-art" style={`background:${art(i)}`} data-cover={i} hidden={i !== 0}>
+									{hasImage(t.image) && <Image image={t.image as any} class="cover-img" />}
+								</div>
+							))
+						)}
+					</div>
+					<div class="player-body">
+						<div class="status">
+							<span class="eq" aria-hidden="true">
+								<span />
+								<span />
+								<span />
+								<span />
+							</span>
+							<span data-status>{firstStatus}</span>
+						</div>
+						<div class="now">
+							<span class="now-title" data-title>{first.title}</span>
+							<span class="now-sub" data-sub>{[first.artist, first.album].filter(Boolean).join(" · ")}</span>
+						</div>
+						<div class="scrub">
+							<div class="bar">
+								<div class="bar-fill" data-fill style={first.s ? `width:${(firstElapsed / first.s) * 100}%` : undefined} />
+							</div>
+							<div class="times"><span data-elapsed>{fmt(firstElapsed)}</span><span data-len>{first.len}</span></div>
+						</div>
+						<div class="controls">
+							{live ? (
+								<a class="open" href={nowPlaying.url ?? "#"} data-open hidden={!nowPlaying.url} target="_blank" rel="noopener">
+									open in spotify ↗
+								</a>
+							) : (
+								<>
+									<button type="button" class="ctl" data-prev aria-label="Previous track">⏮</button>
+									<button type="button" class="ctl play" data-play aria-label="Play or pause">❚❚</button>
+									<button type="button" class="ctl" data-next aria-label="Next track">⏭</button>
+								</>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{showQueue && (
+					<div class="card queue">
+						<div class="queue-head">
+							<span class="queue-title">On repeat</span>
+							<span class="mono-muted">last 30 days</span>
+						</div>
+						{tracks.map((t, i) => {
+							const Tag = live ? (t.url ? "a" : "div") : "button";
+							const attrs = live
+								? t.url ? { href: t.url, target: "_blank", rel: "noopener" } : {}
+								: { type: "button" as const, "data-track": i };
+							return (
+								<Tag class="q" {...attrs}>
+									<span class="q-n">{String(i + 1).padStart(2, "0")}</span>
+									<span class="q-art" style={`background:${art(i)}`}>
+										{t.thumb ? (
+											<img class="cover-img" src={t.thumb} alt="" width="44" height="44" loading="lazy" />
+										) : (
+											hasImage(t.image) && <Image image={t.image as any} class="cover-img" />
+										)}
+									</span>
+									<span class="q-text">
+										<span class="q-title">{t.title}</span>
+										<span class="q-artist">{t.artist}</span>
+									</span>
+									<span class="mono-muted">{t.len}</span>
+								</Tag>
+							);
+						})}
+					</div>
+				)}
+			</div>
+
+			{playlists.length > 0 && (
+				<div class="playlists">
+					{playlists.map((p, i) => (
+						<a href={p.url || "#"} class="card playlist">
+							<span class="pl-art" style={`background:${art(i + 1)}`}>
+								{p.cover && <img class="cover-img" src={p.cover} alt="" width="56" height="56" loading="lazy" />}
+							</span>
+							<span class="pl-text">
+								<span class="pl-name">{p.title}</span>
+								<span class="pl-meta">{p.meta}</span>
+							</span>
+						</a>
+					))}
+				</div>
+			)}
+		</section>
+	)
+}
+
+<script>
+	// Every [data-player] on the page (the block may appear more than once).
+	document.querySelectorAll<HTMLElement>("[data-player]").forEach(initPlayer);
+
+	function initPlayer(root: HTMLElement) {
+		type Live = {
+			title: string;
+			artist: string;
+			album: string;
+			cover: string | null;
+			url: string | null;
+			s: number;
+			playing: boolean;
+			progress: number;
+			fetchedAt: number;
+			playedAt: string | null;
+		};
+		const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+		const data: { live?: Live; tracks?: Array<{ title: string; artist: string; album: string; s: number; len: string }> } =
+			JSON.parse(root.dataset.player || "{}");
+
+		// Live now-playing card: Spotify state from /api/now-playing, polled every
+		// 30s while the tab is visible; progress is interpolated in between.
+		if (data.live) {
+			const $ = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+			const img = $<HTMLImageElement>("[data-cover-img]");
+			const open = $<HTMLAnchorElement>("[data-open]");
+			let np = data.live;
+
+			const ago = (iso: string) => {
+				const min = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+				if (min < 60) return `${min}m ago`;
+				if (min < 60 * 24) return `${Math.round(min / 60)}h ago`;
+				return `${Math.round(min / 60 / 24)}d ago`;
+			};
+			const elapsed = () =>
+				Math.max(0, Math.min(np.s, np.progress + (np.playing ? Math.floor((Date.now() - np.fetchedAt) / 1000) : 0)));
+
+			const render = () => {
+				const t = elapsed();
+				$("[data-title]").textContent = np.title;
+				$("[data-sub]").textContent = [np.artist, np.album].filter(Boolean).join(" · ");
+				$("[data-len]").textContent = fmtTime(np.s);
+				$("[data-elapsed]").textContent = fmtTime(t);
+				$("[data-fill]").style.width = `${np.s ? (t / np.s) * 100 : 0}%`;
+				$("[data-status]").textContent = np.playing
+					? "NOW PLAYING"
+					: np.playedAt
+						? `LAST PLAYED · ${ago(np.playedAt)}`
+						: "PAUSED";
+				root.classList.toggle("paused", !np.playing);
+				if (np.cover && img.src !== np.cover) img.src = np.cover;
+				img.hidden = !np.cover;
+				if (np.url) open.href = np.url;
+				open.hidden = !np.url;
+			};
+
+			let inFlight = false;
+			const poll = async () => {
+				if (inFlight || document.visibilityState !== "visible") return;
+				inFlight = true;
+				try {
+					const res = await fetch("/api/now-playing");
+					const next: Live | null = res.ok ? await res.json() : null;
+					if (next) {
+						np = next;
+						render();
+					}
+				} catch {
+					// Keep showing the last known state.
+				} finally {
+					inFlight = false;
+				}
+			};
+
+			let lastPoll = Date.now();
+			setInterval(() => {
+				// Poll every 30s, or right after the current track should have ended.
+				const ended = np.playing && elapsed() >= np.s;
+				if (Date.now() - lastPoll >= 30_000 || (ended && Date.now() - lastPoll >= 5_000)) {
+					lastPoll = Date.now();
+					poll();
+				}
+				if (np.playing) render();
+			}, 1000);
+			document.addEventListener("visibilitychange", () => {
+				if (document.visibilityState === "visible") {
+					lastPoll = Date.now();
+					poll();
+				}
+			});
+			render();
+		}
+
+		// Simulated now-playing card over the CMS tracks: advances a fake clock, no audio.
+		if (data.tracks?.length) {
+			const tracks = data.tracks;
+			const $ = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+			const covers = [...root.querySelectorAll<HTMLElement>("[data-cover]")];
+			const rows = [...root.querySelectorAll<HTMLButtonElement>("[data-track]")];
+			const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+			let i = 0;
+			let t = Math.min(74, Math.max(0, (tracks[0]?.s ?? 1) - 1));
+			let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+			const render = () => {
+				const tr = tracks[i];
+				$("[data-title]").textContent = tr.title;
+				$("[data-sub]").textContent = [tr.artist, tr.album].filter(Boolean).join(" · ");
+				$("[data-len]").textContent = tr.len;
+				$("[data-elapsed]").textContent = fmt(t);
+				$("[data-fill]").style.width = `${tr.s ? (t / tr.s) * 100 : 0}%`;
+				$("[data-status]").textContent = playing ? "NOW PLAYING" : "PAUSED";
+				$("[data-play]").textContent = playing ? "❚❚" : "▶";
+				root.classList.toggle("paused", !playing);
+				covers.forEach((c, k) => (c.hidden = k !== i));
+				rows.forEach((r, k) => {
+					r.classList.toggle("current", k === i);
+					r.querySelector(".q-n")!.textContent = k === i ? "▶" : String(k + 1).padStart(2, "0");
+				});
+			};
+			const go = (k: number) => {
+				i = (k + tracks.length) % tracks.length;
+				t = 0;
+				playing = true;
+				render();
+			};
+
+			$("[data-play]").addEventListener("click", () => {
+				playing = !playing;
+				render();
+			});
+			$("[data-prev]").addEventListener("click", () => go(i - 1));
+			$("[data-next]").addEventListener("click", () => go(i + 1));
+			rows.forEach((r, k) => r.addEventListener("click", () => go(k)));
+
+			setInterval(() => {
+				if (!playing) return;
+				if (t + 1 >= tracks[i].s) go(i + 1);
+				else {
+					t++;
+					render();
+				}
+			}, 1000);
+			render();
+		}
+	}
+</script>
+
+<style>
+	.soundtrack {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.mono-muted {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.music {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+		gap: 20px;
+	}
+
+	.player {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: stretch;
+		gap: 24px;
+		padding: 24px;
+		border-radius: var(--radius-xl);
+		background: var(--player-bg);
+		color: var(--player-text);
+	}
+
+	.cover {
+		position: relative;
+		flex: 0 0 180px;
+		height: 180px;
+		overflow: hidden;
+		border-radius: 14px;
+	}
+
+	.cover-art {
+		position: absolute;
+		inset: 0;
+	}
+
+	.player-body {
+		flex: 1 1 200px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
+	.status {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--player-accent);
+	}
+
+	.eq {
+		display: flex;
+		align-items: flex-end;
+		gap: 2px;
+		height: 14px;
+	}
+
+	.eq span {
+		display: block;
+		width: 3px;
+		height: 14px;
+		border-radius: 2px;
+		background: var(--player-accent);
+		transform-origin: bottom;
+		animation: eq 0.7s ease-in-out infinite;
+	}
+
+	.eq span:nth-child(2) {
+		animation-duration: 0.87s;
+		animation-delay: 0.1s;
+	}
+
+	.eq span:nth-child(3) {
+		animation-duration: 1.04s;
+		animation-delay: 0.2s;
+	}
+
+	.eq span:nth-child(4) {
+		animation-duration: 1.21s;
+		animation-delay: 0.3s;
+	}
+
+	.paused .eq span {
+		animation: none;
+		transform: scaleY(0.3);
+	}
+
+	@keyframes eq {
+		0%,
+		100% {
+			transform: scaleY(0.3);
+		}
+		50% {
+			transform: scaleY(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.eq span {
+			animation: none;
+			transform: scaleY(0.6);
+		}
+	}
+
+	.now {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.now-title {
+		font-family: var(--font-heading);
+		font-size: 34px;
+		line-height: 1.05;
+		letter-spacing: -0.015em;
+	}
+
+	.now-sub {
+		font-size: 15px;
+		opacity: 0.75;
+	}
+
+	.scrub {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.bar {
+		height: 4px;
+		overflow: hidden;
+		border-radius: var(--radius-pill);
+		background: oklch(1 0 0 / 0.18);
+	}
+
+	.bar-fill {
+		height: 100%;
+		width: 0;
+		border-radius: var(--radius-pill);
+		background: var(--player-accent);
+	}
+
+	.times {
+		display: flex;
+		justify-content: space-between;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		opacity: 0.7;
+	}
+
+	.controls {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.ctl {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: 1px solid oklch(1 0 0 / 0.25);
+		background: transparent;
+		color: inherit;
+		font-size: 12px;
+		cursor: pointer;
+	}
+
+	.open {
+		padding: 9px 16px;
+		border-radius: var(--radius-pill);
+		border: 1px solid oklch(1 0 0 / 0.25);
+		color: inherit;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		text-decoration: none;
+	}
+
+	.open:hover {
+		border-color: var(--player-accent);
+		color: var(--player-accent);
+	}
+
+	.ctl.play {
+		width: 44px;
+		height: 44px;
+		border: 0;
+		background: var(--player-accent);
+		color: var(--player-on-accent);
+		font-size: 15px;
+	}
+
+	.queue {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 22px 24px;
+		border-radius: var(--radius-xl);
+	}
+
+	.queue-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		padding-bottom: 8px;
+	}
+
+	.queue-title {
+		font-size: 16px;
+		font-weight: 600;
+	}
+
+	.q {
+		display: grid;
+		grid-template-columns: 22px 44px minmax(0, 1fr) auto;
+		gap: 14px;
+		align-items: center;
+		margin: 0 -10px;
+		padding: 8px 10px;
+		border: 0;
+		border-radius: 12px;
+		background: transparent;
+		color: var(--color-text);
+		font: inherit;
+		text-align: left;
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+	div.q {
+		cursor: default;
+	}
+
+	.q:hover {
+		background: var(--color-surface);
+	}
+
+	.q.current {
+		background: var(--color-brand-soft);
+	}
+
+	.q-n {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.current .q-n {
+		color: var(--color-brand);
+	}
+
+	.q-art {
+		width: 44px;
+		height: 44px;
+		overflow: hidden;
+		border-radius: 8px;
+	}
+
+	.q-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.q-title,
+	.q-artist {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.q-title {
+		font-size: 15px;
+		font-weight: 500;
+	}
+
+	.q-artist {
+		font-size: 13px;
+		color: var(--color-muted);
+	}
+
+	.playlists {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+		gap: 20px;
+	}
+
+	.playlist {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 14px;
+	}
+
+	.pl-art {
+		flex: none;
+		width: 56px;
+		height: 56px;
+		overflow: hidden;
+		border-radius: 12px;
+	}
+
+	.pl-text {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.pl-name {
+		font-size: 15px;
+		font-weight: 500;
+	}
+
+	.pl-meta {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-muted);
+	}
+
+	.music.solo {
+		grid-template-columns: minmax(0, 1fr);
+	}
+</style>

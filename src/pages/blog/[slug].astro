@@ -1,10 +1,9 @@
 ---
 import { decodeSlug, getEmDashCollection, getEmDashEntry } from "emdash";
-import { Image, PortableText } from "emdash/ui";
+import { Blocks, Image, PortableText } from "emdash/ui";
 import Base from "../../layouts/Base.astro";
-import Block from "../../components/pt/Block.astro";
-import CodeBlock from "../../components/pt/CodeBlock.astro";
-import Note from "../../components/pt/Note.astro";
+import { MissingBlock, postSections } from "../../components/blocks";
+import { ptComponents } from "../../components/pt/components";
 import {
 	emphasize,
 	extractHeadings,
@@ -39,10 +38,6 @@ const index = all.findIndex((e) => e.id === post.id);
 const newer = index > 0 ? all[index - 1] : undefined;
 const older = index >= 0 && index < all.length - 1 ? all[index + 1] : undefined;
 
-const components = {
-	block: Block,
-	type: { code: CodeBlock, blockquoteGroup: Note },
-};
 const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : undefined;
 ---
 
@@ -75,8 +70,10 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : un
 		<div class="layout">
 			<article class="article">
 				<div class="prose">
-					<PortableText value={d.content} components={components as any} />
+					<PortableText value={d.content} components={ptComponents as any} />
 				</div>
+
+				<Blocks value={d.sections} components={postSections} fallback={MissingBlock} />
 
 				{
 					(older || newer) && (
@@ -234,71 +231,10 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : un
 		gap: 56px;
 	}
 
-	/* Prose ---------------------------------------------------------------- */
-	.prose {
-		display: flex;
-		flex-direction: column;
-		gap: 24px;
-		font-family: var(--font-heading);
-		font-size: 21px;
-		line-height: 1.65;
-	}
-
-	.prose :global(p) {
-		margin: 0;
-		text-wrap: pretty;
-	}
-
+	/* Prose (shared rules in components.css) ----------------------------- */
 	.prose > :global(p:first-child) {
 		font-size: 24px;
 		line-height: 1.55;
-	}
-
-	.prose :global(h2) {
-		margin: 24px 0 0;
-		font-size: 36px;
-		line-height: 1.15;
-		font-weight: 400;
-		letter-spacing: -0.015em;
-		scroll-margin-top: 24px;
-	}
-
-	.prose :global(h3) {
-		margin: 12px 0 0;
-		font-size: 26px;
-		font-weight: 400;
-	}
-
-	.prose :global(ul),
-	.prose :global(ol) {
-		margin: 0;
-		padding-left: 1.2em;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.prose :global(p code),
-	.prose :global(li code) {
-		font-family: var(--font-mono);
-		font-size: 0.78em;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 6px;
-		padding: 2px 7px;
-	}
-
-	.prose :global(blockquote) {
-		margin: 0;
-	}
-
-	.prose :global(a) {
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-
-	.prose :global(img) {
-		border-radius: var(--radius-md);
 	}
 
 	/* Neighbours ----------------------------------------------------------- */

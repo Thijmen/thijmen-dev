@@ -1,4 +1,10 @@
 ---
-// The old portfolio lived at /work/<slug>; send those links to /projects.
-return Astro.redirect("/projects", 301);
+// The old portfolio lived at /work/<slug>. Send it to the project's case
+// study when there is one, else to /projects.
+import { decodeSlug, getEmDashEntry } from "emdash";
+import { projectHref } from "../../lib/content";
+
+const slug = decodeSlug(Astro.params.slug);
+const { entry } = slug ? await getEmDashEntry("projects", slug) : { entry: null };
+return Astro.redirect((entry && projectHref(entry)) || "/projects", 301);
 ---

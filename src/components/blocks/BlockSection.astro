@@ -1,0 +1,33 @@
+---
+/**
+ * Shared frame for a block: an optional mono section label over the content.
+ * `narrow` caps the width at the reading measure used by post bodies.
+ */
+import SectionLabel from "../SectionLabel.astro";
+
+interface Props {
+	label?: string | null;
+	note?: string;
+	narrow?: boolean;
+}
+
+const { label, note, narrow = false } = Astro.props;
+---
+
+<section class:list={["block", { narrow }]}>
+	{label && <SectionLabel label={label} note={note} rule />}
+	<slot />
+</section>
+
+<style>
+	.block {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		min-width: 0;
+	}
+
+	.narrow {
+		max-width: 700px;
+	}
+</style>

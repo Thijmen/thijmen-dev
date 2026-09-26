@@ -1,0 +1,17 @@
+---
+import { PortableText } from "emdash/ui";
+import { ptComponents } from "../pt/components";
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { label?: string | null; body: unknown };
+}
+
+const { value } = Astro.props;
+---
+
+<BlockSection label={value.label} narrow>
+	<div class="prose">
+		<PortableText value={value.body as any} components={ptComponents as any} />
+	</div>
+</BlockSection>

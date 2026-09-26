@@ -10,6 +10,466 @@
 		"title": "Thijmen Stavenuiter",
 		"tagline": "Staff Engineer. Distributed systems, LLM tooling and enterprise tooling."
 	},
+	"blockTypes": [
+		{
+			"slug": "prose",
+			"label": "Prose",
+			"description": "Rich text with an optional mono section label.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string"
+						},
+						{
+							"slug": "body",
+							"label": "Body",
+							"type": "portableText",
+							"required": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "note",
+			"label": "Note",
+			"description": "The NOTE callout.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "body",
+							"label": "Body",
+							"type": "text",
+							"required": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "terminal",
+			"label": "Terminal",
+			"description": "Code in a terminal window with line numbers and a copy button.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "title",
+							"label": "Window title",
+							"type": "string"
+						},
+						{
+							"slug": "language",
+							"label": "Language",
+							"type": "select",
+							"validation": {
+								"options": [
+									"shellscript",
+									"typescript",
+									"tsx",
+									"javascript",
+									"json",
+									"yaml",
+									"kotlin",
+									"java",
+									"go",
+									"python",
+									"sql",
+									"css",
+									"html",
+									"diff"
+								]
+							}
+						},
+						{
+							"slug": "code",
+							"label": "Code",
+							"type": "text",
+							"required": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "figure",
+			"label": "Figure",
+			"description": "One image with a caption.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "image",
+							"label": "Image",
+							"type": "image",
+							"required": true
+						},
+						{
+							"slug": "caption",
+							"label": "Caption",
+							"type": "string"
+						},
+						{
+							"slug": "width",
+							"label": "Width",
+							"type": "select",
+							"defaultValue": "normal",
+							"validation": {
+								"options": [
+									"normal",
+									"wide"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "gallery",
+			"label": "Gallery",
+			"description": "A grid of captioned images.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string"
+						},
+						{
+							"slug": "items",
+							"label": "Images",
+							"type": "repeater",
+							"validation": {
+								"minItems": 1,
+								"subFields": [
+									{
+										"slug": "image",
+										"label": "Image",
+										"type": "image",
+										"required": true
+									},
+									{
+										"slug": "caption",
+										"label": "Caption",
+										"type": "string"
+									}
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "cta",
+			"label": "Call to action",
+			"description": "Accent card with a link. Wrap words in *asterisks* for the italic accent.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "text",
+							"label": "Text",
+							"type": "text",
+							"required": true
+						},
+						{
+							"slug": "link_label",
+							"label": "Link label",
+							"type": "string"
+						},
+						{
+							"slug": "link_url",
+							"label": "Link URL",
+							"type": "url",
+							"required": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "links",
+			"label": "Links",
+			"description": "Rows of label, URL and a mono meta note.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string"
+						},
+						{
+							"slug": "items",
+							"label": "Links",
+							"type": "repeater",
+							"validation": {
+								"minItems": 1,
+								"subFields": [
+									{
+										"slug": "title",
+										"label": "Title",
+										"type": "string",
+										"required": true
+									},
+									{
+										"slug": "url",
+										"label": "URL",
+										"type": "url",
+										"required": true
+									},
+									{
+										"slug": "meta",
+										"label": "Meta",
+										"type": "string"
+									}
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "faq",
+			"label": "FAQ",
+			"description": "Questions and answers, collapsed by default.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string"
+						},
+						{
+							"slug": "items",
+							"label": "Questions",
+							"type": "repeater",
+							"validation": {
+								"minItems": 1,
+								"subFields": [
+									{
+										"slug": "question",
+										"label": "Question",
+										"type": "string",
+										"required": true
+									},
+									{
+										"slug": "answer",
+										"label": "Answer",
+										"type": "text",
+										"required": true
+									}
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "post_list",
+			"label": "Post list",
+			"description": "Latest posts, optionally filtered by tag. Skips the post it sits under.",
+			"category": "Data",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string"
+						},
+						{
+							"slug": "tag",
+							"label": "Tag slug",
+							"type": "string"
+						},
+						{
+							"slug": "limit",
+							"label": "Limit",
+							"type": "integer",
+							"defaultValue": 3,
+							"validation": {
+								"min": 1,
+								"max": 24
+							}
+						},
+						{
+							"slug": "variant",
+							"label": "Variant",
+							"type": "select",
+							"defaultValue": "row",
+							"validation": {
+								"options": [
+									"row",
+									"grid",
+									"feature"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "project_grid",
+			"label": "Project grid",
+			"description": "Projects in position order.",
+			"category": "Data",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string"
+						},
+						{
+							"slug": "featured_only",
+							"label": "Featured only",
+							"type": "boolean",
+							"defaultValue": false
+						},
+						{
+							"slug": "limit",
+							"label": "Limit",
+							"type": "integer",
+							"validation": {
+								"min": 1,
+								"max": 24
+							}
+						},
+						{
+							"slug": "variant",
+							"label": "Variant",
+							"type": "select",
+							"defaultValue": "compact",
+							"validation": {
+								"options": [
+									"compact",
+									"full"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "history",
+			"label": "History",
+			"description": "The resume roles as a git-log timeline.",
+			"category": "Data",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string"
+						},
+						{
+							"slug": "limit",
+							"label": "Limit",
+							"type": "integer",
+							"validation": {
+								"min": 1,
+								"max": 24
+							}
+						},
+						{
+							"slug": "variant",
+							"label": "Variant",
+							"type": "select",
+							"defaultValue": "compact",
+							"validation": {
+								"options": [
+									"compact",
+									"full"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "now_playing",
+			"label": "Now playing",
+			"description": "The Spotify soundtrack from /uses.",
+			"category": "Data",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Section label",
+							"type": "string",
+							"defaultValue": "SOUNDTRACK"
+						},
+						{
+							"slug": "note",
+							"label": "Note",
+							"type": "string"
+						},
+						{
+							"slug": "show_queue",
+							"label": "Show queue",
+							"type": "boolean",
+							"defaultValue": true
+						},
+						{
+							"slug": "show_playlists",
+							"label": "Show playlists",
+							"type": "boolean",
+							"defaultValue": true
+						}
+					]
+				}
+			]
+		}
+	],
 	"collections": [
 		{
 			"slug": "posts",
@@ -58,6 +518,23 @@
 					"label": "Content",
 					"type": "portableText",
 					"searchable": true
+				},
+				{
+					"slug": "sections",
+					"label": "Sections",
+					"type": "blocks",
+					"validation": {
+						"allowedTypes": [
+							"note",
+							"figure",
+							"gallery",
+							"cta",
+							"links",
+							"faq",
+							"post_list"
+						],
+						"maxItems": 12
+					}
 				}
 			]
 		},
@@ -128,6 +605,23 @@
 					"slug": "position",
 					"label": "Sort order",
 					"type": "integer"
+				},
+				{
+					"slug": "body",
+					"label": "Case study",
+					"type": "blocks",
+					"validation": {
+						"allowedTypes": [
+							"prose",
+							"note",
+							"terminal",
+							"figure",
+							"gallery",
+							"links",
+							"faq"
+						],
+						"maxItems": 30
+					}
 				}
 			]
 		},
@@ -351,6 +845,81 @@
 			]
 		},
 		{
+			"slug": "pages",
+			"label": "Pages",
+			"labelSingular": "Page",
+			"description": "Free-form pages served at /<slug>. Wrap words in *asterisks* for the italic accent.",
+			"supports": [
+				"drafts",
+				"revisions",
+				"search",
+				"seo"
+			],
+			"urlPattern": "/{slug}",
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Title",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "kicker",
+					"label": "Kicker",
+					"type": "string"
+				},
+				{
+					"slug": "lede",
+					"label": "Lede",
+					"type": "text"
+				},
+				{
+					"slug": "glow",
+					"label": "Glow",
+					"type": "select",
+					"defaultValue": "left",
+					"validation": {
+						"options": [
+							"left",
+							"right"
+						]
+					}
+				},
+				{
+					"slug": "description",
+					"label": "SEO description",
+					"type": "text"
+				},
+				{
+					"slug": "og_image",
+					"label": "Social image",
+					"type": "image"
+				},
+				{
+					"slug": "body",
+					"label": "Body",
+					"type": "blocks",
+					"validation": {
+						"allowedTypes": [
+							"prose",
+							"note",
+							"terminal",
+							"figure",
+							"gallery",
+							"cta",
+							"links",
+							"faq",
+							"post_list",
+							"project_grid",
+							"history",
+							"now_playing"
+						],
+						"maxItems": 40
+					}
+				}
+			]
+		},
+		{
 			"slug": "profile",
 			"label": "Profile",
 			"labelSingular": "Profile",
@@ -521,6 +1090,16 @@
 					"type": "custom",
 					"label": "Uses",
 					"url": "/uses"
+				},
+				{
+					"type": "custom",
+					"label": "Now",
+					"url": "/now"
+				},
+				{
+					"type": "custom",
+					"label": "Colophon",
+					"url": "/colophon"
 				}
 			]
 		}
@@ -842,7 +1421,26 @@
 							"level": 1
 						}
 					],
-					"cover_caption": "fig. 1: a retry, moments before becoming a duplicate charge"
+					"cover_caption": "fig. 1: a retry, moments before becoming a duplicate charge",
+					"sections": [
+						{
+							"_type": "cta",
+							"_version": 1,
+							"_key": "b23",
+							"text": "Building payments and want a *second pair of eyes?*",
+							"link_label": "$ mail me →",
+							"link_url": "mailto:hello@thijmen.dev"
+						},
+						{
+							"_type": "post_list",
+							"_version": 1,
+							"_key": "b24",
+							"label": "RELATED",
+							"tag": "distributed-systems",
+							"limit": 3,
+							"variant": "row"
+						}
+					]
 				},
 				"taxonomies": {
 					"tag": [
@@ -1136,7 +1734,72 @@
 					"install": "implementation(\"dev.thijmen:retry-budget:1.4.0\")",
 					"url": "https://github.com/thijmen/retry-budget",
 					"featured": true,
-					"position": 1
+					"position": 1,
+					"body": [
+						{
+							"_type": "prose",
+							"_version": 1,
+							"_key": "b19",
+							"label": "WHY",
+							"body": [
+								{
+									"_type": "block",
+									"_key": "b15",
+									"style": "normal",
+									"markDefs": [],
+									"children": [
+										{
+											"_type": "span",
+											"_key": "b16",
+											"text": "Placeholder: the incident that made this library necessary.",
+											"marks": []
+										}
+									]
+								},
+								{
+									"_type": "block",
+									"_key": "b17",
+									"style": "normal",
+									"markDefs": [],
+									"children": [
+										{
+											"_type": "span",
+											"_key": "b18",
+											"text": "Placeholder: what a retry budget is, in one paragraph.",
+											"marks": []
+										}
+									]
+								}
+							]
+						},
+						{
+							"_type": "terminal",
+							"_version": 1,
+							"_key": "b20",
+							"title": "build.gradle.kts",
+							"language": "kotlin",
+							"code": "dependencies {\n    implementation(\"dev.thijmen:retry-budget:1.4.0\")\n}"
+						},
+						{
+							"_type": "note",
+							"_version": 1,
+							"_key": "b21",
+							"body": "Placeholder: the one caveat people hit first."
+						},
+						{
+							"_type": "links",
+							"_version": 1,
+							"_key": "b22",
+							"label": "LINKS",
+							"items": [
+								{
+									"title": "Source",
+									"url": "https://github.com/thijmen/retry-budget",
+									"meta": "github"
+								}
+							]
+						}
+					]
 				}
 			},
 			{
@@ -1676,6 +2339,175 @@
 					"uses_title": "Uses*.json*",
 					"uses_intro": "The tools, soundtrack and small rituals behind the work. Last updated when someone asked what font my terminal uses.",
 					"soundtrack_note": "via spotify"
+				}
+			}
+		],
+		"pages": [
+			{
+				"id": "page-now",
+				"slug": "now",
+				"status": "published",
+				"data": {
+					"title": "What I'm doing *now.*",
+					"kicker": "cat now.md",
+					"glow": "right",
+					"lede": "A /now page: what has my attention this month. Replace this in the admin.",
+					"description": "What Thijmen is working on, reading and listening to right now.",
+					"body": [
+						{
+							"_type": "prose",
+							"_version": 1,
+							"_key": "b5",
+							"label": "FOCUS",
+							"body": [
+								{
+									"_type": "block",
+									"_key": "b1",
+									"style": "normal",
+									"markDefs": [],
+									"children": [
+										{
+											"_type": "span",
+											"_key": "b2",
+											"text": "Placeholder: the thing at work that takes most of my head right now, in two or three dry sentences.",
+											"marks": []
+										}
+									]
+								},
+								{
+									"_type": "block",
+									"_key": "b3",
+									"style": "normal",
+									"markDefs": [],
+									"children": [
+										{
+											"_type": "span",
+											"_key": "b4",
+											"text": "Placeholder: the side project that gets the evenings.",
+											"marks": []
+										}
+									]
+								}
+							]
+						},
+						{
+							"_type": "links",
+							"_version": 1,
+							"_key": "b6",
+							"label": "READING",
+							"items": [
+								{
+									"title": "Designing Data-Intensive Applications",
+									"url": "https://dataintensive.net",
+									"meta": "re-read · ch. 9"
+								},
+								{
+									"title": "The Site Reliability Workbook",
+									"url": "https://sre.google/workbook/table-of-contents/",
+									"meta": "on the desk"
+								}
+							]
+						},
+						{
+							"_type": "post_list",
+							"_version": 1,
+							"_key": "b7",
+							"label": "LATEST",
+							"limit": 3,
+							"variant": "row"
+						},
+						{
+							"_type": "now_playing",
+							"_version": 1,
+							"_key": "b8",
+							"label": "SOUNDTRACK",
+							"show_queue": false,
+							"show_playlists": false
+						}
+					]
+				}
+			},
+			{
+				"id": "page-colophon",
+				"slug": "colophon",
+				"status": "published",
+				"data": {
+					"title": "Colo*phon.*",
+					"kicker": "cat colophon.md",
+					"glow": "left",
+					"lede": "How this site is built, and what it runs on.",
+					"description": "How thijmen.dev is built: EmDash, Astro, Cloudflare Workers.",
+					"body": [
+						{
+							"_type": "prose",
+							"_version": 1,
+							"_key": "b11",
+							"label": "STACK",
+							"body": [
+								{
+									"_type": "block",
+									"_key": "b9",
+									"style": "normal",
+									"markDefs": [],
+									"children": [
+										{
+											"_type": "span",
+											"_key": "b10",
+											"text": "Placeholder: EmDash on Astro, server-rendered on Cloudflare Workers, content in D1, media in R2.",
+											"marks": []
+										}
+									]
+								}
+							]
+						},
+						{
+							"_type": "terminal",
+							"_version": 1,
+							"_key": "b12",
+							"title": "~/thijmen-dev",
+							"language": "shellscript",
+							"code": "pnpm dev\nnpx emdash types\npnpm build"
+						},
+						{
+							"_type": "links",
+							"_version": 1,
+							"_key": "b13",
+							"label": "TYPE",
+							"items": [
+								{
+									"title": "Newsreader",
+									"url": "https://fonts.google.com/specimen/Newsreader",
+									"meta": "display + body serif"
+								},
+								{
+									"title": "Geist",
+									"url": "https://fonts.google.com/specimen/Geist",
+									"meta": "UI sans"
+								},
+								{
+									"title": "JetBrains Mono",
+									"url": "https://fonts.google.com/specimen/JetBrains+Mono",
+									"meta": "kickers, code"
+								}
+							]
+						},
+						{
+							"_type": "faq",
+							"_version": 1,
+							"_key": "b14",
+							"label": "FAQ",
+							"items": [
+								{
+									"question": "Is there a CMS behind this?",
+									"answer": "Yes. Every word on the site comes from EmDash, including this answer."
+								},
+								{
+									"question": "Why no comments?",
+									"answer": "Email works. The address is on the home page."
+								}
+							]
+						}
+					]
 				}
 			}
 		]
