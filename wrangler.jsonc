@@ -4,7 +4,7 @@
 	"account_id": "7dac805f31c2d6d9d0b73499d61513d2",
 	"main": "./src/worker.ts",
 	"compatibility_date": "2026-02-24",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
 	"observability": {
 		"logs": {
 			"enabled": true,
@@ -25,7 +25,9 @@
 	],
 	"previews": {
 		"vars": {
-			"ENVIRONMENT": "preview"
+			"ENVIRONMENT": "preview",
+			// TEMPORARY: lets the setup wizard run on the reset preview D1. Revert before merge.
+			"EMDASH_SITE_URL": "https://emdash-blocks-thijmen-dev.thijmenstavenuiter.workers.dev"
 		},
 		"kv_namespaces": [
 			{
