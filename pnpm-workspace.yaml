@@ -8,6 +8,7 @@ allowBuilds:
   esbuild: true
   workerd: true
   sharp: false
+  core-js-pure: false # via agents → mimetext; postinstall is only a banner
 
 # Supply-chain hardening: cooldown on brand-new releases (EmDash exempt)
 # and no non-registry transitive sources. (No trustPolicy: no-downgrade --

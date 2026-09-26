@@ -19,15 +19,8 @@ export type Target = {
 type SchemaField = { slug: string; label: string; type: string; validation?: unknown };
 type SchemaCollection = { slug: string; label: string; description: string | null; titleField: string | null; fields: SchemaField[] };
 
-export const COLLECTIONS = ["posts", "projects", "pages"];
-
-/**
- * Draft read/patch selectors for the panel. Static because the descriptor is
- * built at config time; add a new prose field here too. The admin drops slugs
- * a collection doesn't have.
- */
-export const PATCH_FIELDS = ["title", "kicker", "excerpt", "summary", "lede", "description", "cover_caption", "content", "sections", "body"];
-export const READ_FIELDS = [...PATCH_FIELDS, "language", "install", "url"];
+/** Prose fields the writer may fill, across posts, projects and pages. Add a new prose field here too. */
+export const WRITABLE_FIELDS = ["title", "kicker", "excerpt", "summary", "lede", "description", "cover_caption", "content", "sections", "body"];
 
 // Factual strings: the brief may mention them, but the model mustn't guess them.
 const DENY = new Set(["language", "install", "stars"]);
@@ -51,7 +44,7 @@ const ORDER: Record<TargetKind, number> = { title: 0, string: 1, text: 2, portab
 
 export function entrySpec(schema: SchemaCollection): Target[] {
 	const titleField = schema.titleField ?? "title";
-	const allowed = new Set(PATCH_FIELDS);
+	const allowed = new Set(WRITABLE_FIELDS);
 	return schema.fields
 		.filter((f) => KIND[f.type] && !DENY.has(f.slug) && allowed.has(f.slug))
 		.map((f): Target => {

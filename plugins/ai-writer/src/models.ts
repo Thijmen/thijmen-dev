@@ -1,7 +1,7 @@
 /**
  * Workers AI text models offered in the settings. Ids checked against
  * `wrangler ai models list` (Sep 2026). Chat-completions models answer with
- * `choices[]`, older ones with `response`; `generate()` in ai.ts reads both.
+ * `choices[]`, older ones `response`; workers-ai-provider handles both.
  */
 export const MODELS = [
 	{ value: "@cf/moonshotai/kimi-k2.6", label: "Kimi K2.6" },

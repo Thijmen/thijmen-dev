@@ -4,7 +4,7 @@ This is an EmDash site -- a CMS built on Astro with a full admin UI.
 
 ```bash
 pnpm dev              # Start the Astro dev server (local bindings only, no Workers AI)
-pnpm dev:ai           # Same, plus remote bindings so the AI writer works
+pnpm dev:ai           # Same, plus remote bindings so the AI writer uses the real model
 npx emdash types      # Regenerate TypeScript types from a running site
 ```
 
@@ -129,19 +129,34 @@ Styling a child component through its `class` prop needs `:global()` in the pare
 
 ## AI writer plugin
 
-`plugins/ai-writer` is a local workspace package (standard format, trusted, in `plugins: []`). It writes a whole post, project or page from one brief with Workers AI. It has two entry points:
+`plugins/ai-writer` is a local workspace package and a **native** EmDash plugin: runtime `src/runtime.ts`, React admin `src/admin/`, and a Durable Object agent `src/agent/`. It writes a whole post, project or page with Workers AI while you watch.
 
-- **New with AI** (admin sidebar): pick a type, give a brief and optionally a title. The plugin creates a **draft** with every prose field filled (posts get today's `date`; the slug comes from the title) and links to it. It never publishes and never assigns tags.
-- **AI writer** panel (sidebar of a *saved* entry): brief → **Write entry** fills every *empty* prose field as one editor draft patch. The admin previews it; accepting only marks the form dirty and you save as usual. Fields you already wrote are kept and sent as context. "Write → Only <field>" rewrites that one field instead.
+- **New with AI** (admin sidebar, `/_emdash/admin/plugins/ai-writer/new`): pick a type, write a brief, press Write.
+  - The left pane streams the agent's steps with timings: reading the fields and your profile, searching the site, fetching linked pages, writing each field, picking tags, validating.
+  - The right pane is a live preview in the site's look; fields fill in as they're written.
+  - Questions show up inline when facts are missing. Skipping one leaves a `[TODO: …]`, highlighted and counted.
+  - Follow-ups ("shorter excerpt") revise in place. **Save draft** creates the entry, or saves draft changes on an existing one; it never publishes. Then **Open in editor**.
+  - The session id is in the URL, so a reload resumes the conversation.
+- **Editor sidebar → AI writer**: opens the writer on that saved entry, optionally with what should change, and starts right away. EmDash disables Block Kit editor panels for plugins with a React admin entry, so there's no in-editor patch preview anymore.
+- **AI runs**: one row per writer turn (model, tokens, time, brief or error).
 
-How it knows the entry:
-- `src/entry-spec.ts` reads the live collection schema (`ctx.schema`) and keeps the prose fields: `string`, `text`, `portableText`, `blocks`, minus factual strings (`language`, `install`, `stars`). Dates, images, URLs, selects, flags and numbers are never written. `PURPOSE` holds what each field is for on this site (title accent, excerpt on cards, kicker style, SEO length, …). A new prose field also needs adding to `PATCH_FIELDS` there, because the panel's draft selectors are static.
-- One generation answers in `=== field: <slug> ===` sections (`src/prompt.ts`, parsed in `src/entry-writer.ts`). Markdown becomes Portable Text (`src/markdown-to-pt.ts`: `##` → h2 for CONTENTS, `>` → NOTE, fences → `code` with language + filename). Blocks fields are a JSON array, validated by `src/blocks.ts` against the seed's `blockTypes` and the field's `allowedTypes` (figure/gallery excluded, since they need real media). Invalid blocks are dropped and reported.
-- Tags: the model picks up to 4 from the existing `tag` terms; the panel shows them as **Suggested tags** for you to tick. Unknown tags are ignored and none are created.
+How it's wired:
+- **`WriterAgent`** (`src/agent/writer-agent.ts`, `AIChatAgent` from `@cloudflare/ai-chat`) runs `streamText` on Workers AI (`workers-ai-provider`) with tools.
+  - Server tools: `get_entry_spec`, `get_profile`, `fetch_url` (public http(s) only, ~40 KB), `set_field` (validates through `src/field-values.ts` and updates the synced state), `suggest_tags`, `validate_entry`.
+  - Client tools, answered by the page: `search_content` (the plugin's `search` route) and `ask_user` (the question card).
+  - The DO has **no CMS access**. The page loads everything CMS-derived through the plugin's private routes (`session`, `search`, `save`, `runs`) under your admin session and sends it as the chat `body`.
+- `src/worker.ts` routes `/agents/writer-agent/<session>` through `routeWriterAgent`, before EmDash. It requires an HMAC token that the `session` route mints for that session (`AI_WRITER_SECRET`; `astro dev` falls back to a fixed dev secret).
+- `src/entry-spec.ts` decides the writable fields from the live schema: prose types only, plus the `WRITABLE_FIELDS` allow-list and a `PURPOSE` hint per field. A new prose field needs adding to both. Blocks are validated against the seed's `blockTypes` (`src/blocks.ts`; figure/gallery are excluded).
+- Settings (Plugins → AI writer): model (it must support tool calling; `src/models.ts`), style guide (the system prompt), max tokens per step.
 
-Settings (admin → Plugins → AI writer): Workers AI model (`src/models.ts`), style guide (the system prompt, defaulting to this file's voice rules) and max tokens (default 8000, since one run writes everything). The rule against invented facts is always appended: when the model needs a fact it doesn't have, it writes `[TODO: …]` and the result counts those markers. Resolve them before publishing. Each run is logged in plugin storage under admin → **AI runs**. Capabilities: editor draft read/patch, `schema:read`, `taxonomies:read`, `content:write` (drafts only).
-
-Workers AI only runs remotely, and wrangler's remote proxy goes through `thijmen-dev.thijmenstavenuiter.workers.dev`, which is behind Access. So remote bindings are opt-in in dev (`DEV_REMOTE_AI=1`, `pnpm dev:ai`). Under plain `pnpm dev` everything loads but writing fails with a hint. A non-interactive `dev:ai` (agents, background) needs `CLOUDFLARE_ACCESS_CLIENT_ID` / `CLOUDFLARE_ACCESS_CLIENT_SECRET` (an Access service token). The `AI` binding is declared both top-level and in `previews` in `wrangler.jsonc`.
+Config and ops:
+- `wrangler.jsonc`: the `AI` binding, and a `WriterAgent` Durable Object binding (both also in `previews`), plus `migrations` tag `v1` (`new_sqlite_classes: ["WriterAgent"]`). Renaming or removing the class needs a new migration tag.
+- **Secret:** `wrangler secret put AI_WRITER_SECRET` for prod, and the same for previews. Without it the writer page says so and refuses to start.
+- **Dev:** Workers AI only runs remotely, behind the Access-protected workers.dev proxy, so remote bindings are opt-in.
+  - `pnpm dev`: no AI.
+  - `pnpm dev:ai`: real model (Access login, or `CLOUDFLARE_ACCESS_CLIENT_ID`/`_SECRET`).
+  - `AI_WRITER_MOCK=1` in `.dev.vars`: a scripted mock model (`src/agent/mock-model.ts`). It walks the whole flow (tools, a question, every field, tags, validate) under plain `pnpm dev`, for UI work without costs.
+- The admin page ships its own CSS (`src/admin/styles.ts`, on Kumo theme variables), because the admin's Tailwind doesn't scan plugin sources.
 
 ## What not to do
 
