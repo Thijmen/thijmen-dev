@@ -3,7 +3,8 @@ This is an EmDash site -- a CMS built on Astro with a full admin UI.
 ## Commands
 
 ```bash
-pnpm dev              # Start the Astro dev server
+pnpm dev              # Start the Astro dev server (local bindings only, no Workers AI)
+pnpm dev:ai           # Same, plus remote bindings so the AI writer works
 npx emdash types      # Regenerate TypeScript types from a running site
 ```
 
@@ -125,6 +126,22 @@ Components (`src/components/`): `SiteHeader` (nav pill, ☰ menu below 760px, �
 Code highlighting uses `src/lib/highlight.ts`: Shiki's fine-grained core with a fixed grammar list and the JavaScript regex engine. Don't switch to Astro's `<Code>`; it bundles every grammar plus the WASM engine into the Worker. Add a language by adding it to `LANGS`, and to the `terminal` block's `language` options (a compatible change: same version).
 
 Styling a child component through its `class` prop needs `:global()` in the parent: Astro scopes styles per component.
+
+## AI writer plugin
+
+`plugins/ai-writer` is a local workspace package (standard format, trusted, in `plugins: []`). It writes a whole post, project or page from one brief with Workers AI. It has two entry points:
+
+- **New with AI** (admin sidebar): pick a type, give a brief and optionally a title. The plugin creates a **draft** with every prose field filled (posts get today's `date`; the slug comes from the title) and links to it. It never publishes and never assigns tags.
+- **AI writer** panel (sidebar of a *saved* entry): brief → **Write entry** fills every *empty* prose field as one editor draft patch. The admin previews it; accepting only marks the form dirty and you save as usual. Fields you already wrote are kept and sent as context. "Write → Only <field>" rewrites that one field instead.
+
+How it knows the entry:
+- `src/entry-spec.ts` reads the live collection schema (`ctx.schema`) and keeps the prose fields: `string`, `text`, `portableText`, `blocks`, minus factual strings (`language`, `install`, `stars`). Dates, images, URLs, selects, flags and numbers are never written. `PURPOSE` holds what each field is for on this site (title accent, excerpt on cards, kicker style, SEO length, …). A new prose field also needs adding to `PATCH_FIELDS` there, because the panel's draft selectors are static.
+- One generation answers in `=== field: <slug> ===` sections (`src/prompt.ts`, parsed in `src/entry-writer.ts`). Markdown becomes Portable Text (`src/markdown-to-pt.ts`: `##` → h2 for CONTENTS, `>` → NOTE, fences → `code` with language + filename). Blocks fields are a JSON array, validated by `src/blocks.ts` against the seed's `blockTypes` and the field's `allowedTypes` (figure/gallery excluded, since they need real media). Invalid blocks are dropped and reported.
+- Tags: the model picks up to 4 from the existing `tag` terms; the panel shows them as **Suggested tags** for you to tick. Unknown tags are ignored and none are created.
+
+Settings (admin → Plugins → AI writer): Workers AI model (`src/models.ts`), style guide (the system prompt, defaulting to this file's voice rules) and max tokens (default 8000, since one run writes everything). The rule against invented facts is always appended: when the model needs a fact it doesn't have, it writes `[TODO: …]` and the result counts those markers. Resolve them before publishing. Each run is logged in plugin storage under admin → **AI runs**. Capabilities: editor draft read/patch, `schema:read`, `taxonomies:read`, `content:write` (drafts only).
+
+Workers AI only runs remotely, and wrangler's remote proxy goes through `thijmen-dev.thijmenstavenuiter.workers.dev`, which is behind Access. So remote bindings are opt-in in dev (`DEV_REMOTE_AI=1`, `pnpm dev:ai`). Under plain `pnpm dev` everything loads but writing fails with a hint. A non-interactive `dev:ai` (agents, background) needs `CLOUDFLARE_ACCESS_CLIENT_ID` / `CLOUDFLARE_ACCESS_CLIENT_SECRET` (an Access service token). The `AI` binding is declared both top-level and in `previews` in `wrangler.jsonc`.
 
 ## What not to do
 

@@ -23,6 +23,9 @@
 			"bucket_name": "thijmen-dev","preview_bucket_name": "thijmen-dev",
 		},
 	],
+	// Workers AI for the ai-writer plugin. Always remote: in dev only under
+	// `pnpm dev:ai` (see astro.config.mjs), billed to the account.
+	"ai": { "binding": "AI", "remote": true },
 	"previews": {
 		"vars": {
 			"ENVIRONMENT": "preview"
@@ -42,7 +45,8 @@
 				"binding": "MEDIA",
 				"bucket_name": "thijmen-dev-preview","preview_bucket_name": "thijmen-dev-preview",
 			}
-		]
+		],
+		"ai": { "binding": "AI", "remote": true }
 	},
 
 
