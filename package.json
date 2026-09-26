@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "astro dev",
+    "dev:ai": "DEV_REMOTE_AI=1 astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "deploy:prod": "wrangler d1 time-travel info thijmen-dev && emdash migrate --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 d22c1ca4-cc2c-4e75-9873-b04459553df9 --expected-target-fingerprint 4ee1c495d094bcb16b8b9e41fa200a0a650d51288c50456efe3a29ef55fc5769 && wrangler deploy && emdash migrate --check --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 d22c1ca4-cc2c-4e75-9873-b04459553df9",
@@ -21,6 +22,7 @@
     "@astrojs/cloudflare": "^14.3.1",
     "@astrojs/react": "^6.0.5",
     "@emdash-cms/cloudflare": "^0.41.0",
+    "@thijmen/plugin-ai-writer": "workspace:*",
     "astro": "^7.3.2",
     "emdash": "^0.41.0",
     "react": "19.2.4",
