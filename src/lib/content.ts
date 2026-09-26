@@ -115,7 +115,7 @@ export function asArray<T = unknown>(v: unknown): T[] {
 	return Array.isArray(v) ? (v as T[]) : [];
 }
 
-/** A title with its `*emphasis*` markers removed, for cards, meta and RSS. */
+/** A title with its `*emphasis*` markers removed, for cards and meta. */
 export function plainTitle(text: unknown): string {
 	return String(text ?? "").replace(/\*([^*]+)\*/g, "$1");
 }

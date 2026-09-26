@@ -39,7 +39,6 @@ const [feature, ...rest] = posts;
 				<h1 class="display" set:html={emphasize(profile?.blog_title || "Writing *from production.*")} />
 				{profile?.blog_intro && <p class="lede">{profile.blog_intro}</p>}
 			</div>
-			<a href="/rss.xml" class="chip rss">rss(5) ↗</a>
 		</div>
 
 		<nav class="chip-row" aria-label="Filter by tag">
@@ -88,10 +87,6 @@ const [feature, ...rest] = posts;
 
 	.ink {
 		color: var(--color-text);
-	}
-
-	.rss {
-		padding: 9px 16px;
 	}
 
 	.grid {

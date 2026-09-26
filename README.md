@@ -12,7 +12,6 @@ A visual portfolio for showcasing creative work, built with [EmDash](https://git
 - Tag-based filtering on the work page
 - Individual project pages with galleries
 - About and contact pages
-- RSS feed for new projects
 - SEO metadata and JSON-LD
 - Dark/light mode
 
@@ -25,7 +24,6 @@ A visual portfolio for showcasing creative work, built with [EmDash](https://git
 | Single project | `/work/:slug` |
 | About | `/about` |
 | Contact | `/contact` |
-| RSS | `/rss.xml` |
 | 404 | fallback |
 
 ## Screenshots
