@@ -182,21 +182,66 @@ function formatTotal(count: number, ms: number): string {
 }
 
 /**
+ * Name and cover from Spotify's public oEmbed endpoint. It needs no auth and
+ * still covers Spotify-owned editorial playlists (`37i9dQZF…` ids), which the
+ * Web API answers with 404 since the November 2024 API changes.
+ */
+async function oembedPlaylist(id: string): Promise<SpotifyPlaylist | null> {
+	const url = `https://open.spotify.com/playlist/${id}`;
+	const res = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`);
+	if (!res.ok) throw new Error(`oembed ${id}: ${res.status}`);
+	const data = (await res.json()) as { title?: string; thumbnail_url?: string };
+	if (!data.title) return null;
+	const meta = await embedMeta(id).catch((err) => {
+		console.warn(`[spotify] embed ${id}:`, err);
+		return null;
+	});
+	return { name: data.title, cover: data.thumbnail_url ?? null, url, meta };
+}
+
+/** Tracks the embed player lists at most; a full list means the count is a floor. */
+const EMBED_TRACK_CAP = 100;
+
+/**
+ * "N tracks · Xh Ym" from the embed player's page, which carries the track list
+ * in its `__NEXT_DATA__` JSON. Undocumented, so any surprise just yields null.
+ */
+async function embedMeta(id: string): Promise<string | null> {
+	const res = await fetch(`https://open.spotify.com/embed/playlist/${id}`);
+	if (!res.ok) throw new Error(`${res.status}`);
+	const json = (await res.text()).match(/<script id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s)?.[1];
+	if (!json) return null;
+	const tracks: Array<{ duration?: number }> | undefined =
+		JSON.parse(json)?.props?.pageProps?.state?.data?.entity?.trackList;
+	if (!Array.isArray(tracks) || !tracks.length) return null;
+	if (tracks.length >= EMBED_TRACK_CAP) return `${EMBED_TRACK_CAP}+ tracks`;
+	return formatTotal(tracks.length, tracks.reduce((ms, t) => ms + (t.duration ?? 0), 0));
+}
+
+/**
  * Name, cover and "N tracks · Xh Ym" for a playlist. Since the February 2026
  * API changes Spotify only returns `items` for playlists the user owns, so
- * other playlists get name and cover only.
+ * other playlists get name and cover only. Playlists the Web API refuses
+ * (Spotify's editorial ones) fall back to oEmbed.
  */
 export function getPlaylist(url: string | null | undefined): Promise<SpotifyPlaylist | null> {
 	const id = playlistId(url);
 	if (!id) return Promise.resolve(null);
 	return safely(`playlist ${id}`, null, () =>
-		cached(`playlist-${id}`, 6 * 3600, async () => {
-			const p = await api<{
+		cached(`playlist-v2-${id}`, 6 * 3600, async () => {
+			type ApiPlaylist = {
 				name: string;
 				images?: Image[] | null;
 				external_urls?: { spotify?: string };
 				items?: { total: number };
-			}>(`/playlists/${id}?fields=name,images,external_urls,items(total)`);
+			};
+			let p: ApiPlaylist | null;
+			try {
+				p = await api<ApiPlaylist>(`/playlists/${id}?fields=name,images,external_urls,items(total)`);
+			} catch (err) {
+				console.warn(`[spotify] playlist ${id}, trying oEmbed:`, err);
+				return oembedPlaylist(id);
+			}
 			if (!p) return null;
 
 			let meta: string | null = null;
