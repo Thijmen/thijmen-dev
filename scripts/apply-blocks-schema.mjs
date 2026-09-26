@@ -12,8 +12,11 @@
  *   EMDASH_URL=https://… EMDASH_TOKEN=… node scripts/apply-blocks-schema.mjs [--dry-run]
  *
  * EMDASH_TOKEN: an API token (Settings → API Tokens) with schema:write.
- * CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET: optional Access service
- * token, sent when set (needed if Access also guards /_emdash/api).
+ * Access guards the whole Worker, /_emdash/api included, so also pass one of:
+ * - CF_ACCESS_TOKEN: an Access JWT, e.g. the CF_Authorization cookie from a
+ *   browser session on that hostname, or `cloudflared access token -app=<url>`.
+ * - CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET: an Access service token
+ *   (needs a Service Auth policy on the Access application).
  */
 import { readFile } from "node:fs/promises";
 
@@ -38,6 +41,7 @@ const headers = {
 	"Content-Type": "application/json",
 	"X-EmDash-Request": "1",
 };
+if (process.env.CF_ACCESS_TOKEN) headers["cf-access-token"] = process.env.CF_ACCESS_TOKEN;
 if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
 	headers["CF-Access-Client-Id"] = process.env.CF_ACCESS_CLIENT_ID;
 	headers["CF-Access-Client-Secret"] = process.env.CF_ACCESS_CLIENT_SECRET;
