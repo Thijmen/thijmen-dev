@@ -16,6 +16,10 @@ export default defineConfig({
 		emdash({
 			database: d1({ binding: "DB", session: "auto" }),
 			storage: r2({ binding: "MEDIA" }),
+			// Workers Builds applies core migrations before deploying
+			// (`deploy:prod` / `deploy:preview`); the Worker only verifies them
+			// and returns 503 while any are pending. Dev still auto-migrates.
+			migrations: { runtime: "check", dev: "auto" },
 			// Cloudflare Access (Zero Trust) is the exclusive auth method in
 			// production — passkeys, magic links and invites are disabled there.
 			// Local dev automatically falls back to passkey login.
