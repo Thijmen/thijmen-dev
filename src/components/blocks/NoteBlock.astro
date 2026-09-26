@@ -1,0 +1,14 @@
+---
+import Note from "../pt/Note.astro";
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { body: string };
+}
+
+const { value } = Astro.props;
+---
+
+<BlockSection narrow>
+	<Note>{value.body}</Note>
+</BlockSection>

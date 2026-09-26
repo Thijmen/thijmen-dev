@@ -1,0 +1,61 @@
+---
+/**
+ * Latest posts, optionally for one tag. Under a post it leaves that post
+ * out, so it works as a "related" strip.
+ */
+import { getEmDashCollection } from "emdash";
+import PostCard from "../PostCard.astro";
+import { toPostSummary } from "../../lib/content";
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { label?: string | null; tag?: string | null; limit?: number | null; variant?: string | null };
+}
+
+const { value } = Astro.props;
+const limit = value.limit || 3;
+const tag = value.tag?.trim().replace(/^#/, "") || null;
+const variant = value.variant === "grid" || value.variant === "feature" ? value.variant : "row";
+
+// Tag filtering happens here, as on /blog: the blog is small enough to load whole.
+const { entries, cacheHint } = await getEmDashCollection("posts", {
+	orderBy: { date: "desc" },
+	limit: tag ? 200 : limit + 1,
+});
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+
+const here = Astro.url.pathname.replace(/\/$/, "");
+const posts = entries
+	.map(toPostSummary)
+	.filter((p) => p.url !== here && (!tag || p.tags.some((t) => t.slug === tag)))
+	.slice(0, limit);
+---
+
+{
+	posts.length > 0 && (
+		<BlockSection label={value.label} note={tag ? `ls blog/ | grep #${tag}` : undefined} narrow={variant === "row"}>
+			<div class:list={["posts", variant]}>
+				{posts.map((p) => (
+					<PostCard post={p} variant={variant} />
+				))}
+			</div>
+		</BlockSection>
+	)
+}
+
+<style>
+	.posts {
+		display: grid;
+		gap: 16px;
+	}
+
+	.row {
+		gap: 12px;
+	}
+
+	.grid,
+	.feature {
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+		gap: 20px;
+	}
+</style>

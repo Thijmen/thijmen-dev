@@ -90,6 +90,11 @@ export function toPostSummary(entry: { id: string; data: Record<string, any> }):
 	};
 }
 
+/** A project's case-study URL, when its `body` has blocks. */
+export function projectHref(entry: { id: string; data: Record<string, any> }): string | undefined {
+	return Array.isArray(entry.data.body) && entry.data.body.length > 0 ? `/projects/${entry.id}` : undefined;
+}
+
 /** True when an image field actually points at media (not an empty object). */
 export function hasImage(img: unknown): boolean {
 	if (!img || typeof img !== "object") return false;

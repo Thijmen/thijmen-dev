@@ -6,7 +6,7 @@ import ProjectCard from "../components/ProjectCard.astro";
 import SectionLabel from "../components/SectionLabel.astro";
 import Timeline from "../components/Timeline.astro";
 import Window from "../components/Window.astro";
-import { asArray, emphasize, getProfile, toPostSummary } from "../lib/content";
+import { asArray, emphasize, getProfile, projectHref, toPostSummary } from "../lib/content";
 
 const [settings, { profile, cacheHint: profileHint }, postsRes, rolesRes, projectsRes] = await Promise.all([
 	getSiteSettings(),
@@ -26,7 +26,7 @@ const [first, ...restNames] = (settings?.title || "Thijmen Stavenuiter").split("
 const posts = postsRes.entries.map(toPostSummary);
 const [feature, ...others] = posts;
 const roles = rolesRes.entries.map((e) => e.data);
-const projects = projectsRes.entries.map((e) => e.data);
+const projects = projectsRes.entries.map((e) => ({ data: e.data, href: projectHref(e) }));
 const lines = asArray<{ k: string; v: string; kind?: string }>(profile?.profile_lines);
 const email = profile?.email;
 ---
@@ -98,7 +98,7 @@ const email = profile?.email;
 					projects.length > 0 && (
 						<div class="projects">
 							{projects.map((p) => (
-								<ProjectCard project={p as any} variant="compact" />
+								<ProjectCard project={p.data as any} variant="compact" href={p.href} />
 							))}
 						</div>
 					)

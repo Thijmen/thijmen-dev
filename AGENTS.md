@@ -54,6 +54,7 @@ Workers Builds deploys the site: build command `pnpm build`, production deploy c
 - The Workers Builds API token needs **D1 Edit**. Locally, the status scripts need `CLOUDFLARE_API_TOKEN` (the `wrangler login` session is not used).
 - Migrations are forward-only. After an ambiguous failure, run `migrate:status:*`; don't replay blindly. Release a stuck lock with `pnpm emdash migrate --release-lock <id> ...`. To roll back, restore the D1 from the logged Time Travel bookmark together with the matching build.
 - Spotify secrets: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN` (`wrangler secret put`, plus `.dev.vars` locally). Get the refresh token with `node scripts/spotify-auth.mjs` (redirect URI `http://127.0.0.1:8888/callback`).
+- Schema changes don't ship with a deploy: the seed only applies to an empty DB. The blocks schema (block types, `pages`, `posts.sections`, `projects.body`) reaches preview/prod through `EMDASH_URL=… EMDASH_TOKEN=… pnpm schema:blocks [--dry-run]` (`scripts/apply-blocks-schema.mjs`). It reads the definitions from `seed/seed.json`, creates only what is missing, reports (never changes) anything that differs, and never touches content. The token needs `schema:write` (admin → Settings → API Tokens on that environment). Access guards the whole Worker, API included, so also set `CF_ACCESS_TOKEN` (the `CF_Authorization` cookie from a browser session on that hostname) or a service token via `CF_ACCESS_CLIENT_ID`/`CF_ACCESS_CLIENT_SECRET`. Order: deploy the renderer code first, then run it against preview, then prod.
 - All branches share the preview D1. If a branch with a newer EmDash migrated it, older branches fail their build on unknown migration records: rebase, or reset preview from a prod export.
 
 ## Dependency updates
@@ -73,28 +74,35 @@ Personal site of Thijmen Stavenuiter, Staff Engineer: a blog, resume, open-sourc
 | -------- | -------------- | ------------------------------------------------------------------------------------------------------- |
 | Home     | `/`            | Status pill, big serif name, intro, `~/.profile` window; WRITING (1 feature + 3 rows); HISTORY; 2 featured projects; mail CTA |
 | Blog     | `/blog`        | `wc -l` kicker, tag chips (`?tag=slug`, server-side), latest post as a wide feature card, grid of the rest |
-| Post     | `/blog/[slug]` | Progress bar, title (with `*accent*`), date/read-time/tag chips, 21:9 cover, Portable Text body, sticky CONTENTS aside, older/newer |
+| Post     | `/blog/[slug]` | Progress bar, title (with `*accent*`), date/read-time/tag chips, 21:9 cover, Portable Text body, `sections` blocks, sticky CONTENTS aside, older/newer |
 | Resume   | `/resume`      | Name + role, Download PDF (`window.print()`, print CSS hides chrome), full git-log timeline, `skills.yml`, contact card |
-| Projects | `/projects`    | Project cards: screenshot, status pill, description, install command, language + stars                 |
-| Uses     | `/uses`        | Spotify now-playing card (live, polls `/api/now-playing`) + top tracks queue + playlists, tools with client-side category filter, desk |
+| Projects | `/projects`    | Project cards: screenshot, status pill, description, install command, language + stars. A card links to its case study when `body` has blocks, else to the repo |
+| Project  | `/projects/[slug]` | Case study: card fields as a header, 21:9 screenshot, `body` blocks                               |
+| Uses     | `/uses`        | `Soundtrack` (Spotify now-playing card, live, polls `/api/now-playing`, + top tracks queue + playlists), tools with client-side category filter, desk |
+| Pages    | `/[slug]`      | `pages` entries (/now, /colophon): kicker + display title + lede hero, then `body` blocks. Static routes win |
 
-Old portfolio routes redirect: `/work` and `/work/*` → `/projects`, `/about` → `/resume`, `/contact` → `/` (config `redirects` plus `src/pages/work/[slug].astro`).
+Old portfolio routes redirect: `/work` → `/projects`, `/work/<slug>` → that project's case study if it has one, else `/projects`, `/about` → `/resume`, `/contact` → `/` (config `redirects` plus `src/pages/work/[slug].astro`).
 
 ## Schema
 
 - `posts`: `title` (may contain `*emphasis*`), `date` (datetime, used for ordering), `excerpt`, `featured_image`, `cover_caption`, `content` (Portable Text). Taxonomy `tag`. Reading time is computed, not stored.
 - `projects`: `title` (repo name), `summary`, `featured_image`, `language`, `project_status` (select: active/maintained/archived), `stars`, `install`, `url`, `featured` (boolean, home page), `position`.
+- `posts.sections` and `projects.body` are `blocks` fields, as is `pages.body`.
+- `pages`: `title` (`*accent*`), `kicker`, `lede`, `glow` (left/right), `description` (SEO), `og_image`, `body` (blocks). Served at `/<slug>`.
 - `roles`: `title`, `org`, `period`, `commit_hash`, `ref`, `summary`, `highlights` (json string[]), `additions`, `deletions`, `stack` (json string[]), `position`.
 - `tools`, `desk_items`, `tracks`, `playlists`: small ordered lists for `/uses`, all sorted by `position`.
 - Spotify (`src/lib/spotify.ts`) feeds SOUNDTRACK: now playing / last played, top tracks (`short_term`) and, per `playlists` entry, name/cover/`N tracks · Xh Ym` from its `url` (a Spotify playlist URL). CMS `tracks` and playlist `title`/`meta` are the fallback when Spotify is unconfigured or fails; then the player simulates playback as before. Responses are memoised in the Workers Cache API (now playing 20s, top tracks 1h, playlists 6h). Since Spotify's Feb 2026 API changes, track counts only come back for playlists the account owns.
 - `profile`: exactly one entry with slug `me`. It holds all site-wide copy: status line, intros, page titles, CTA cards, email/GitHub/LinkedIn, `profile_lines` and `skills` (json), desk photo. Read it with `getProfile()`.
-- Single `primary` menu: Home, Blog, Resume, Projects, Uses. The header derives the `g` + first-letter shortcuts from the labels.
+- Block types (seed `blockTypes`, all v1): content `prose`, `note`, `terminal`, `figure`, `gallery`, `cta`, `links`, `faq`; data `post_list`, `project_grid`, `history`, `now_playing`. Data blocks store filters (tag, limit, variant, featured-only) and query collections themselves, because block fields can't hold references. `allowedTypes`: `posts.sections` = note, figure, gallery, cta, links, faq, post_list; `projects.body` = prose, note, terminal, figure, gallery, links, faq; `pages.body` = all. Renderers are in `src/components/blocks/`; `index.ts` has one `defineBlockComponents` map per field, typed against the generated `PostSectionsBlock` / `ProjectBodyBlock` / `PageBodyBlock` unions, so `astro check` fails when an allowed type has no component.
+- Single `primary` menu: Home, Blog, Resume, Projects, Uses (+ Now, Colophon in the seed). The header derives the `g` + first-letter shortcuts from the labels.
 
 Gotchas found while building this:
 - `status` is a reserved field slug (hence `project_status`). `validateSeed` does not catch it; only apply does.
 - `where` on a collection only takes strings: filter booleans with `"1"`.
 - Collection entries carry taxonomy terms on `entry.data.terms.<taxonomy>`.
 - The runtime auto-seed applies schema only. Sample content comes from the setup wizard or `/_emdash/api/setup/dev-bypass` in dev.
+- Block fields only take `string, text, url, number, integer, boolean, datetime, select, multiSelect, portableText, image, file, repeater`. No references, JSON or nested blocks. Removing a field, changing a type or adding a required field is a breaking change: it creates a new inactive version, which the renderer must handle before you activate it. `_version` is on every stored block.
+- `<Blocks>` renders its items without a wrapper and passes only `value`, `index` and `blockKey`. A block that needs page context reads `Astro.url` (`post_list` uses it to skip the post it sits under).
 - EmDash groups only runs of 2+ blockquote blocks into `blockquoteGroup`; a lone blockquote reaches the `block` renderer. `src/components/pt/Block.astro` handles both as the NOTE callout.
 
 ## Visual character
@@ -110,11 +118,11 @@ Theme: `data-theme="light" | "dark"` on `<html>`, stored in `localStorage["ts-th
 
 ## Customisation
 
-Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.card`, `.accent-card`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
+Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.card`, `.accent-card`, `.prose`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
 
-Components (`src/components/`): `SiteHeader` (nav pill, ☰ menu below 760px, ⌘K palette, keyboard shortcuts; one vanilla client script), `SiteFooter`, `Window` (terminal chrome), `SectionLabel`, `Timeline` (compact/full), `PostCard` (feature/row/grid), `ProjectCard` (full/compact). Portable Text overrides are in `pt/`: `Block` (h2 ids for the TOC, NOTE callout), `Note`, `CodeBlock` (window chrome, line numbers, copy button).
+Components (`src/components/`): `SiteHeader` (nav pill, ☰ menu below 760px, ⌘K palette, keyboard shortcuts; one vanilla client script), `SiteFooter`, `Window` (terminal chrome), `SectionLabel`, `Timeline` (compact/full), `PostCard` (feature/row/grid), `ProjectCard` (full/compact, optional `href`), `Soundtrack` (the Spotify player; `/uses` and the `now_playing` block). Portable Text overrides are in `pt/`: `Block` (h2 ids for the TOC, NOTE callout), `Note`, `CodeBlock` (window chrome, line numbers, copy button), and `components.ts` (the map shared by posts and the `prose` block). Block renderers are in `blocks/`, all framed by `BlockSection` (optional SectionLabel; `narrow` = the 700px reading measure).
 
-Code highlighting uses `src/lib/highlight.ts`: Shiki's fine-grained core with a fixed grammar list and the JavaScript regex engine. Don't switch to Astro's `<Code>`; it bundles every grammar plus the WASM engine into the Worker. Add a language by adding it to `LANGS`.
+Code highlighting uses `src/lib/highlight.ts`: Shiki's fine-grained core with a fixed grammar list and the JavaScript regex engine. Don't switch to Astro's `<Code>`; it bundles every grammar plus the WASM engine into the Worker. Add a language by adding it to `LANGS`, and to the `terminal` block's `language` options (a compatible change: same version).
 
 Styling a child component through its `class` prop needs `:global()` in the parent: Astro scopes styles per component.
 

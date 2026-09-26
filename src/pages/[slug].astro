@@ -1,0 +1,44 @@
+---
+/**
+ * Free-form CMS pages (/now, /colophon, …) from the `pages` collection:
+ * the shared hero, then the `body` blocks. Static routes win over this one.
+ */
+import { decodeSlug, getEmDashEntry } from "emdash";
+import { Blocks } from "emdash/ui";
+import Base from "../layouts/Base.astro";
+import { MissingBlock, pageBody } from "../components/blocks";
+import { emphasize, hasImage, plainTitle } from "../lib/content";
+
+const slug = decodeSlug(Astro.params.slug);
+if (!slug) return Astro.redirect("/404");
+
+const { entry: page, cacheHint } = await getEmDashEntry("pages", slug);
+if (!page) return Astro.redirect("/404");
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+
+const d = page.data;
+const ogImage = hasImage(d.og_image) ? (d.og_image as { src?: string }).src : undefined;
+---
+
+<Base
+	title={plainTitle(d.title)}
+	description={d.description || d.lede || undefined}
+	image={ogImage}
+	glow={d.glow === "right" ? "right" : "left"}
+>
+	<main class="page cms-page">
+		<div class="hero">
+			{d.kicker && <span class="kicker"><span class="sigil">$</span> {d.kicker}</span>}
+			<h1 class="display" set:html={emphasize(d.title)} />
+			{d.lede && <p class="lede">{d.lede}</p>}
+		</div>
+
+		<Blocks value={d.body} components={pageBody} fallback={MissingBlock} />
+	</main>
+</Base>
+
+<style>
+	.cms-page {
+		gap: 64px;
+	}
+</style>

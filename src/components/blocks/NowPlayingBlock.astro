@@ -1,0 +1,16 @@
+---
+import Soundtrack from "../Soundtrack.astro";
+
+interface Props {
+	value: { label?: string | null; note?: string | null; show_queue?: boolean | null; show_playlists?: boolean | null };
+}
+
+const { value } = Astro.props;
+---
+
+<Soundtrack
+	label={value.label || "SOUNDTRACK"}
+	note={value.note || undefined}
+	showQueue={value.show_queue !== false}
+	showPlaylists={value.show_playlists !== false}
+/>

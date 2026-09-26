@@ -1,0 +1,75 @@
+---
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { label?: string | null; items?: Array<{ question: string; answer: string }> | null };
+}
+
+const { value } = Astro.props;
+const items = value.items ?? [];
+---
+
+{
+	items.length > 0 && (
+		<BlockSection label={value.label} narrow>
+			<div class="card faq">
+				{items.map((q) => (
+					<details>
+						<summary>{q.question}</summary>
+						<p>{q.answer}</p>
+					</details>
+				))}
+			</div>
+		</BlockSection>
+	)
+}
+
+<style>
+	.faq {
+		display: flex;
+		flex-direction: column;
+		padding: 6px 24px;
+	}
+
+	details {
+		border-bottom: 1px dashed var(--color-border);
+	}
+
+	details:last-child {
+		border-bottom: 0;
+	}
+
+	summary {
+		display: flex;
+		gap: 12px;
+		padding: 16px 0;
+		font-family: var(--font-mono);
+		font-size: 14px;
+		cursor: pointer;
+		list-style: none;
+	}
+
+	summary::-webkit-details-marker {
+		display: none;
+	}
+
+	summary::before {
+		content: "+";
+		color: var(--color-brand);
+	}
+
+	details[open] summary::before {
+		content: "−";
+	}
+
+	p {
+		margin: 0;
+		padding: 0 0 18px 24px;
+		font-family: var(--font-heading);
+		font-size: 19px;
+		line-height: 1.55;
+		color: var(--color-muted);
+		white-space: pre-line;
+		text-wrap: pretty;
+	}
+</style>

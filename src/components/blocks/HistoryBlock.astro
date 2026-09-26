@@ -1,0 +1,36 @@
+---
+import { getEmDashCollection } from "emdash";
+import Timeline from "../Timeline.astro";
+import BlockSection from "./BlockSection.astro";
+
+interface Props {
+	value: { label?: string | null; limit?: number | null; variant?: string | null };
+}
+
+const { value } = Astro.props;
+const variant = value.variant === "full" ? "full" : "compact";
+
+const { entries, cacheHint } = await getEmDashCollection("roles", {
+	orderBy: { position: "asc" },
+	...(value.limit ? { limit: value.limit } : {}),
+});
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+const roles = entries.map((e) => e.data);
+---
+
+{
+	roles.length > 0 && (
+		<BlockSection label={value.label} note="git log --oneline" narrow={variant === "compact"}>
+			<div class:list={[{ card: variant === "compact" }, variant]}>
+				<Timeline roles={roles as any} variant={variant} />
+			</div>
+		</BlockSection>
+	)
+}
+
+<style>
+	/* Compact sits in a card, as on the home page. */
+	.card.compact {
+		padding: 26px 28px;
+	}
+</style>
