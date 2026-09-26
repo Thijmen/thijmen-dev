@@ -37,7 +37,6 @@ const commands: Command[] = [
 	{ label: "Toggle light / dark", hint: "t", action: "theme" },
 	...(email ? [{ label: "Copy email address", hint: "mail", action: "copy-email" }] : []),
 	...(github ? [{ label: "Open GitHub", hint: "↗", href: github, action: "external" }] : []),
-	{ label: "Subscribe via RSS", hint: "↗", href: "/rss.xml" },
 ];
 ---
 

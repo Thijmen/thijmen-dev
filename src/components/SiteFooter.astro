@@ -15,7 +15,6 @@ const { name, email, github, linkedin } = Astro.props;
 		<div class="links">
 			{github && <a href={github}>github(1)</a>}
 			{linkedin && <a href={linkedin}>linkedin(1)</a>}
-			<a href="/rss.xml">rss(5)</a>
 			{email && <a href={`mailto:${email}`}>mailto(2)</a>}
 		</div>
 		<span>press <kbd>t</kbd> for theme · <kbd>⌘K</kbd> for everything</span>
