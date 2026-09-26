@@ -1,0 +1,594 @@
+---
+/**
+ * Site header: logo + breadcrumb, nav pill (wide), search / theme buttons,
+ * a ☰ dropdown (narrow), and the ⌘K command palette. All client behaviour
+ * lives in the client script below; layout switches with media queries.
+ */
+interface NavItem {
+	label: string;
+	url: string;
+}
+
+interface Props {
+	nav: NavItem[];
+	email?: string;
+	github?: string;
+	linkedin?: string;
+	latestPost?: { title: string; url: string };
+}
+
+const { nav, email, github, linkedin, latestPost } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+const crumb = path === "/" ? "" : path;
+
+const isCurrent = (url: string) =>
+	url === "/" ? path === "/" : path === url || path.startsWith(`${url}/`);
+const navPath = (url: string) => (url === "/" ? "~/" : `~${url}`);
+const shortcut = (label: string) => label.charAt(0).toLowerCase();
+
+type Command = { label: string; hint: string; href?: string; action?: string };
+const commands: Command[] = [
+	...nav.map((n) => ({
+		label: `Go to ${n.label.toLowerCase()}`,
+		hint: `g ${shortcut(n.label)}`,
+		href: n.url,
+	})),
+	...(latestPost ? [{ label: `Read: ${latestPost.title}`, hint: "post", href: latestPost.url }] : []),
+	{ label: "Toggle light / dark", hint: "t", action: "theme" },
+	...(email ? [{ label: "Copy email address", hint: "mail", action: "copy-email" }] : []),
+	...(github ? [{ label: "Open GitHub", hint: "↗", href: github, action: "external" }] : []),
+	{ label: "Subscribe via RSS", hint: "↗", href: "/rss.xml" },
+];
+---
+
+<header class="site-header" data-email={email}>
+	<div class="bar">
+		<a href="/" class="brand">
+			<span class="badge">TS</span>
+			<span class="brand-path">~/thijmen<span class="crumb">{crumb}</span></span>
+		</a>
+
+		<nav class="nav-pill" aria-label="Primary">
+			{
+				nav.map((n) => (
+					<a
+						href={n.url}
+						class:list={["nav-link", { current: isCurrent(n.url) }]}
+						aria-current={isCurrent(n.url) ? "page" : undefined}
+						data-key={shortcut(n.label)}
+					>
+						{n.label}
+					</a>
+				))
+			}
+		</nav>
+
+		<div class="actions">
+			<button type="button" class="btn-search" data-open-palette aria-label="Search">
+				<span class="wide-only">search </span>⌘K
+			</button>
+			<button type="button" class="btn-theme" data-toggle-theme aria-label="Toggle theme" title="Toggle theme (t)">
+				◐<span class="wide-only theme-label"> light</span>
+			</button>
+			<button type="button" class="btn-menu" data-toggle-menu aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
+				<span class="icon-open">☰</span><span class="icon-close">✕</span>
+			</button>
+		</div>
+	</div>
+
+	<div class="menu" id="mobile-menu" hidden>
+		<nav class="menu-inner" aria-label="Primary">
+			{
+				nav.map((n) => (
+					<a href={n.url} class:list={["menu-link", { current: isCurrent(n.url) }]}>
+						<span>{n.label}</span>
+						<span class="menu-path">{navPath(n.url)}</span>
+					</a>
+				))
+			}
+			<div class="menu-social">
+				{github && <a href={github}>github(1)</a>}
+				{linkedin && <a href={linkedin}>linkedin(1)</a>}
+				{email && <a href={`mailto:${email}`}>mailto(2)</a>}
+			</div>
+		</nav>
+	</div>
+
+	<div class="palette" hidden data-palette>
+		<div class="palette-box" role="dialog" aria-modal="true" aria-label="Command palette">
+			<div class="palette-input">
+				<span class="prompt">&gt;</span>
+				<input type="text" placeholder="type a command…" autocomplete="off" spellcheck="false" aria-label="Command" />
+				<span class="kbd">esc</span>
+			</div>
+			<div class="palette-list" role="listbox">
+				{
+					commands.map((c) => (
+						<button
+							type="button"
+							class="cmd"
+							role="option"
+							data-label={c.label.toLowerCase()}
+							data-href={c.href}
+							data-action={c.action}
+						>
+							<span>{c.label}</span>
+							<span class="cmd-hint">{c.hint}</span>
+						</button>
+					))
+				}
+				<div class="palette-empty" hidden>command not found: <span></span></div>
+			</div>
+			<div class="palette-foot">
+				<span>↑↓ select</span><span>↵ run</span><span>t theme</span><span>g+b blog</span>
+			</div>
+		</div>
+	</div>
+</header>
+
+<script>
+	const root = document.documentElement;
+	const header = document.querySelector<HTMLElement>(".site-header")!;
+	const themeLabel = header.querySelector<HTMLElement>(".theme-label")!;
+	const menu = header.querySelector<HTMLElement>("#mobile-menu")!;
+	const menuBtn = header.querySelector<HTMLButtonElement>("[data-toggle-menu]")!;
+	const palette = header.querySelector<HTMLElement>("[data-palette]")!;
+	const input = palette.querySelector<HTMLInputElement>("input")!;
+	const cmds = [...palette.querySelectorAll<HTMLButtonElement>(".cmd")];
+	const empty = palette.querySelector<HTMLElement>(".palette-empty")!;
+	const navKeys = [...header.querySelectorAll<HTMLAnchorElement>(".nav-link")];
+
+	// Theme ------------------------------------------------------------
+	const currentTheme = () =>
+		root.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+	const syncThemeLabel = () => (themeLabel.textContent = ` ${currentTheme()}`);
+	function toggleTheme() {
+		const next = currentTheme() === "light" ? "dark" : "light";
+		root.dataset.theme = next;
+		try {
+			localStorage.setItem("ts-theme", next);
+		} catch {}
+		syncThemeLabel();
+	}
+	syncThemeLabel();
+	header.querySelector("[data-toggle-theme]")!.addEventListener("click", toggleTheme);
+
+	// Mobile menu ------------------------------------------------------
+	function setMenu(open: boolean) {
+		menu.hidden = !open;
+		menuBtn.setAttribute("aria-expanded", String(open));
+		header.classList.toggle("menu-open", open);
+	}
+	menuBtn.addEventListener("click", () => setMenu(Boolean(menu.hidden)));
+	matchMedia("(min-width: 760px)").addEventListener("change", (e) => e.matches && setMenu(false));
+
+	// Command palette --------------------------------------------------
+	let sel = 0;
+	const visible = () => cmds.filter((c) => !c.hidden);
+	function render() {
+		const q = input.value.trim().toLowerCase();
+		cmds.forEach((c) => (c.hidden = !c.dataset.label!.includes(q)));
+		const list = visible();
+		sel = Math.min(sel, Math.max(list.length - 1, 0));
+		list.forEach((c, i) => c.classList.toggle("selected", i === sel));
+		empty.hidden = list.length > 0;
+		empty.querySelector("span")!.textContent = input.value;
+	}
+	function openPalette() {
+		setMenu(false);
+		palette.hidden = false;
+		input.value = "";
+		sel = 0;
+		render();
+		input.focus();
+	}
+	const closePalette = () => (palette.hidden = true);
+	function run(cmd: HTMLButtonElement) {
+		const { href, action } = cmd.dataset;
+		if (action === "theme") toggleTheme();
+		else if (action === "copy-email") navigator.clipboard?.writeText(header.dataset.email ?? "").catch(() => {});
+		else if (action === "external" && href) window.open(href, "_blank", "noopener");
+		else if (href) location.href = href;
+		closePalette();
+	}
+
+	header.querySelectorAll("[data-open-palette]").forEach((b) => b.addEventListener("click", openPalette));
+	palette.addEventListener("click", (e) => e.target === palette && closePalette());
+	input.addEventListener("input", () => {
+		sel = 0;
+		render();
+	});
+	cmds.forEach((c) => {
+		c.addEventListener("click", () => run(c));
+		c.addEventListener("mouseenter", () => {
+			sel = visible().indexOf(c);
+			render();
+		});
+	});
+
+	// Keyboard ---------------------------------------------------------
+	let gAt = 0;
+	window.addEventListener("keydown", (e) => {
+		const t = e.target as HTMLElement;
+		const typing = ["input", "textarea", "select"].includes(t.tagName?.toLowerCase()) || t.isContentEditable;
+
+		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+			e.preventDefault();
+			palette.hidden ? openPalette() : closePalette();
+			return;
+		}
+		if (!palette.hidden) {
+			const list = visible();
+			if (e.key === "Escape") closePalette();
+			else if (e.key === "ArrowDown") {
+				e.preventDefault();
+				sel = Math.min(sel + 1, list.length - 1);
+				render();
+			} else if (e.key === "ArrowUp") {
+				e.preventDefault();
+				sel = Math.max(sel - 1, 0);
+				render();
+			} else if (e.key === "Enter" && list[sel]) {
+				e.preventDefault();
+				run(list[sel]);
+			}
+			return;
+		}
+		if (e.key === "Escape") setMenu(false);
+		if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+		if (e.key === "/") {
+			e.preventDefault();
+			openPalette();
+		} else if (e.key === "t") toggleTheme();
+		else if (e.key === "g") gAt = Date.now();
+		else if (Date.now() - gAt < 900) {
+			const link = navKeys.find((a) => a.dataset.key === e.key);
+			if (link) location.href = link.href;
+		}
+	});
+</script>
+
+<style>
+	.site-header {
+		position: relative;
+		z-index: 5;
+		font-size: 14px;
+		color: var(--color-text);
+	}
+
+	.bar {
+		max-width: var(--wide-width);
+		margin: 0 auto;
+		padding: 20px var(--gutter);
+		display: flex;
+		gap: 14px 20px;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+		color: var(--color-text);
+		font-family: var(--font-mono);
+		font-size: 13px;
+		text-decoration: none;
+	}
+
+	.brand:hover {
+		text-decoration: none;
+	}
+
+	.badge {
+		flex: none;
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		border-radius: 9px;
+		background: var(--color-brand);
+		color: var(--color-on-brand);
+		font-size: 11px;
+		font-weight: 700;
+	}
+
+	.brand-path {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.crumb {
+		color: var(--color-brand);
+	}
+
+	.nav-pill {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 5px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+		background: var(--color-bg);
+	}
+
+	.nav-link {
+		padding: 7px 14px;
+		border-radius: var(--radius-pill);
+		color: var(--color-text);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.nav-link:hover {
+		background: var(--color-brand-soft);
+		text-decoration: none;
+	}
+
+	.nav-link.current {
+		background: var(--color-brand-soft);
+		color: var(--color-brand);
+	}
+
+	.actions {
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+	}
+
+	.actions button {
+		font: inherit;
+		min-height: 34px;
+		padding: 7px 12px;
+		border-radius: var(--radius-pill);
+		border: 1px solid var(--color-border);
+		cursor: pointer;
+		white-space: nowrap;
+		transition: border-color var(--transition-fast);
+	}
+
+	.actions button:hover {
+		border-color: var(--color-brand);
+	}
+
+	.btn-search {
+		background: var(--color-bg);
+		color: var(--color-muted);
+	}
+
+	.btn-theme {
+		min-width: 34px;
+		background: var(--color-surface);
+		color: var(--color-text);
+	}
+
+	.actions .btn-menu {
+		display: none;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		background: var(--color-bg);
+		color: var(--color-text);
+		font-size: 16px;
+	}
+
+	.icon-close,
+	.menu-open .icon-open {
+		display: none;
+	}
+
+	.menu-open .icon-close {
+		display: inline;
+	}
+
+	.menu-open .btn-menu {
+		background: var(--color-brand-soft);
+	}
+
+	/* Dropdown menu (narrow screens) */
+	.menu {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 100%;
+		z-index: 20;
+		padding: 0 clamp(16px, 5vw, 64px);
+	}
+
+	.menu-inner {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 10px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-xl);
+		background: var(--color-bg);
+		box-shadow: 0 24px 60px -24px var(--color-shadow);
+	}
+
+	.menu-link {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		min-height: 52px;
+		padding: 0 18px;
+		border-radius: 14px;
+		color: var(--color-text);
+		font-family: var(--font-heading);
+		font-size: 26px;
+		text-decoration: none;
+	}
+
+	.menu-link:hover {
+		text-decoration: none;
+	}
+
+	.menu-link.current {
+		background: var(--color-brand-soft);
+		color: var(--color-brand);
+	}
+
+	.menu-path {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.menu-social {
+		display: flex;
+		justify-content: space-between;
+		gap: 8px;
+		margin-top: 6px;
+		padding: 12px 8px 4px;
+		border-top: 1px solid var(--color-border);
+		font-family: var(--font-mono);
+		font-size: 12px;
+	}
+
+	.menu-social a {
+		padding: 8px;
+	}
+
+	/* Command palette */
+	.palette {
+		position: fixed;
+		inset: 0;
+		z-index: 100;
+		display: flex;
+		justify-content: center;
+		align-items: flex-start;
+		padding: 14vh 16px 0;
+		background: oklch(0.2 0.03 295 / 0.4);
+		backdrop-filter: blur(4px);
+	}
+
+	.palette[hidden] {
+		display: none;
+	}
+
+	.palette-box {
+		width: 100%;
+		max-width: 600px;
+		overflow: hidden;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 30px 80px -20px oklch(0.2 0.05 295 / 0.55);
+		font-family: var(--font-mono);
+	}
+
+	.palette-input {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 16px 18px;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.prompt {
+		color: var(--color-brand);
+	}
+
+	.palette-input input {
+		flex: 1;
+		min-width: 0;
+		border: 0;
+		outline: 0;
+		background: transparent;
+		color: var(--color-text);
+		font: inherit;
+		font-size: 14px;
+	}
+
+	.kbd {
+		font-size: 11px;
+		color: var(--color-muted);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+		padding: 2px 8px;
+	}
+
+	.palette-list {
+		display: flex;
+		flex-direction: column;
+		max-height: 50vh;
+		overflow: auto;
+		padding: 8px;
+	}
+
+	.cmd {
+		display: flex;
+		justify-content: space-between;
+		gap: 16px;
+		width: 100%;
+		padding: 10px 12px;
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--color-text);
+		font: inherit;
+		font-size: 13px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.cmd.selected {
+		background: var(--color-brand-soft);
+	}
+
+	.cmd-hint {
+		color: var(--color-muted);
+		font-size: 12px;
+		white-space: nowrap;
+	}
+
+	.palette-empty {
+		padding: 14px 12px;
+		color: var(--color-muted);
+		font-size: 13px;
+	}
+
+	.palette-foot {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 18px;
+		padding: 10px 18px;
+		border-top: 1px solid var(--color-border);
+		background: var(--color-surface);
+		font-size: 11px;
+		color: var(--color-muted);
+	}
+
+	@media (max-width: 1039px) {
+		.wide-only {
+			display: none;
+		}
+	}
+
+	@media (max-width: 759px) {
+		.bar {
+			padding-block: 14px;
+		}
+
+		.nav-pill,
+		.crumb {
+			display: none;
+		}
+
+		.actions .btn-menu {
+			display: grid;
+		}
+	}
+
+	@media (min-width: 760px) {
+		.menu {
+			display: none;
+		}
+	}
+</style>

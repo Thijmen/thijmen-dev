@@ -1,0 +1,705 @@
+---
+import { getEmDashCollection } from "emdash";
+import { Image } from "emdash/ui";
+import Base from "../layouts/Base.astro";
+import SectionLabel from "../components/SectionLabel.astro";
+import { emphasize, getProfile, hasImage } from "../lib/content";
+
+const byPosition = { orderBy: { position: "asc" as const } };
+const [{ profile, cacheHint: profileHint }, tracksRes, playlistsRes, toolsRes, deskRes] = await Promise.all([
+	getProfile(),
+	getEmDashCollection("tracks", byPosition),
+	getEmDashCollection("playlists", byPosition),
+	getEmDashCollection("tools", byPosition),
+	getEmDashCollection("desk_items", byPosition),
+]);
+
+if (Astro.cache?.enabled) {
+	if (profileHint) Astro.cache.set(profileHint);
+	for (const r of [tracksRes, playlistsRes, toolsRes, deskRes]) Astro.cache.set(r.cacheHint);
+}
+
+// Fallback album art when a track or playlist has no cover image.
+const ARTS = [
+	"linear-gradient(135deg,oklch(0.55 0.2 295),oklch(0.4 0.15 330))",
+	"linear-gradient(135deg,oklch(0.6 0.15 250),oklch(0.35 0.12 290))",
+	"linear-gradient(135deg,oklch(0.7 0.14 60),oklch(0.45 0.18 20))",
+	"linear-gradient(135deg,oklch(0.55 0.18 340),oklch(0.3 0.1 280))",
+	"linear-gradient(135deg,oklch(0.85 0.02 300),oklch(0.5 0.03 300))",
+];
+const art = (i: number) => ARTS[i % ARTS.length];
+const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+const tracks = tracksRes.entries.map((e) => {
+	const s = Number(e.data.duration_seconds) || 0;
+	return { ...e.data, s, len: fmt(s) };
+});
+const playerData = JSON.stringify(
+	tracks.map((t) => ({ title: t.title, artist: t.artist ?? "", album: t.album ?? "", s: t.s, len: t.len })),
+);
+const first = tracks[0];
+
+const playlists = playlistsRes.entries.map((e) => e.data);
+const tools = toolsRes.entries.map((e) => e.data);
+const categories = [...new Set(tools.map((t) => t.category).filter(Boolean))] as string[];
+const desk = deskRes.entries.map((e) => e.data);
+---
+
+<Base title="Uses" description={profile?.uses_intro} glow="right">
+	<main class="page uses">
+		<div class="hero">
+			<span class="kicker"><span class="sigil">$</span> jq . uses.json</span>
+			<h1 class="display" set:html={emphasize(profile?.uses_title || "Uses*.json*")} />
+			{profile?.uses_intro && <p class="lede">{profile.uses_intro}</p>}
+		</div>
+
+		{
+			first && (
+				<section class="section">
+					<SectionLabel label="SOUNDTRACK" note={profile?.soundtrack_note || undefined} rule />
+					<div class="music" data-player={playerData}>
+						<div class="player">
+							<div class="cover">
+								{tracks.map((t, i) => (
+									<div class="cover-art" style={`background:${art(i)}`} data-cover={i} hidden={i !== 0}>
+										{hasImage(t.cover) && <Image image={t.cover as any} class="cover-img" />}
+									</div>
+								))}
+							</div>
+							<div class="player-body">
+								<div class="status">
+									<span class="eq" aria-hidden="true">
+										<span />
+										<span />
+										<span />
+										<span />
+									</span>
+									<span data-status>NOW PLAYING</span>
+								</div>
+								<div class="now">
+									<span class="now-title" data-title>{first.title}</span>
+									<span class="now-sub" data-sub>{[first.artist, first.album].filter(Boolean).join(" · ")}</span>
+								</div>
+								<div class="scrub">
+									<div class="bar"><div class="bar-fill" data-fill /></div>
+									<div class="times"><span data-elapsed>0:00</span><span data-len>{first.len}</span></div>
+								</div>
+								<div class="controls">
+									<button type="button" class="ctl" data-prev aria-label="Previous track">⏮</button>
+									<button type="button" class="ctl play" data-play aria-label="Play or pause">❚❚</button>
+									<button type="button" class="ctl" data-next aria-label="Next track">⏭</button>
+								</div>
+							</div>
+						</div>
+
+						<div class="card queue">
+							<div class="queue-head">
+								<span class="queue-title">On repeat</span>
+								<span class="mono-muted">last 30 days</span>
+							</div>
+							{tracks.map((t, i) => (
+								<button type="button" class="q" data-track={i}>
+									<span class="q-n">{String(i + 1).padStart(2, "0")}</span>
+									<span class="q-art" style={`background:${art(i)}`}>
+										{hasImage(t.cover) && <Image image={t.cover as any} class="cover-img" />}
+									</span>
+									<span class="q-text">
+										<span class="q-title">{t.title}</span>
+										<span class="q-artist">{t.artist}</span>
+									</span>
+									<span class="mono-muted">{t.len}</span>
+								</button>
+							))}
+						</div>
+					</div>
+
+					{playlists.length > 0 && (
+						<div class="playlists">
+							{playlists.map((p, i) => (
+								<a href={p.url || "#"} class="card playlist">
+									<span class="pl-art" style={`background:${art(i + 1)}`} />
+									<span class="pl-text">
+										<span class="pl-name">{p.title}</span>
+										<span class="pl-meta">{p.meta}</span>
+									</span>
+								</a>
+							))}
+						</div>
+					)}
+				</section>
+			)
+		}
+
+		{
+			tools.length > 0 && (
+				<section class="section">
+					<SectionLabel label="TOOLS" note={`ls ~/.local/bin | wc -l → ${tools.length}`} rule />
+					<div class="chip-row" data-tool-filter>
+						<button type="button" class="chip" data-cat="all" aria-pressed="true">
+							all <span class="count">{tools.length}</span>
+						</button>
+						{categories.map((c) => (
+							<button type="button" class="chip" data-cat={c} aria-pressed="false">
+								{c} <span class="count">{tools.filter((t) => t.category === c).length}</span>
+							</button>
+						))}
+					</div>
+					<div class="tools">
+						{tools.map((t) => (
+							<div class="card hoverable tool" data-tool-cat={t.category}>
+								<div class="tool-head">
+									<span class="glyph">{t.glyph}</span>
+									<span class="tool-cat">{t.category}</span>
+								</div>
+								<div class="tool-text">
+									<span class="tool-name">{t.title}</span>
+									{t.why && <span class="tool-why">{t.why}</span>}
+								</div>
+							</div>
+						))}
+					</div>
+				</section>
+			)
+		}
+
+		{
+			desk.length > 0 && (
+				<section class="section">
+					<SectionLabel label="DESK" rule />
+					<div class="desk">
+						<div class:list={["desk-photo", { placeholder: !hasImage(profile?.desk_photo) }]}>
+							{hasImage(profile?.desk_photo) ? (
+								<Image image={profile!.desk_photo as any} class="cover-img" />
+							) : (
+								<span>desk.jpg</span>
+							)}
+						</div>
+						<div class="card desk-list">
+							{desk.map((d) => (
+								<div class="desk-item">
+									<span class="desk-k">{d.label}</span>
+									<div class="desk-v">
+										<span class="desk-name">{d.title}</span>
+										{d.note && <span class="desk-note">{d.note}</span>}
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				</section>
+			)
+		}
+	</main>
+</Base>
+
+<script>
+	// Simulated now-playing card: advances a fake clock, no audio.
+	const root = document.querySelector<HTMLElement>("[data-player]");
+	if (root) {
+		type Track = { title: string; artist: string; album: string; s: number; len: string };
+		const tracks: Track[] = JSON.parse(root.dataset.player || "[]");
+		const $ = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+		const covers = [...root.querySelectorAll<HTMLElement>("[data-cover]")];
+		const rows = [...root.querySelectorAll<HTMLButtonElement>("[data-track]")];
+		const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+		let i = 0;
+		let t = Math.min(74, Math.max(0, (tracks[0]?.s ?? 1) - 1));
+		let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+		const render = () => {
+			const tr = tracks[i];
+			$("[data-title]").textContent = tr.title;
+			$("[data-sub]").textContent = [tr.artist, tr.album].filter(Boolean).join(" · ");
+			$("[data-len]").textContent = tr.len;
+			$("[data-elapsed]").textContent = fmt(t);
+			$("[data-fill]").style.width = `${tr.s ? (t / tr.s) * 100 : 0}%`;
+			$("[data-status]").textContent = playing ? "NOW PLAYING" : "PAUSED";
+			$("[data-play]").textContent = playing ? "❚❚" : "▶";
+			root.classList.toggle("paused", !playing);
+			covers.forEach((c, k) => (c.hidden = k !== i));
+			rows.forEach((r, k) => {
+				r.classList.toggle("current", k === i);
+				r.querySelector(".q-n")!.textContent = k === i ? "▶" : String(k + 1).padStart(2, "0");
+			});
+		};
+		const go = (k: number) => {
+			i = (k + tracks.length) % tracks.length;
+			t = 0;
+			playing = true;
+			render();
+		};
+
+		$("[data-play]").addEventListener("click", () => {
+			playing = !playing;
+			render();
+		});
+		$("[data-prev]").addEventListener("click", () => go(i - 1));
+		$("[data-next]").addEventListener("click", () => go(i + 1));
+		rows.forEach((r, k) => r.addEventListener("click", () => go(k)));
+
+		setInterval(() => {
+			if (!playing) return;
+			if (t + 1 >= tracks[i].s) go(i + 1);
+			else {
+				t++;
+				render();
+			}
+		}, 1000);
+		render();
+	}
+
+	// Tool category filter.
+	const filter = document.querySelector<HTMLElement>("[data-tool-filter]");
+	if (filter) {
+		const chips = [...filter.querySelectorAll<HTMLButtonElement>("[data-cat]")];
+		const cards = [...document.querySelectorAll<HTMLElement>("[data-tool-cat]")];
+		chips.forEach((chip) =>
+			chip.addEventListener("click", () => {
+				const cat = chip.dataset.cat;
+				chips.forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
+				cards.forEach((card) => (card.hidden = cat !== "all" && card.dataset.toolCat !== cat));
+			}),
+		);
+	}
+</script>
+
+<style>
+	.uses {
+		gap: 64px;
+	}
+
+	.section {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.mono-muted {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	/* Soundtrack ---------------------------------------------------------- */
+	.music {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+		gap: 20px;
+	}
+
+	.player {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: stretch;
+		gap: 24px;
+		padding: 24px;
+		border-radius: var(--radius-xl);
+		background: var(--player-bg);
+		color: var(--player-text);
+	}
+
+	.cover {
+		position: relative;
+		flex: 0 0 180px;
+		height: 180px;
+		overflow: hidden;
+		border-radius: 14px;
+	}
+
+	.cover-art {
+		position: absolute;
+		inset: 0;
+	}
+
+	.player-body {
+		flex: 1 1 200px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
+	.status {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--player-accent);
+	}
+
+	.eq {
+		display: flex;
+		align-items: flex-end;
+		gap: 2px;
+		height: 14px;
+	}
+
+	.eq span {
+		display: block;
+		width: 3px;
+		height: 14px;
+		border-radius: 2px;
+		background: var(--player-accent);
+		transform-origin: bottom;
+		animation: eq 0.7s ease-in-out infinite;
+	}
+
+	.eq span:nth-child(2) {
+		animation-duration: 0.87s;
+		animation-delay: 0.1s;
+	}
+
+	.eq span:nth-child(3) {
+		animation-duration: 1.04s;
+		animation-delay: 0.2s;
+	}
+
+	.eq span:nth-child(4) {
+		animation-duration: 1.21s;
+		animation-delay: 0.3s;
+	}
+
+	.paused .eq span {
+		animation: none;
+		transform: scaleY(0.3);
+	}
+
+	@keyframes eq {
+		0%,
+		100% {
+			transform: scaleY(0.3);
+		}
+		50% {
+			transform: scaleY(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.eq span {
+			animation: none;
+			transform: scaleY(0.6);
+		}
+	}
+
+	.now {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.now-title {
+		font-family: var(--font-heading);
+		font-size: 34px;
+		line-height: 1.05;
+		letter-spacing: -0.015em;
+	}
+
+	.now-sub {
+		font-size: 15px;
+		opacity: 0.75;
+	}
+
+	.scrub {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.bar {
+		height: 4px;
+		overflow: hidden;
+		border-radius: var(--radius-pill);
+		background: oklch(1 0 0 / 0.18);
+	}
+
+	.bar-fill {
+		height: 100%;
+		width: 0;
+		border-radius: var(--radius-pill);
+		background: var(--player-accent);
+	}
+
+	.times {
+		display: flex;
+		justify-content: space-between;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		opacity: 0.7;
+	}
+
+	.controls {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.ctl {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: 1px solid oklch(1 0 0 / 0.25);
+		background: transparent;
+		color: inherit;
+		font-size: 12px;
+		cursor: pointer;
+	}
+
+	.ctl.play {
+		width: 44px;
+		height: 44px;
+		border: 0;
+		background: var(--player-accent);
+		color: var(--player-on-accent);
+		font-size: 15px;
+	}
+
+	.queue {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 22px 24px;
+		border-radius: var(--radius-xl);
+	}
+
+	.queue-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		padding-bottom: 8px;
+	}
+
+	.queue-title {
+		font-size: 16px;
+		font-weight: 600;
+	}
+
+	.q {
+		display: grid;
+		grid-template-columns: 22px 44px minmax(0, 1fr) auto;
+		gap: 14px;
+		align-items: center;
+		margin: 0 -10px;
+		padding: 8px 10px;
+		border: 0;
+		border-radius: 12px;
+		background: transparent;
+		color: var(--color-text);
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.q:hover {
+		background: var(--color-surface);
+	}
+
+	.q.current {
+		background: var(--color-brand-soft);
+	}
+
+	.q-n {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.current .q-n {
+		color: var(--color-brand);
+	}
+
+	.q-art {
+		width: 44px;
+		height: 44px;
+		overflow: hidden;
+		border-radius: 8px;
+	}
+
+	.q-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.q-title,
+	.q-artist {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.q-title {
+		font-size: 15px;
+		font-weight: 500;
+	}
+
+	.q-artist {
+		font-size: 13px;
+		color: var(--color-muted);
+	}
+
+	.playlists {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+		gap: 20px;
+	}
+
+	.playlist {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 14px;
+	}
+
+	.pl-art {
+		flex: none;
+		width: 56px;
+		height: 56px;
+		border-radius: 12px;
+	}
+
+	.pl-text {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.pl-name {
+		font-size: 15px;
+		font-weight: 500;
+	}
+
+	.pl-meta {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-muted);
+	}
+
+	/* Tools --------------------------------------------------------------- */
+	.tools {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+		gap: 16px;
+	}
+
+	.tool {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 20px;
+	}
+
+	.tool-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.glyph {
+		display: grid;
+		place-items: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 11px;
+		background: var(--color-brand-soft);
+		color: var(--color-brand);
+		font-family: var(--font-mono);
+		font-size: 14px;
+		font-weight: 700;
+	}
+
+	.tool-cat {
+		padding: 3px 9px;
+		border-radius: var(--radius-pill);
+		border: 1px solid var(--color-border);
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-muted);
+	}
+
+	.tool-text {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.tool-name {
+		font-family: var(--font-mono);
+		font-size: 15px;
+		font-weight: 700;
+	}
+
+	.tool-why {
+		font-size: 14px;
+		line-height: 1.5;
+		color: var(--color-muted);
+		text-wrap: pretty;
+	}
+
+	/* Desk ---------------------------------------------------------------- */
+	.desk {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+		gap: 20px;
+		align-items: start;
+	}
+
+	.desk-photo {
+		position: relative;
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+		border-radius: 20px;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+
+	.desk-list {
+		display: flex;
+		flex-direction: column;
+		padding: 6px 24px;
+		border-radius: 20px;
+	}
+
+	.desk-item {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 18px;
+		align-items: baseline;
+		padding: 16px 0;
+		border-bottom: 1px dashed var(--color-border);
+	}
+
+	.desk-item:last-child {
+		border-bottom: 0;
+	}
+
+	.desk-k {
+		flex: 0 0 100px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--syntax-keyword);
+	}
+
+	.desk-v {
+		flex: 1 1 200px;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.desk-name {
+		font-family: var(--font-heading);
+		font-size: 21px;
+		line-height: 1.3;
+	}
+
+	.desk-note {
+		font-size: 14px;
+		line-height: 1.5;
+		color: var(--color-muted);
+	}
+</style>

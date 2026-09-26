@@ -16,6 +16,10 @@ export default defineConfig({
 		emdash({
 			database: d1({ binding: "DB", session: "auto" }),
 			storage: r2({ binding: "MEDIA" }),
+			// Workers Builds applies core migrations before deploying
+			// (`deploy:prod` / `deploy:preview`); the Worker only verifies them
+			// and returns 503 while any are pending. Dev still auto-migrates.
+			migrations: { runtime: "check", dev: "auto" },
 			// Cloudflare Access (Zero Trust) is the exclusive auth method in
 			// production — passkeys, magic links and invites are disabled there.
 			// Local dev automatically falls back to passkey login.
@@ -26,13 +30,33 @@ export default defineConfig({
 			}),
 		}),
 	],
+	redirects: {
+		"/work": "/projects",
+		"/about": "/resume",
+		"/contact": "/",
+	},
 	fonts: [
 		{
 			provider: fontProviders.google(),
-			name: "Playfair Display",
+			name: "Newsreader",
 			cssVariable: "--font-heading",
-			weights: [400, 500, 600, 700],
+			weights: [400, 500],
+			styles: ["normal", "italic"],
 			fallbacks: ["serif"],
+		},
+		{
+			provider: fontProviders.google(),
+			name: "Geist",
+			cssVariable: "--font-body",
+			weights: [400, 500, 600],
+			fallbacks: ["sans-serif"],
+		},
+		{
+			provider: fontProviders.google(),
+			name: "JetBrains Mono",
+			cssVariable: "--font-mono",
+			weights: [400, 500, 700],
+			fallbacks: ["monospace"],
 		},
 	],
 	devToolbar: { enabled: false },

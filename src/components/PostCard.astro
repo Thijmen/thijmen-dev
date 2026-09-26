@@ -1,0 +1,226 @@
+---
+/**
+ * Post card in three shapes:
+ *  - feature: big cover card (home: stacked; blog: `wide` = side by side)
+ *  - row:     compact row with a square thumb (home sidebar list)
+ *  - grid:    blog index grid card
+ */
+import { Image } from "emdash/ui";
+import { placeholderName, type PostSummary } from "../lib/content";
+
+interface Props {
+	post: PostSummary;
+	variant?: "feature" | "row" | "grid";
+	wide?: boolean;
+}
+
+const { post, variant = "grid", wide = false } = Astro.props;
+const meta = `${post.date} · ${post.readMin} min`;
+---
+
+{
+	variant === "row" ? (
+		<a href={post.url} class="card row">
+			<span class="thumb">{post.image && <Image image={post.image as any} class="cover-img" />}</span>
+			<span class="row-text">
+				<span class="row-title">{post.title}</span>
+				<span class="meta">
+					{post.date}
+					{post.tag && (
+						<>
+							{" · "}
+							<span class="tag">#{post.tag}</span>
+						</>
+					)}
+				</span>
+			</span>
+		</a>
+	) : variant === "feature" ? (
+		<a href={post.url} class:list={["card", "feature", { wide }]}>
+			<div class:list={["cover", { placeholder: !post.image }]}>
+				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{wide ? placeholderName(post.slug) : "cover.png"}</span>}
+			</div>
+			<div class="feature-body">
+				{wide ? (
+					<span class="latest">latest{post.tag && ` · #${post.tag}`}</span>
+				) : (
+					<span class="meta">
+						{post.date}
+						{post.tag && (
+							<>
+								{" · "}
+								<span class="tag">#{post.tag}</span>
+							</>
+						)}
+						{` · ${post.readMin} min`}
+					</span>
+				)}
+				<span class="feature-title">{post.title}</span>
+				{post.excerpt && <span class="excerpt">{post.excerpt}</span>}
+				{wide && <span class="meta">{meta}</span>}
+			</div>
+		</a>
+	) : (
+		<a href={post.url} class="card grid">
+			<div class:list={["cover", { placeholder: !post.image }]}>
+				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{placeholderName(post.slug)}</span>}
+			</div>
+			<div class="grid-body">
+				{post.tag && <span class="tag mono-sm">#{post.tag}</span>}
+				<span class="grid-title">{post.title}</span>
+				{post.excerpt && <span class="excerpt">{post.excerpt}</span>}
+				<span class="meta">{meta}</span>
+			</div>
+		</a>
+	)
+}
+
+<style>
+	.card {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.meta,
+	.mono-sm {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.tag {
+		color: var(--color-brand);
+	}
+
+	.excerpt {
+		font-size: 16px;
+		line-height: 1.55;
+		color: var(--color-muted);
+		text-wrap: pretty;
+	}
+
+	.cover {
+		position: relative;
+		aspect-ratio: 16 / 9;
+		overflow: hidden;
+		border-bottom: 1px solid var(--color-border);
+		background-color: var(--color-surface);
+	}
+
+	/* Row ----------------------------------------------------------------- */
+	.row {
+		flex: 1;
+		display: grid;
+		grid-template-columns: 96px minmax(0, 1fr);
+		gap: 18px;
+		align-items: center;
+		padding: 14px;
+		border-radius: var(--radius-md);
+	}
+
+	.thumb {
+		aspect-ratio: 1;
+		overflow: hidden;
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+	}
+
+	.row-text {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.row-title {
+		font-family: var(--font-heading);
+		font-size: 21px;
+		line-height: 1.2;
+		text-wrap: pretty;
+	}
+
+	.row .meta {
+		font-size: 11px;
+	}
+
+	/* Feature ------------------------------------------------------------- */
+	.feature-body {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 26px 28px 28px;
+	}
+
+	.feature-title {
+		font-family: var(--font-heading);
+		font-size: 34px;
+		line-height: 1.12;
+		text-wrap: balance;
+	}
+
+	.feature.wide {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+		border-radius: var(--radius-xl);
+		background: var(--color-surface);
+	}
+
+	.wide .cover {
+		aspect-ratio: auto;
+		min-height: 280px;
+		border-bottom: 0;
+	}
+
+	.wide .feature-body {
+		justify-content: flex-end;
+		gap: 14px;
+		padding: clamp(28px, 4vw, 44px);
+	}
+
+	.wide .feature-title {
+		font-size: clamp(32px, 3.6vw, 42px);
+		line-height: 1.08;
+	}
+
+	.wide .excerpt {
+		font-size: 17px;
+	}
+
+	.latest {
+		align-self: flex-start;
+		padding: 4px 10px;
+		border-radius: var(--radius-pill);
+		background: var(--color-brand-soft);
+		color: var(--color-brand);
+		font-family: var(--font-mono);
+		font-size: 12px;
+	}
+
+	/* Grid ---------------------------------------------------------------- */
+	.grid .cover.placeholder {
+		background: var(--color-surface);
+		font-size: 11px;
+	}
+
+	.grid-body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 20px 22px 24px;
+	}
+
+	.grid-title {
+		font-family: var(--font-heading);
+		font-size: 24px;
+		line-height: 1.18;
+		text-wrap: pretty;
+	}
+
+	.grid .excerpt {
+		flex: 1;
+		font-size: 15px;
+		line-height: 1.5;
+	}
+</style>

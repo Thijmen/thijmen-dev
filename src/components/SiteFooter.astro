@@ -1,0 +1,55 @@
+---
+interface Props {
+	name: string;
+	email?: string;
+	github?: string;
+	linkedin?: string;
+}
+
+const { name, email, github, linkedin } = Astro.props;
+---
+
+<footer class="site-footer">
+	<div class="inner">
+		<span>© {new Date().getFullYear()} {name.toLowerCase()}</span>
+		<div class="links">
+			{github && <a href={github}>github(1)</a>}
+			{linkedin && <a href={linkedin}>linkedin(1)</a>}
+			<a href="/rss.xml">rss(5)</a>
+			{email && <a href={`mailto:${email}`}>mailto(2)</a>}
+		</div>
+		<span>press <kbd>t</kbd> for theme · <kbd>⌘K</kbd> for everything</span>
+	</div>
+</footer>
+
+<style>
+	.site-footer {
+		margin-top: auto;
+		border-top: 1px solid var(--color-border);
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.inner {
+		max-width: var(--wide-width);
+		margin: 0 auto;
+		padding: 22px var(--gutter);
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px 28px;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 20px;
+	}
+
+	kbd {
+		font: inherit;
+		color: var(--color-text);
+	}
+</style>

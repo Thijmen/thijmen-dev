@@ -10,7 +10,10 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "deploy": "astro build && wrangler deploy",
+    "deploy:prod": "wrangler d1 time-travel info thijmen-dev && emdash migrate --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 d22c1ca4-cc2c-4e75-9873-b04459553df9 --expected-target-fingerprint 4ee1c495d094bcb16b8b9e41fa200a0a650d51288c50456efe3a29ef55fc5769 && wrangler deploy && emdash migrate --check --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 d22c1ca4-cc2c-4e75-9873-b04459553df9",
+    "deploy:preview": "emdash migrate --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 db7c702c-16e0-4ae3-80e4-becfe7048d8a --expected-target-fingerprint 84cace482e0f7865666b1749c4222c9e0c69a4fa20aad498257953893cbdc81f && wrangler preview && emdash migrate --check --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 db7c702c-16e0-4ae3-80e4-becfe7048d8a",
+    "migrate:status:prod": "emdash migrate --status --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 d22c1ca4-cc2c-4e75-9873-b04459553df9",
+    "migrate:status:preview": "emdash migrate --status --account-id 7dac805f31c2d6d9d0b73499d61513d2 --d1 db7c702c-16e0-4ae3-80e4-becfe7048d8a",
     "typecheck": "astro check"
   },
   "dependencies": {
@@ -20,7 +23,8 @@
     "astro": "^7.3.2",
     "emdash": "^0.39.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "shiki": "^4.4.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

@@ -2,20 +2,27 @@
 	"$schema": "https://emdashcms.com/seed.schema.json",
 	"version": "1",
 	"meta": {
-		"name": "Portfolio Starter",
-		"description": "A portfolio for showcasing creative work",
-		"author": "EmDash"
+		"name": "thijmen.dev",
+		"description": "Personal site of Thijmen Stavenuiter: blog, resume, projects and uses.",
+		"author": "Thijmen Stavenuiter"
 	},
 	"settings": {
-		"title": "Studio",
-		"tagline": "Design & Development"
+		"title": "Thijmen Stavenuiter",
+		"tagline": "Staff Engineer. Distributed systems, LLM tooling and enterprise tooling."
 	},
 	"collections": [
 		{
-			"slug": "projects",
-			"label": "Projects",
-			"labelSingular": "Project",
-			"supports": ["drafts", "revisions", "search", "seo"],
+			"slug": "posts",
+			"label": "Posts",
+			"labelSingular": "Post",
+			"supports": [
+				"drafts",
+				"revisions",
+				"search",
+				"seo"
+			],
+			"urlPattern": "/blog/{slug}",
+			"dateField": "date",
 			"fields": [
 				{
 					"slug": "title",
@@ -25,127 +32,462 @@
 					"searchable": true
 				},
 				{
-					"slug": "featured_image",
-					"label": "Featured Image",
-					"type": "image",
+					"slug": "date",
+					"label": "Date",
+					"type": "datetime",
 					"required": true
 				},
 				{
-					"slug": "client",
-					"label": "Client",
+					"slug": "excerpt",
+					"label": "Excerpt",
+					"type": "text",
+					"searchable": true
+				},
+				{
+					"slug": "featured_image",
+					"label": "Cover image",
+					"type": "image"
+				},
+				{
+					"slug": "cover_caption",
+					"label": "Cover caption",
 					"type": "string"
 				},
 				{
-					"slug": "year",
-					"label": "Year",
+					"slug": "content",
+					"label": "Content",
+					"type": "portableText",
+					"searchable": true
+				}
+			]
+		},
+		{
+			"slug": "projects",
+			"label": "Projects",
+			"labelSingular": "Project",
+			"supports": [
+				"drafts",
+				"revisions"
+			],
+			"routable": false,
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Name",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "summary",
+					"label": "Description",
+					"type": "text"
+				},
+				{
+					"slug": "featured_image",
+					"label": "Screenshot",
+					"type": "image"
+				},
+				{
+					"slug": "language",
+					"label": "Language",
+					"type": "string"
+				},
+				{
+					"slug": "project_status",
+					"label": "Status",
+					"type": "select",
+					"validation": {
+						"options": [
+							"active",
+							"maintained",
+							"archived"
+						]
+					}
+				},
+				{
+					"slug": "stars",
+					"label": "Stars",
+					"type": "string"
+				},
+				{
+					"slug": "install",
+					"label": "Install command",
+					"type": "string"
+				},
+				{
+					"slug": "url",
+					"label": "Repository URL",
+					"type": "url"
+				},
+				{
+					"slug": "featured",
+					"label": "Show on home page",
+					"type": "boolean"
+				},
+				{
+					"slug": "position",
+					"label": "Sort order",
+					"type": "integer"
+				}
+			]
+		},
+		{
+			"slug": "roles",
+			"label": "Resume roles",
+			"labelSingular": "Role",
+			"supports": [
+				"drafts",
+				"revisions"
+			],
+			"routable": false,
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Title",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "org",
+					"label": "Organisation",
+					"type": "string"
+				},
+				{
+					"slug": "period",
+					"label": "Period",
+					"type": "string"
+				},
+				{
+					"slug": "commit_hash",
+					"label": "Commit hash",
+					"type": "string"
+				},
+				{
+					"slug": "ref",
+					"label": "Git ref label",
 					"type": "string"
 				},
 				{
 					"slug": "summary",
 					"label": "Summary",
-					"type": "text",
-					"searchable": true
+					"type": "text"
 				},
 				{
-					"slug": "content",
-					"label": "Content",
-					"type": "portableText",
-					"searchable": true
-				},
-				{
-					"slug": "gallery",
-					"label": "Gallery",
+					"slug": "highlights",
+					"label": "Highlights (JSON string array)",
 					"type": "json"
 				},
 				{
-					"slug": "url",
-					"label": "Project URL",
+					"slug": "additions",
+					"label": "Lines added",
 					"type": "string"
+				},
+				{
+					"slug": "deletions",
+					"label": "Lines deleted",
+					"type": "string"
+				},
+				{
+					"slug": "stack",
+					"label": "Stack (JSON string array)",
+					"type": "json"
+				},
+				{
+					"slug": "position",
+					"label": "Sort order",
+					"type": "integer"
 				}
 			]
 		},
 		{
-			"slug": "pages",
-			"label": "Pages",
-			"labelSingular": "Page",
-			"supports": ["drafts", "revisions", "search"],
+			"slug": "tools",
+			"label": "Tools",
+			"labelSingular": "Tool",
+			"supports": [
+				"drafts"
+			],
+			"routable": false,
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Name",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "category",
+					"label": "Category",
+					"type": "select",
+					"validation": {
+						"options": [
+							"ai",
+							"terminal",
+							"cli",
+							"apps"
+						]
+					}
+				},
+				{
+					"slug": "glyph",
+					"label": "Glyph",
+					"type": "string"
+				},
+				{
+					"slug": "why",
+					"label": "Why",
+					"type": "text"
+				},
+				{
+					"slug": "position",
+					"label": "Sort order",
+					"type": "integer"
+				}
+			]
+		},
+		{
+			"slug": "desk_items",
+			"label": "Desk items",
+			"labelSingular": "Desk item",
+			"supports": [
+				"drafts"
+			],
+			"routable": false,
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Item",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "label",
+					"label": "Label",
+					"type": "string"
+				},
+				{
+					"slug": "note",
+					"label": "Note",
+					"type": "text"
+				},
+				{
+					"slug": "position",
+					"label": "Sort order",
+					"type": "integer"
+				}
+			]
+		},
+		{
+			"slug": "tracks",
+			"label": "Tracks",
+			"labelSingular": "Track",
+			"supports": [
+				"drafts"
+			],
+			"routable": false,
 			"fields": [
 				{
 					"slug": "title",
 					"label": "Title",
 					"type": "string",
-					"required": true,
-					"searchable": true
+					"required": true
 				},
 				{
-					"slug": "content",
-					"label": "Content",
-					"type": "portableText",
-					"searchable": true
+					"slug": "artist",
+					"label": "Artist",
+					"type": "string"
+				},
+				{
+					"slug": "album",
+					"label": "Album",
+					"type": "string"
+				},
+				{
+					"slug": "duration_seconds",
+					"label": "Duration (seconds)",
+					"type": "integer"
+				},
+				{
+					"slug": "cover",
+					"label": "Cover",
+					"type": "image"
+				},
+				{
+					"slug": "position",
+					"label": "Sort order",
+					"type": "integer"
+				}
+			]
+		},
+		{
+			"slug": "playlists",
+			"label": "Playlists",
+			"labelSingular": "Playlist",
+			"supports": [
+				"drafts"
+			],
+			"routable": false,
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Name",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "meta",
+					"label": "Meta line",
+					"type": "string"
+				},
+				{
+					"slug": "url",
+					"label": "URL",
+					"type": "url"
+				},
+				{
+					"slug": "position",
+					"label": "Sort order",
+					"type": "integer"
+				}
+			]
+		},
+		{
+			"slug": "profile",
+			"label": "Profile",
+			"labelSingular": "Profile",
+			"description": "Site-wide copy. Keep exactly one entry with the slug 'me'. Wrap words in *asterisks* for the italic accent.",
+			"supports": [
+				"revisions"
+			],
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Title",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "status_line",
+					"label": "Status line",
+					"type": "string"
+				},
+				{
+					"slug": "hero_intro",
+					"label": "Home intro",
+					"type": "text"
+				},
+				{
+					"slug": "email",
+					"label": "Email",
+					"type": "string"
+				},
+				{
+					"slug": "github_url",
+					"label": "GitHub URL",
+					"type": "url"
+				},
+				{
+					"slug": "linkedin_url",
+					"label": "LinkedIn URL",
+					"type": "url"
+				},
+				{
+					"slug": "profile_lines",
+					"label": "~/.profile lines (JSON [{k, v, kind: string|list|number}])",
+					"type": "json"
+				},
+				{
+					"slug": "cta_home",
+					"label": "Home contact card",
+					"type": "text"
+				},
+				{
+					"slug": "resume_intro",
+					"label": "Resume meta description",
+					"type": "text"
+				},
+				{
+					"slug": "skills",
+					"label": "skills.yml (JSON [{k, items[]}])",
+					"type": "json"
+				},
+				{
+					"slug": "speaking_note",
+					"label": "Speaking note",
+					"type": "text"
+				},
+				{
+					"slug": "cta_resume",
+					"label": "Resume contact card",
+					"type": "text"
+				},
+				{
+					"slug": "blog_title",
+					"label": "Blog title",
+					"type": "string"
+				},
+				{
+					"slug": "blog_intro",
+					"label": "Blog intro",
+					"type": "text"
+				},
+				{
+					"slug": "projects_title",
+					"label": "Projects title",
+					"type": "string"
+				},
+				{
+					"slug": "projects_intro",
+					"label": "Projects intro",
+					"type": "text"
+				},
+				{
+					"slug": "uses_title",
+					"label": "Uses title",
+					"type": "string"
+				},
+				{
+					"slug": "uses_intro",
+					"label": "Uses intro",
+					"type": "text"
+				},
+				{
+					"slug": "soundtrack_note",
+					"label": "Soundtrack note",
+					"type": "string"
+				},
+				{
+					"slug": "desk_photo",
+					"label": "Desk photo",
+					"type": "image"
 				}
 			]
 		}
 	],
 	"taxonomies": [
 		{
-			"name": "category",
-			"label": "Categories",
-			"labelSingular": "Category",
-			"hierarchical": false,
-			"collections": ["projects"],
-			"terms": [
-				{
-					"slug": "branding",
-					"label": "Branding"
-				},
-				{
-					"slug": "web",
-					"label": "Web Design"
-				},
-				{
-					"slug": "print",
-					"label": "Print"
-				},
-				{
-					"slug": "photography",
-					"label": "Photography"
-				}
-			]
-		},
-		{
 			"name": "tag",
 			"label": "Tags",
 			"labelSingular": "Tag",
 			"hierarchical": false,
-			"collections": ["projects"],
+			"collections": [
+				"posts"
+			],
 			"terms": [
 				{
-					"slug": "identity",
-					"label": "Identity"
+					"slug": "distributed-systems",
+					"label": "distributed-systems"
 				},
 				{
-					"slug": "ui-ux",
-					"label": "UI/UX"
+					"slug": "llm",
+					"label": "llm"
 				},
 				{
-					"slug": "development",
-					"label": "Development"
+					"slug": "tooling",
+					"label": "tooling"
 				},
 				{
-					"slug": "art-direction",
-					"label": "Art Direction"
-				},
-				{
-					"slug": "packaging",
-					"label": "Packaging"
-				},
-				{
-					"slug": "ecommerce",
-					"label": "E-commerce"
-				},
-				{
-					"slug": "editorial",
-					"label": "Editorial"
+					"slug": "payments",
+					"label": "payments"
 				}
 			]
 		}
@@ -157,342 +499,1183 @@
 			"items": [
 				{
 					"type": "custom",
-					"label": "Work",
-					"url": "/work"
+					"label": "Home",
+					"url": "/"
 				},
 				{
 					"type": "custom",
-					"label": "Contact",
-					"url": "/contact"
+					"label": "Blog",
+					"url": "/blog"
+				},
+				{
+					"type": "custom",
+					"label": "Resume",
+					"url": "/resume"
+				},
+				{
+					"type": "custom",
+					"label": "Projects",
+					"url": "/projects"
+				},
+				{
+					"type": "custom",
+					"label": "Uses",
+					"url": "/uses"
 				}
 			]
 		}
 	],
 	"content": {
-		"pages": [
+		"posts": [
 			{
-				"id": "about",
-				"slug": "about",
+				"id": "post-your-llm-integration-is-a-distributed-system",
+				"slug": "your-llm-integration-is-a-distributed-system",
 				"status": "published",
 				"data": {
-					"title": "About",
+					"title": "Your LLM integration is a distributed system now. Sorry.",
+					"date": "2026-09-02T09:00:00.000Z",
+					"excerpt": "Timeouts, retries, partial failures and non-determinism. All the old problems, plus a new one that hallucinates.",
 					"content": [
 						{
 							"_type": "block",
+							"_key": "k36",
 							"style": "normal",
+							"markDefs": [],
 							"children": [
 								{
 									"_type": "span",
-									"text": "We are a small design studio focused on creating meaningful work for thoughtful clients. Founded in 2020, we've had the privilege of working with brands across technology, culture, and the arts.",
-									"_key": "k1"
+									"_key": "k37",
+									"text": "Timeouts, retries, partial failures and non-determinism. All the old problems, plus a new one that hallucinates.",
+									"marks": []
 								}
-							],
-							"_key": "k0"
+							]
 						},
 						{
 							"_type": "block",
+							"_key": "k38",
 							"style": "normal",
+							"markDefs": [],
 							"children": [
 								{
 									"_type": "span",
-									"text": "Our approach is simple: listen carefully, think deeply, and craft with intention. We believe that good design is invisible — it gets out of the way and lets the work speak for itself.",
-									"_key": "k3"
+									"_key": "k39",
+									"text": "This is placeholder body copy from the design. Replace it in the admin with the real post.",
+									"marks": []
 								}
-							],
-							"_key": "k2"
-						},
-						{
-							"_type": "block",
-							"style": "h2",
-							"children": [
-								{
-									"_type": "span",
-									"text": "What we do",
-									"_key": "k5"
-								}
-							],
-							"_key": "k4"
-						},
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "We specialize in brand identity, web design, and art direction. Whether you need a complete visual identity or a single website, we bring the same level of care and attention to every project.",
-									"_key": "k7"
-								}
-							],
-							"_key": "k6"
+							]
 						}
+					]
+				},
+				"taxonomies": {
+					"tag": [
+						"llm"
+					]
+				}
+			},
+			{
+				"id": "post-idempotency-keys",
+				"slug": "idempotency-keys",
+				"status": "published",
+				"data": {
+					"title": "Idempotency keys, or: how I learned to stop *charging people twice*",
+					"date": "2026-07-18T09:00:00.000Z",
+					"excerpt": "At-least-once delivery is the only once you get. Here is how to make it safe for money.",
+					"content": [
+						{
+							"_type": "block",
+							"_key": "k0",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k1",
+									"text": "Every system that moves money eventually charges someone twice. Not because anyone wrote a bug, exactly, but because a phone went into a tunnel at the precise moment the server said “OK”. The client never heard it. So the client asked again.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k2",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k3",
+									"text": "This post is about the boring, load-bearing fix: ",
+									"marks": []
+								},
+								{
+									"_type": "span",
+									"_key": "k4",
+									"text": "Idempotency-Key",
+									"marks": [
+										"code"
+									]
+								},
+								{
+									"_type": "span",
+									"_key": "k5",
+									"text": ". The idea fits on a napkin. The edge cases need the rest of the napkin pack.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k6",
+							"style": "h2",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k7",
+									"text": "At-least-once is the only once you get",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k8",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k9",
+									"text": "Networks give you two options: deliver a message zero or more times, or deliver it one or more times. If you want the order to arrive, you pick “one or more”, and then you are responsible for what “more” does to your database.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k10",
+							"style": "h2",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k11",
+									"text": "The key",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k12",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k13",
+									"text": "The client generates a unique key per ",
+									"marks": []
+								},
+								{
+									"_type": "span",
+									"_key": "k14",
+									"text": "intent",
+									"marks": [
+										"em"
+									]
+								},
+								{
+									"_type": "span",
+									"_key": "k15",
+									"text": ", not per request, and sends it with every retry. The server stores the result against that key and replays it instead of doing the work again.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "code",
+							"_key": "k16",
+							"code": "suspend fun placeOrder(req: PlaceOrder, key: IdempotencyKey): OrderResult =\n    store.getOrPut(key, ttl = 24.hours) {\n        // runs at most once per key. Everything else gets a replay.\n        orders.create(req).also {\n            payments.authorize(it.id, it.total)\n        }\n    }",
+							"language": "kotlin",
+							"filename": "OrderService.kt"
+						},
+						{
+							"_type": "block",
+							"_key": "k17",
+							"style": "h2",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k18",
+									"text": "Two requests walk into a bar",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k19",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k20",
+									"text": "That ",
+									"marks": []
+								},
+								{
+									"_type": "span",
+									"_key": "k21",
+									"text": "getOrPut",
+									"marks": [
+										"code"
+									]
+								},
+								{
+									"_type": "span",
+									"_key": "k22",
+									"text": " is doing a lot of heavy lifting. If two retries arrive at the same time, both can miss the cache and both can charge the card. You need an atomic claim first, with an explicit in-progress state.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "code",
+							"_key": "k23",
+							"code": "INSERT INTO idempotency (key, status, request_hash)\nVALUES (:key, 'IN_PROGRESS', :hash)\nON CONFLICT (key) DO NOTHING\nRETURNING key; -- no row back? someone else owns it.",
+							"language": "sql",
+							"filename": "claim.sql"
+						},
+						{
+							"_type": "block",
+							"_key": "k24",
+							"style": "blockquote",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k25",
+									"text": "Store a hash of the request body next to the key. Same key with a different body means a client bug, and it deserves a loud 422 rather than a quiet replay of the wrong order.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k26",
+							"style": "h2",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k27",
+									"text": "TL;DR",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k28",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k29",
+									"text": "One key per intent, generated by the client, reused on every retry.",
+									"marks": []
+								}
+							],
+							"listItem": "bullet",
+							"level": 1
+						},
+						{
+							"_type": "block",
+							"_key": "k30",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k31",
+									"text": "Claim atomically, then do the work, then store the result.",
+									"marks": []
+								}
+							],
+							"listItem": "bullet",
+							"level": 1
+						},
+						{
+							"_type": "block",
+							"_key": "k32",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k33",
+									"text": "Fingerprint the request. Reject mismatches.",
+									"marks": []
+								}
+							],
+							"listItem": "bullet",
+							"level": 1
+						},
+						{
+							"_type": "block",
+							"_key": "k34",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k35",
+									"text": "Pick a TTL longer than your longest retry window, then add a day.",
+									"marks": []
+								}
+							],
+							"listItem": "bullet",
+							"level": 1
+						}
+					],
+					"cover_caption": "fig. 1: a retry, moments before becoming a duplicate charge"
+				},
+				"taxonomies": {
+					"tag": [
+						"distributed-systems",
+						"payments"
+					]
+				}
+			},
+			{
+				"id": "post-enterprise-tooling-nobody-asked-for",
+				"slug": "enterprise-tooling-nobody-asked-for",
+				"status": "published",
+				"data": {
+					"title": "Enterprise tooling nobody asked for (and everyone uses)",
+					"date": "2026-05-30T09:00:00.000Z",
+					"excerpt": "The internal CLI that started as a weekend hack and now has an SLA.",
+					"content": [
+						{
+							"_type": "block",
+							"_key": "k40",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k41",
+									"text": "The internal CLI that started as a weekend hack and now has an SLA.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k42",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k43",
+									"text": "This is placeholder body copy from the design. Replace it in the admin with the real post.",
+									"marks": []
+								}
+							]
+						}
+					]
+				},
+				"taxonomies": {
+					"tag": [
+						"tooling"
+					]
+				}
+			},
+			{
+				"id": "post-retries-all-the-way-down",
+				"slug": "retries-all-the-way-down",
+				"status": "published",
+				"data": {
+					"title": "Retries all the way down",
+					"date": "2026-04-11T09:00:00.000Z",
+					"excerpt": "Three layers of retries, each with good intentions, add up to one very bad afternoon.",
+					"content": [
+						{
+							"_type": "block",
+							"_key": "k44",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k45",
+									"text": "Three layers of retries, each with good intentions, add up to one very bad afternoon.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k46",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k47",
+									"text": "This is placeholder body copy from the design. Replace it in the admin with the real post.",
+									"marks": []
+								}
+							]
+						}
+					]
+				},
+				"taxonomies": {
+					"tag": [
+						"distributed-systems"
+					]
+				}
+			},
+			{
+				"id": "post-prompt-templates-are-code",
+				"slug": "prompt-templates-are-code",
+				"status": "published",
+				"data": {
+					"title": "Prompt templates are code. Treat them like it.",
+					"date": "2026-02-20T09:00:00.000Z",
+					"excerpt": "Version them, lint them, test them, and stop pasting them into Confluence.",
+					"content": [
+						{
+							"_type": "block",
+							"_key": "k48",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k49",
+									"text": "Version them, lint them, test them, and stop pasting them into Confluence.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k50",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k51",
+									"text": "This is placeholder body copy from the design. Replace it in the admin with the real post.",
+									"marks": []
+								}
+							]
+						}
+					]
+				},
+				"taxonomies": {
+					"tag": [
+						"llm"
+					]
+				}
+			},
+			{
+				"id": "post-the-golden-path-is-paved-with-yaml",
+				"slug": "the-golden-path-is-paved-with-yaml",
+				"status": "published",
+				"data": {
+					"title": "The golden path is paved with YAML",
+					"date": "2025-11-03T09:00:00.000Z",
+					"excerpt": "What we learned building a paved road for a few hundred engineers.",
+					"content": [
+						{
+							"_type": "block",
+							"_key": "k52",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k53",
+									"text": "What we learned building a paved road for a few hundred engineers.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k54",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k55",
+									"text": "This is placeholder body copy from the design. Replace it in the admin with the real post.",
+									"marks": []
+								}
+							]
+						}
+					]
+				},
+				"taxonomies": {
+					"tag": [
+						"tooling"
+					]
+				}
+			},
+			{
+				"id": "post-exactly-once-is-a-marketing-term",
+				"slug": "exactly-once-is-a-marketing-term",
+				"status": "published",
+				"data": {
+					"title": "Exactly-once is a marketing term",
+					"date": "2025-08-14T09:00:00.000Z",
+					"excerpt": "What people mean by it, what it costs, and when effectively-once is enough.",
+					"content": [
+						{
+							"_type": "block",
+							"_key": "k56",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k57",
+									"text": "What people mean by it, what it costs, and when effectively-once is enough.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k58",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k59",
+									"text": "This is placeholder body copy from the design. Replace it in the admin with the real post.",
+									"marks": []
+								}
+							]
+						}
+					]
+				},
+				"taxonomies": {
+					"tag": [
+						"distributed-systems"
+					]
+				}
+			},
+			{
+				"id": "post-evaluating-llm-output-without-vibes",
+				"slug": "evaluating-llm-output-without-vibes",
+				"status": "published",
+				"data": {
+					"title": "Evaluating LLM output without vibes",
+					"date": "2025-05-02T09:00:00.000Z",
+					"excerpt": "A pragmatic eval harness for teams without a research department.",
+					"content": [
+						{
+							"_type": "block",
+							"_key": "k60",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k61",
+									"text": "A pragmatic eval harness for teams without a research department.",
+									"marks": []
+								}
+							]
+						},
+						{
+							"_type": "block",
+							"_key": "k62",
+							"style": "normal",
+							"markDefs": [],
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k63",
+									"text": "This is placeholder body copy from the design. Replace it in the admin with the real post.",
+									"marks": []
+								}
+							]
+						}
+					]
+				},
+				"taxonomies": {
+					"tag": [
+						"llm"
 					]
 				}
 			}
 		],
 		"projects": [
 			{
-				"id": "meridian-brand",
-				"slug": "meridian-brand",
+				"id": "project-retry-budget",
+				"slug": "retry-budget",
 				"status": "published",
 				"data": {
-					"title": "Meridian",
-					"client": "Meridian Collective",
-					"year": "2024",
-					"summary": "A complete brand identity for a creative collective bringing together artists and technologists.",
-					"featured_image": {
-						"$media": {
-							"url": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=900&fit=crop",
-							"alt": "Meridian cover image",
-							"filename": "photo-1558618666-fcd25c85cd64.jpg"
-						}
-					},
-					"content": [
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "Meridian Collective needed a visual identity that could bridge the gap between traditional art and emerging technology. The challenge was to create something that felt timeless yet forward-looking.",
-									"_key": "k1"
-								}
-							],
-							"_key": "k0"
-						},
-						{
-							"_type": "block",
-							"style": "h2",
-							"children": [
-								{
-									"_type": "span",
-									"text": "The approach",
-									"_key": "k3"
-								}
-							],
-							"_key": "k2"
-						},
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "We developed a wordmark that combines classical typography with subtle geometric forms. The color palette draws from both digital interfaces and natural materials, creating a bridge between worlds.",
-									"_key": "k5"
-								}
-							],
-							"_key": "k4"
-						},
-						{
-							"_type": "block",
-							"style": "h2",
-							"children": [
-								{
-									"_type": "span",
-									"text": "The result",
-									"_key": "k7"
-								}
-							],
-							"_key": "k6"
-						},
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "The new identity has been applied across print and digital touchpoints, from business cards to a fully responsive website. Meridian has received positive feedback from both artists and technologists alike.",
-									"_key": "k9"
-								}
-							],
-							"_key": "k8"
-						}
-					]
-				},
-				"taxonomies": {
-					"category": ["branding"],
-					"tag": ["identity", "art-direction"]
+					"title": "retry-budget",
+					"summary": "Retry budgets for JVM services, so your retries stop DDoSing your own database.",
+					"language": "Kotlin",
+					"project_status": "active",
+					"stars": "412",
+					"install": "implementation(\"dev.thijmen:retry-budget:1.4.0\")",
+					"url": "https://github.com/thijmen/retry-budget",
+					"featured": true,
+					"position": 1
 				}
 			},
 			{
-				"id": "volta-web",
-				"slug": "volta-web",
+				"id": "project-promptlint",
+				"slug": "promptlint",
 				"status": "published",
 				"data": {
-					"title": "Volta",
-					"client": "Volta Energy",
-					"year": "2024",
-					"summary": "Website design for a renewable energy startup making clean power accessible to everyone.",
-					"featured_image": {
-						"$media": {
-							"url": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=900&fit=crop",
-							"alt": "Volta cover image",
-							"filename": "photo-1497366216548-37526070297c.jpg"
-						}
-					},
-					"url": "https://volta.example.com",
-					"content": [
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "Volta is on a mission to make renewable energy accessible to everyone. They needed a website that could explain complex technology simply while inspiring trust in potential customers.",
-									"_key": "k1"
-								}
-							],
-							"_key": "k0"
-						},
-						{
-							"_type": "block",
-							"style": "h2",
-							"children": [
-								{
-									"_type": "span",
-									"text": "Design principles",
-									"_key": "k3"
-								}
-							],
-							"_key": "k2"
-						},
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "We focused on clarity and warmth. The design uses generous whitespace and a vibrant green accent that evokes growth and sustainability without feeling clichéd.",
-									"_key": "k5"
-								}
-							],
-							"_key": "k4"
-						}
-					]
-				},
-				"taxonomies": {
-					"category": ["web"],
-					"tag": ["ui-ux", "development"]
+					"title": "promptlint",
+					"summary": "A linter for prompt templates: missing variables, leaked secrets, contradicting instructions.",
+					"language": "TypeScript",
+					"project_status": "active",
+					"stars": "1.2k",
+					"install": "npx promptlint ./prompts",
+					"url": "https://github.com/thijmen/promptlint",
+					"featured": true,
+					"position": 2
 				}
 			},
 			{
-				"id": "archive-print",
-				"slug": "archive-print",
+				"id": "project-ticket-tldr",
+				"slug": "ticket-tldr",
 				"status": "published",
 				"data": {
-					"title": "The Archive",
-					"client": "City Museum",
-					"year": "2023",
-					"summary": "Exhibition catalog and print materials for a retrospective on modernist architecture.",
-					"featured_image": {
-						"$media": {
-							"url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&h=900&fit=crop",
-							"alt": "The Archive cover image",
-							"filename": "photo-1507003211169-0a1dd7228f2d.jpg"
-						}
-					},
-					"content": [
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "The Archive was a major exhibition at the City Museum, showcasing 50 years of modernist architecture through photographs, drawings, and models. We designed the complete print identity.",
-									"_key": "k1"
-								}
-							],
-							"_key": "k0"
-						},
-						{
-							"_type": "block",
-							"style": "h2",
-							"children": [
-								{
-									"_type": "span",
-									"text": "The catalog",
-									"_key": "k3"
-								}
-							],
-							"_key": "k2"
-						},
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "The 240-page catalog uses a strict grid system inspired by the work being exhibited. Full-bleed photography alternates with dense text spreads, creating a rhythm that echoes the exhibition layout.",
-									"_key": "k5"
-								}
-							],
-							"_key": "k4"
-						}
-					]
-				},
-				"taxonomies": {
-					"category": ["print"],
-					"tag": ["editorial", "art-direction"]
+					"title": "ticket-tldr",
+					"summary": "Turns a 400-comment ticket into one sentence. Sometimes that sentence is “no”.",
+					"language": "Python",
+					"project_status": "active",
+					"stars": "287",
+					"install": "pipx install ticket-tldr",
+					"url": "https://github.com/thijmen/ticket-tldr",
+					"featured": false,
+					"position": 3
 				}
 			},
 			{
-				"id": "coastal-photo",
-				"slug": "coastal-photo",
+				"id": "project-outbox-kt",
+				"slug": "outbox-kt",
 				"status": "published",
 				"data": {
-					"title": "Coastal",
-					"client": "Personal Project",
-					"year": "2023",
-					"summary": "A photographic study of the Pacific coastline, exploring the intersection of land, sea, and sky.",
-					"featured_image": {
-						"$media": {
-							"url": "https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1200&h=900&fit=crop",
-							"alt": "Coastal cover image",
-							"filename": "photo-1505142468610-359e7d316be0.jpg"
-						}
-					},
-					"content": [
+					"title": "outbox-kt",
+					"summary": "The transactional outbox pattern with no framework attached. Postgres in, Kafka out.",
+					"language": "Kotlin",
+					"project_status": "maintained",
+					"stars": "198",
+					"install": "implementation(\"dev.thijmen:outbox-kt:0.9.2\")",
+					"url": "https://github.com/thijmen/outbox-kt",
+					"featured": false,
+					"position": 4
+				}
+			},
+			{
+				"id": "project-yaml-therapy",
+				"slug": "yaml-therapy",
+				"status": "published",
+				"data": {
+					"title": "yaml-therapy",
+					"summary": "Explains why your YAML is wrong. Archived because the answer is always indentation.",
+					"language": "Go",
+					"project_status": "archived",
+					"stars": "64",
+					"install": "go install github.com/thijmen/yaml-therapy@latest",
+					"url": "https://github.com/thijmen/yaml-therapy",
+					"featured": false,
+					"position": 5
+				}
+			}
+		],
+		"roles": [
+			{
+				"id": "role-1",
+				"slug": "role-1",
+				"status": "published",
+				"data": {
+					"title": "Staff Engineer",
+					"org": "Just Eat Takeaway.com",
+					"period": "20XX – now",
+					"commit_hash": "a3f9c21",
+					"ref": "HEAD -> main",
+					"summary": "Technical lead across several teams in a food delivery platform that has to work every evening at 18:00, sharp.",
+					"highlights": [
+						"Drive cross-team architecture decisions through RFCs and design reviews.",
+						"Improve reliability of order and delivery flows at peak load.",
+						"Build internal LLM tooling that engineers adopt voluntarily."
+					],
+					"additions": "48,213",
+					"deletions": "61,904",
+					"stack": [
+						"kotlin",
+						"kafka",
+						"kubernetes",
+						"llm"
+					],
+					"position": 1
+				}
+			},
+			{
+				"id": "role-2",
+				"slug": "role-2",
+				"status": "published",
+				"data": {
+					"title": "Senior Software Engineer",
+					"org": "Company",
+					"period": "20XX – 20XX",
+					"commit_hash": "7be104d",
+					"ref": "",
+					"summary": "Replace with your previous role. Shipped things, broke fewer things over time.",
+					"highlights": [
+						"Key achievement one.",
+						"Key achievement two."
+					],
+					"additions": "31,002",
+					"deletions": "12,440",
+					"stack": [
+						"java",
+						"postgres"
+					],
+					"position": 2
+				}
+			},
+			{
+				"id": "role-3",
+				"slug": "role-3",
+				"status": "published",
+				"data": {
+					"title": "init",
+					"org": "somewhere",
+					"period": "a long time ago",
+					"commit_hash": "0000001",
+					"ref": "tag: v1.0",
+					"summary": "First “Hello, World”. Compiled on the second try.",
+					"highlights": [
+						"Education or first role goes here."
+					],
+					"additions": "1",
+					"deletions": "0",
+					"stack": [
+						"basic"
+					],
+					"position": 3
+				}
+			}
+		],
+		"tools": [
+			{
+				"id": "tool-opencode",
+				"slug": "opencode",
+				"status": "published",
+				"data": {
+					"title": "opencode",
+					"category": "ai",
+					"glyph": "oc",
+					"why": "Open-source coding agent in the terminal. Model-agnostic, so I can swap brains per task.",
+					"position": 1
+				}
+			},
+			{
+				"id": "tool-claude-code",
+				"slug": "claude-code",
+				"status": "published",
+				"data": {
+					"title": "Claude Code",
+					"category": "ai",
+					"glyph": "cc",
+					"why": "For larger refactors where I want a plan before a diff.",
+					"position": 2
+				}
+			},
+			{
+				"id": "tool-ollama",
+				"slug": "ollama",
+				"status": "published",
+				"data": {
+					"title": "Ollama",
+					"category": "ai",
+					"glyph": "ol",
+					"why": "Local models for anything that should not leave the laptop.",
+					"position": 3
+				}
+			},
+			{
+				"id": "tool-ghostty",
+				"slug": "ghostty",
+				"status": "published",
+				"data": {
+					"title": "Ghostty",
+					"category": "terminal",
+					"glyph": ">_",
+					"why": "Fast, native, sensible defaults. Config fits on one screen.",
+					"position": 4
+				}
+			},
+			{
+				"id": "tool-zsh-starship",
+				"slug": "zsh-starship",
+				"status": "published",
+				"data": {
+					"title": "zsh + starship",
+					"category": "terminal",
+					"glyph": "$",
+					"why": "A prompt that shows the Kubernetes context, before it is too late.",
+					"position": 5
+				}
+			},
+			{
+				"id": "tool-atuin",
+				"slug": "atuin",
+				"status": "published",
+				"data": {
+					"title": "atuin",
+					"category": "terminal",
+					"glyph": "↑",
+					"why": "Shell history that syncs and actually searches.",
+					"position": 6
+				}
+			},
+			{
+				"id": "tool-lazygit",
+				"slug": "lazygit",
+				"status": "published",
+				"data": {
+					"title": "lazygit",
+					"category": "cli",
+					"glyph": "lg",
+					"why": "Interactive rebase without the fear.",
+					"position": 7
+				}
+			},
+			{
+				"id": "tool-k9s",
+				"slug": "k9s",
+				"status": "published",
+				"data": {
+					"title": "k9s",
+					"category": "cli",
+					"glyph": "k9",
+					"why": "Kubernetes, but I can see what I am about to break.",
+					"position": 8
+				}
+			},
+			{
+				"id": "tool-ripgrep-fzf",
+				"slug": "ripgrep-fzf",
+				"status": "published",
+				"data": {
+					"title": "ripgrep + fzf",
+					"category": "cli",
+					"glyph": "rg",
+					"why": "Finding things, fast. The whole personality of my shell.",
+					"position": 9
+				}
+			},
+			{
+				"id": "tool-mise",
+				"slug": "mise",
+				"status": "published",
+				"data": {
+					"title": "mise",
+					"category": "cli",
+					"glyph": "mi",
+					"why": "One tool for runtime versions instead of five.",
+					"position": 10
+				}
+			},
+			{
+				"id": "tool-intellij-idea",
+				"slug": "intellij-idea",
+				"status": "published",
+				"data": {
+					"title": "IntelliJ IDEA",
+					"category": "apps",
+					"glyph": "ij",
+					"why": "For Kotlin, nothing else comes close.",
+					"position": 11
+				}
+			},
+			{
+				"id": "tool-raycast",
+				"slug": "raycast",
+				"status": "published",
+				"data": {
+					"title": "Raycast",
+					"category": "apps",
+					"glyph": "⌘",
+					"why": "Launcher, clipboard history, snippets. The command palette for my whole OS.",
+					"position": 12
+				}
+			},
+			{
+				"id": "tool-obsidian",
+				"slug": "obsidian",
+				"status": "published",
+				"data": {
+					"title": "Obsidian",
+					"category": "apps",
+					"glyph": "ob",
+					"why": "RFC drafts and a daily note nobody else will ever read.",
+					"position": 13
+				}
+			}
+		],
+		"desk_items": [
+			{
+				"id": "desk-laptop",
+				"slug": "laptop",
+				"status": "published",
+				"data": {
+					"title": "MacBook Pro 14″",
+					"label": "laptop",
+					"note": "Fans spin up for Gradle, as is tradition.",
+					"position": 1
+				}
+			},
+			{
+				"id": "desk-display",
+				"slug": "display",
+				"status": "published",
+				"data": {
+					"title": "27″ 4K monitor",
+					"label": "display",
+					"note": "One editor, one Grafana dashboard.",
+					"position": 2
+				}
+			},
+			{
+				"id": "desk-keyboard",
+				"slug": "keyboard",
+				"status": "published",
+				"data": {
+					"title": "Mechanical, quiet switches",
+					"label": "keyboard",
+					"note": "Loud switches are a meeting anti-pattern.",
+					"position": 3
+				}
+			},
+			{
+				"id": "desk-audio",
+				"slug": "audio",
+				"status": "published",
+				"data": {
+					"title": "Noise-cancelling headphones",
+					"label": "audio",
+					"note": "Required for the soundtrack above.",
+					"position": 4
+				}
+			},
+			{
+				"id": "desk-font",
+				"slug": "font",
+				"status": "published",
+				"data": {
+					"title": "JetBrains Mono",
+					"label": "font",
+					"note": "Yes, the same one this site uses.",
+					"position": 5
+				}
+			}
+		],
+		"tracks": [
+			{
+				"id": "track-1",
+				"slug": "windowlicker",
+				"status": "published",
+				"data": {
+					"title": "Windowlicker",
+					"artist": "Aphex Twin",
+					"album": "Windowlicker",
+					"duration_seconds": 367,
+					"position": 1
+				}
+			},
+			{
+				"id": "track-2",
+				"slug": "midnight-city",
+				"status": "published",
+				"data": {
+					"title": "Midnight City",
+					"artist": "M83",
+					"album": "Hurry Up, We’re Dreaming",
+					"duration_seconds": 243,
+					"position": 2
+				}
+			},
+			{
+				"id": "track-3",
+				"slug": "tron-legacy-end-titles",
+				"status": "published",
+				"data": {
+					"title": "Tron Legacy (End Titles)",
+					"artist": "Daft Punk",
+					"album": "TRON: Legacy",
+					"duration_seconds": 197,
+					"position": 3
+				}
+			},
+			{
+				"id": "track-4",
+				"slug": "nightcall",
+				"status": "published",
+				"data": {
+					"title": "Nightcall",
+					"artist": "Kavinsky",
+					"album": "OutRun",
+					"duration_seconds": 258,
+					"position": 4
+				}
+			},
+			{
+				"id": "track-5",
+				"slug": "intro",
+				"status": "published",
+				"data": {
+					"title": "Intro",
+					"artist": "The xx",
+					"album": "xx",
+					"duration_seconds": 127,
+					"position": 5
+				}
+			}
+		],
+		"playlists": [
+			{
+				"id": "playlist-1",
+				"slug": "deep-work-no-lyrics",
+				"status": "published",
+				"data": {
+					"title": "Deep work (no lyrics)",
+					"meta": "142 tracks · 9h 31m",
+					"position": 1
+				}
+			},
+			{
+				"id": "playlist-2",
+				"slug": "incident-response",
+				"status": "published",
+				"data": {
+					"title": "Incident response",
+					"meta": "38 tracks · 2h 04m",
+					"position": 2
+				}
+			},
+			{
+				"id": "playlist-3",
+				"slug": "friday-deploy-don-t",
+				"status": "published",
+				"data": {
+					"title": "Friday deploy (don’t)",
+					"meta": "21 tracks · 1h 12m",
+					"position": 3
+				}
+			}
+		],
+		"profile": [
+			{
+				"id": "profile-me",
+				"slug": "me",
+				"status": "published",
+				"data": {
+					"title": "Profile",
+					"status_line": "Staff Engineer at Just Eat Takeaway.com",
+					"hero_intro": "I make distributed systems slightly less distributed, and I teach LLMs to write the tickets nobody wants to write.",
+					"email": "hello@thijmen.dev",
+					"github_url": "https://github.com/thijmen",
+					"linkedin_url": "https://linkedin.com/in/thijmen",
+					"profile_lines": [
 						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "Coastal began as a weekend project and grew into a year-long exploration of the Pacific shoreline. Shot entirely on medium format film, the series captures the quiet drama of the coast.",
-									"_key": "k1"
-								}
-							],
-							"_key": "k0"
+							"k": "role",
+							"v": "staff engineer",
+							"kind": "string"
 						},
 						{
-							"_type": "block",
-							"style": "h2",
-							"children": [
-								{
-									"_type": "span",
-									"text": "Process",
-									"_key": "k3"
-								}
-							],
-							"_key": "k2"
+							"k": "org",
+							"v": "just eat takeaway.com",
+							"kind": "string"
 						},
 						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "Each image was made at dawn or dusk, when the light is softest and the beaches are empty. The slow process of shooting film encourages patience and intentionality — qualities that show in the final work.",
-									"_key": "k5"
-								}
-							],
-							"_key": "k4"
+							"k": "focus",
+							"v": "distributed-systems llm tooling",
+							"kind": "list"
+						},
+						{
+							"k": "coffee",
+							"v": "∞",
+							"kind": "number"
+						},
+						{
+							"k": "status",
+							"v": "probably in a design review",
+							"kind": "string"
 						}
-					]
-				},
-				"taxonomies": {
-					"category": ["photography"],
-					"tag": ["art-direction", "editorial"]
+					],
+					"cta_home": "Got a gnarly consistency bug or a talk slot? My inbox delivers *at least once.*",
+					"resume_intro": "I work across teams on architecture, reliability and developer tooling, and I increasingly spend my time making LLMs useful rather than impressive.",
+					"skills": [
+						{
+							"k": "languages",
+							"items": [
+								"kotlin",
+								"java",
+								"typescript",
+								"go",
+								"python"
+							]
+						},
+						{
+							"k": "systems",
+							"items": [
+								"event-driven",
+								"kafka",
+								"postgres",
+								"kubernetes"
+							]
+						},
+						{
+							"k": "llm",
+							"items": [
+								"evals",
+								"retrieval",
+								"agents in CI",
+								"prompt tooling"
+							]
+						},
+						{
+							"k": "practice",
+							"items": [
+								"RFCs",
+								"incident review",
+								"mentoring"
+							]
+						}
+					],
+					"speaking_note": "Talks and conference appearances go here.",
+					"cta_resume": "Hiring, or need a *second opinion* on an architecture?",
+					"blog_title": "Writing *from production.*",
+					"blog_intro": "Distributed systems, LLMs in real engineering workflows, and enterprise tooling. Mostly things I learned the hard way so you can learn them the cheap way.",
+					"projects_title": "Projects *& open source.*",
+					"projects_intro": "Small tools that solved a real annoyance, and a few that solved an imaginary one very thoroughly.",
+					"uses_title": "Uses*.json*",
+					"uses_intro": "The tools, soundtrack and small rituals behind the work. Last updated when someone asked what font my terminal uses.",
+					"soundtrack_note": "via spotify"
 				}
 			}
 		]

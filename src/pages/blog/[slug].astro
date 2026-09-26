@@ -1,0 +1,406 @@
+---
+import { decodeSlug, getEmDashCollection, getEmDashEntry } from "emdash";
+import { Image, PortableText } from "emdash/ui";
+import Base from "../../layouts/Base.astro";
+import Block from "../../components/pt/Block.astro";
+import CodeBlock from "../../components/pt/CodeBlock.astro";
+import Note from "../../components/pt/Note.astro";
+import {
+	emphasize,
+	extractHeadings,
+	formatDate,
+	hasImage,
+	plainTitle,
+	readingTime,
+} from "../../lib/content";
+
+const slug = decodeSlug(Astro.params.slug);
+if (!slug) return Astro.redirect("/404");
+
+const [{ entry: post, cacheHint }, { entries: all, cacheHint: listHint }] = await Promise.all([
+	getEmDashEntry("posts", slug),
+	getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 200 }),
+]);
+
+if (!post) return Astro.redirect("/404");
+
+if (Astro.cache?.enabled) {
+	Astro.cache.set(cacheHint);
+	Astro.cache.set(listHint);
+}
+
+const d = post.data;
+const title = plainTitle(d.title);
+const tags: Array<{ slug: string }> = (d as any).terms?.tag ?? [];
+const headings = extractHeadings(d.content);
+
+// Neighbours in date order: the list is newest first.
+const index = all.findIndex((e) => e.id === post.id);
+const newer = index > 0 ? all[index - 1] : undefined;
+const older = index >= 0 && index < all.length - 1 ? all[index + 1] : undefined;
+
+const components = {
+	block: Block,
+	type: { code: CodeBlock, blockquoteGroup: Note },
+};
+const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : undefined;
+---
+
+<Base title={title} description={d.excerpt} image={coverSrc} type="article" glow="right">
+	<div class="progress" aria-hidden="true"></div>
+	<main class="page post">
+		<header class="post-head">
+			<a href="/blog" class="chip back">← cd ../blog</a>
+			<h1 class="title" set:html={emphasize(d.title)} />
+			<div class="meta">
+				<span class="pill">{formatDate(d.date)}</span>
+				<span class="pill">{readingTime(d.content)} min read</span>
+				{
+					tags.map((t) => (
+						<a href={`/blog?tag=${t.slug}`} class="tag-soft">
+							#{t.slug}
+						</a>
+					))
+				}
+			</div>
+		</header>
+
+		<figure class="cover">
+			<div class:list={["cover-frame", { placeholder: !coverSrc }]}>
+				{coverSrc ? <Image image={d.featured_image as any} class="cover-img" priority /> : <span>cover.png · 2100×900</span>}
+			</div>
+			{d.cover_caption && <figcaption>{d.cover_caption}</figcaption>}
+		</figure>
+
+		<div class="layout">
+			<article class="article">
+				<div class="prose">
+					<PortableText value={d.content} components={components as any} />
+				</div>
+
+				{
+					(older || newer) && (
+						<nav class="neighbours" aria-label="More posts">
+							{older ? (
+								<a href={`/blog/${older.id}`} class="card neighbour">
+									<span class="dir">← older</span>
+									<span class="n-title">{plainTitle(older.data.title)}</span>
+								</a>
+							) : (
+								<span />
+							)}
+							{newer && (
+								<a href={`/blog/${newer.id}`} class="card neighbour right">
+									<span class="dir">newer →</span>
+									<span class="n-title">{plainTitle(newer.data.title)}</span>
+								</a>
+							)}
+						</nav>
+					)
+				}
+			</article>
+
+			<aside class="card toc">
+				{
+					headings.length > 0 && (
+						<>
+							<div class="toc-label">CONTENTS</div>
+							<nav class="toc-links">
+								{headings.map((h) => (
+									<a href={`#${h.id}`}>{h.text}</a>
+								))}
+							</nav>
+						</>
+					)
+				}
+				<div class="toc-actions">
+					<a href="/rss.xml" class="mini">rss ↗</a>
+					<button type="button" class="mini" data-copy-link>copy link</button>
+				</div>
+			</aside>
+		</div>
+	</main>
+</Base>
+
+<script>
+	const bar = document.querySelector<HTMLElement>(".progress");
+	const update = () => {
+		const h = document.documentElement.scrollHeight - innerHeight;
+		if (bar) bar.style.width = `${h > 0 ? Math.min(1, scrollY / h) * 100 : 0}%`;
+	};
+	addEventListener("scroll", update, { passive: true });
+	update();
+
+	document.querySelector<HTMLButtonElement>("[data-copy-link]")?.addEventListener("click", (e) => {
+		const btn = e.currentTarget as HTMLButtonElement;
+		navigator.clipboard?.writeText(location.href).catch(() => {});
+		btn.textContent = "copied ✓";
+		setTimeout(() => (btn.textContent = "copy link"), 1400);
+	});
+</script>
+
+<style>
+	.progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		z-index: 50;
+		width: 0;
+		height: 3px;
+		background: var(--color-brand);
+	}
+
+	.post {
+		padding-top: clamp(40px, 6vw, 72px);
+	}
+
+	.post-head {
+		display: flex;
+		flex-direction: column;
+		gap: 22px;
+		max-width: 920px;
+	}
+
+	.back {
+		align-self: flex-start;
+		padding: 6px 12px;
+	}
+
+	.title {
+		margin: 0;
+		font-family: var(--font-heading);
+		font-size: clamp(44px, 6vw, 76px);
+		line-height: 1.02;
+		font-weight: 400;
+		letter-spacing: -0.025em;
+		text-wrap: balance;
+	}
+
+	.title :global(em) {
+		font-style: italic;
+		color: var(--color-brand);
+	}
+
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.pill {
+		padding: 5px 11px;
+		border-radius: var(--radius-pill);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+	}
+
+	.cover {
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.cover-frame {
+		width: 100%;
+		aspect-ratio: 21 / 9;
+		overflow: hidden;
+		border-radius: var(--radius-xl);
+		border: 1px solid var(--color-border);
+		font-size: 13px;
+	}
+
+	figcaption {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.layout {
+		display: flex;
+		flex-wrap: wrap-reverse;
+		gap: 48px 72px;
+		align-items: flex-start;
+	}
+
+	.article {
+		flex: 1 1 560px;
+		max-width: 700px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 56px;
+	}
+
+	/* Prose ---------------------------------------------------------------- */
+	.prose {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		font-family: var(--font-heading);
+		font-size: 21px;
+		line-height: 1.65;
+	}
+
+	.prose :global(p) {
+		margin: 0;
+		text-wrap: pretty;
+	}
+
+	.prose > :global(p:first-child) {
+		font-size: 24px;
+		line-height: 1.55;
+	}
+
+	.prose :global(h2) {
+		margin: 24px 0 0;
+		font-size: 36px;
+		line-height: 1.15;
+		font-weight: 400;
+		letter-spacing: -0.015em;
+		scroll-margin-top: 24px;
+	}
+
+	.prose :global(h3) {
+		margin: 12px 0 0;
+		font-size: 26px;
+		font-weight: 400;
+	}
+
+	.prose :global(ul),
+	.prose :global(ol) {
+		margin: 0;
+		padding-left: 1.2em;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.prose :global(p code),
+	.prose :global(li code) {
+		font-family: var(--font-mono);
+		font-size: 0.78em;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		padding: 2px 7px;
+	}
+
+	.prose :global(blockquote) {
+		margin: 0;
+	}
+
+	.prose :global(a) {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.prose :global(img) {
+		border-radius: var(--radius-md);
+	}
+
+	/* Neighbours ----------------------------------------------------------- */
+	.neighbours {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+		gap: 16px;
+	}
+
+	.neighbour {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 20px 22px;
+		border-radius: var(--radius-md);
+	}
+
+	.neighbour.right {
+		text-align: right;
+	}
+
+	.dir {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.n-title {
+		font-family: var(--font-heading);
+		font-size: 21px;
+		line-height: 1.25;
+	}
+
+	/* Contents aside ------------------------------------------------------- */
+	.toc {
+		flex: 0 1 260px;
+		/* The row is wrap-reverse, so flex-end is the top edge. */
+		align-self: flex-end;
+		position: sticky;
+		top: 24px;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		padding: 22px;
+		font-size: 14px;
+	}
+
+	.toc-label {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		color: var(--color-brand);
+	}
+
+	.toc-links {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.toc-links a {
+		margin: 0 -10px;
+		padding: 6px 10px;
+		border-radius: 8px;
+		color: var(--color-text);
+	}
+
+	.toc-links a:hover {
+		background: var(--color-surface);
+		text-decoration: none;
+	}
+
+	.toc-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding-top: 12px;
+		border-top: 1px solid var(--color-border);
+		font-family: var(--font-mono);
+		font-size: 12px;
+	}
+
+	.mini {
+		padding: 5px 10px;
+		border-radius: var(--radius-pill);
+		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+		color: var(--color-text);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.mini:hover {
+		border-color: var(--color-brand);
+		text-decoration: none;
+	}
+
+	@media (max-width: 959px) {
+		.toc {
+			position: static;
+		}
+	}
+</style>

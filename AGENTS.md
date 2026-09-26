@@ -17,7 +17,8 @@ The admin UI is at `http://localhost:4321/_emdash/admin`.
 | `src/live.config.ts`     | EmDash loader registration (boilerplate -- don't modify)                           |
 | `seed/seed.json`         | Schema definition + demo content (collections, fields, taxonomies, menus, widgets) |
 | `emdash-env.d.ts`        | Generated types for collections (auto-regenerated on dev server start)             |
-| `src/layouts/Base.astro` | Base layout with EmDash wiring (menus, search, page contributions)                 |
+| `src/layouts/Base.astro` | Base layout: EmDash head, theme boot script, `SiteHeader` / `SiteFooter`, glow      |
+| `src/lib/content.ts`     | Shared helpers: `getProfile()`, `toPostSummary()`, `emphasize()`, reading time      |
 | `src/pages/`             | Astro pages -- all server-rendered                                                 |
 
 ## Skills
@@ -42,64 +43,76 @@ This template ships with `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json`
 - Always call `Astro.cache.set(cacheHint)` on pages that query content.
 - Taxonomy names in queries must match the seed's `"name"` field exactly (e.g., `"category"` not `"categories"`).
 
-## This Template
+## Deploy & migrations
 
-A portfolio for showcasing creative work. Editorial, near-monochrome, with photography as the main visual interest. Designed for designers, photographers, illustrators, studios, and other people whose work speaks for itself when laid out with generous whitespace.
+Workers Builds deploys the site: build command `pnpm build`, production deploy command `pnpm run deploy:prod`, non-production deploy command `pnpm run deploy:preview`. There is no local deploy script.
 
-The design is intentionally restrained. Don't pile on colour, gradients, or decoration -- the work is the decoration.
+- Each deploy script applies EmDash core migrations to its D1 (`thijmen-dev` / `thijmen-dev-preview`, selected with `--account-id` + `--d1`), then deploys, then runs `emdash migrate --check`. The steps are chained with `&&`, so a failed migrate never ships code. `deploy:prod` first logs a D1 Time Travel bookmark.
+- Preview must deploy with `wrangler preview`: the `previews` block in `wrangler.jsonc` (preview D1/R2/KV) only applies there. `wrangler versions upload` would bind the prod DB.
+- The Worker runs with `migrations.runtime: "check"`: it returns 503 while known migrations are pending and never migrates itself. Dev stays `auto`.
+- The `--expected-target-fingerprint` values in `package.json` are the reviewed targets. Update one only after `pnpm migrate:status:prod|preview` shows the intended account and database.
+- The Workers Builds API token needs **D1 Edit**. Locally, the status scripts need `CLOUDFLARE_API_TOKEN` (the `wrangler login` session is not used).
+- Migrations are forward-only. After an ambiguous failure, run `migrate:status:*`; don't replay blindly. Release a stuck lock with `pnpm emdash migrate --release-lock <id> ...`. To roll back, restore the D1 from the logged Time Travel bookmark together with the matching build.
+- All branches share the preview D1. If a branch with a newer EmDash migrated it, older branches fail their build on unknown migration records: rebase, or reset preview from a prod export.
+
+## This Site
+
+Personal site of Thijmen Stavenuiter, Staff Engineer: a blog, resume, open-source projects and a /uses page. The design came from a claude.ai/design project ("Responsive Preview"). Its voice is an engineer's terminal: `$ ls -lt blog/`, `~/.profile` windows, git-log timelines, `man thijmen`, a ⌘K command palette. Near-monochrome surfaces with one purple accent.
 
 ## Pages
 
-| Page           | Path           | What it shows                                                                                          |
-| -------------- | -------------- | ------------------------------------------------------------------------------------------------------ |
-| Home           | `/`            | Centred serif title + tagline, "Selected Work" grid                                                    |
-| Work index     | `/work`        | Heading + summary, tag filter chips, full grid                                                         |
-| Project detail | `/work/[slug]` | Project meta line, big serif title, summary, featured image, Portable Text body, optional gallery, URL |
-| About          | `/about`       | Page content (Portable Text)                                                                           |
-| Contact        | `/contact`     | Form + email / location / social column                                                                |
+| Page     | Path           | What it shows                                                                                           |
+| -------- | -------------- | ------------------------------------------------------------------------------------------------------- |
+| Home     | `/`            | Status pill, big serif name, intro, `~/.profile` window; WRITING (1 feature + 3 rows); HISTORY; 2 featured projects; mail CTA |
+| Blog     | `/blog`        | `wc -l` kicker, tag chips (`?tag=slug`, server-side), latest post as a wide feature card, grid of the rest |
+| Post     | `/blog/[slug]` | Progress bar, title (with `*accent*`), date/read-time/tag chips, 21:9 cover, Portable Text body, sticky CONTENTS aside, older/newer |
+| Resume   | `/resume`      | Name + role, Download PDF (`window.print()`, print CSS hides chrome), full git-log timeline, `skills.yml`, contact card |
+| Projects | `/projects`    | Project cards: screenshot, status pill, description, install command, language + stars                 |
+| Uses     | `/uses`        | Simulated now-playing card (no audio) + queue + playlists, tools with client-side category filter, desk |
+
+Old portfolio routes redirect: `/work` and `/work/*` → `/projects`, `/about` → `/resume`, `/contact` → `/` (config `redirects` plus `src/pages/work/[slug].astro`).
 
 ## Schema
 
-- `projects` collection: `title`, `featured_image`, `client`, `year`, `summary` (text), `content` (Portable Text), `gallery` (json -- optional array of `{ url, alt? }` records, see below), `url`.
-- `pages` collection: `title`, `content` (Portable Text). Used for `/about`.
-- Taxonomies: `category`, `tag`. Used for filtering on the work index.
-- Single `primary` menu.
+- `posts`: `title` (may contain `*emphasis*`), `date` (datetime, used for ordering), `excerpt`, `featured_image`, `cover_caption`, `content` (Portable Text). Taxonomy `tag`. Reading time is computed, not stored.
+- `projects`: `title` (repo name), `summary`, `featured_image`, `language`, `project_status` (select: active/maintained/archived), `stars`, `install`, `url`, `featured` (boolean, home page), `position`.
+- `roles`: `title`, `org`, `period`, `commit_hash`, `ref`, `summary`, `highlights` (json string[]), `additions`, `deletions`, `stack` (json string[]), `position`.
+- `tools`, `desk_items`, `tracks`, `playlists`: small ordered lists for `/uses`, all sorted by `position`.
+- `profile`: exactly one entry with slug `me`. It holds all site-wide copy: status line, intros, page titles, CTA cards, email/GitHub/LinkedIn, `profile_lines` and `skills` (json), desk photo. Read it with `getProfile()`.
+- Single `primary` menu: Home, Blog, Resume, Projects, Uses. The header derives the `g` + first-letter shortcuts from the labels.
 
-Site settings have `title` and `tagline` -- both render on the home page (title as the centred serif heading, tagline as italic subtitle).
-
-The `gallery` field on `projects` is a JSON field, not an EmDash image field. It expects a literal array of `{ url: string, alt?: string }` records (a flat external URL plus optional alt text), and is rendered as-is by `src/pages/work/[slug].astro`. Do NOT confuse it with EmDash image fields like `featured_image`, which take `{ id, provider, alt }` objects from the media library. If you need media-library images in a gallery in the future, the right fix is to change the field type and renderer together.
+Gotchas found while building this:
+- `status` is a reserved field slug (hence `project_status`). `validateSeed` does not catch it; only apply does.
+- `where` on a collection only takes strings: filter booleans with `"1"`.
+- Collection entries carry taxonomy terms on `entry.data.terms.<taxonomy>`.
+- The runtime auto-seed applies schema only. Sample content comes from the setup wizard or `/_emdash/api/setup/dev-bypass` in dev.
+- EmDash groups only runs of 2+ blockquote blocks into `blockquoteGroup`; a lone blockquote reaches the `block` renderer. `src/components/pt/Block.astro` handles both as the NOTE callout.
 
 ## Visual character
 
-Typography is the design. The display face is **Playfair Display** (serif) on the `--font-heading` CSS variable; the body face is the system sans stack on `--font-body`. The serif is used for the site title, hero titles, project titles, page titles, and contact column labels. Everything else is the sans. Serif weight is calm on purpose (`--font-weight-heading` and `--font-weight-display` both default to 500).
+Three faces, loaded through the Fonts API in `astro.config.mjs`:
+- **Newsreader** (`--font-heading`): serif for display titles, card titles, post body and italic accents.
+- **Geist** (`--font-body`): UI and body sans.
+- **JetBrains Mono** (`--font-mono`): kickers, meta lines, chips, terminal windows and code.
 
-The brand colour is barely visible by design -- the only saturated colour on the page should be inside images. The default `--color-brand` (`#7c3aed`) is used sparingly for link hover and focus states.
+Colour is oklch: near-white/near-black lilac-tinted neutrals and one purple accent (`--color-brand`) with a soft tint (`--color-brand-soft`). Headings mark an accent phrase in italic brand colour. Editors write `*phrase*` in CMS text and `emphasize()` renders it. A soft radial glow sits behind the top of each page (`glow="left" | "right"` on `Base`). The syntax colours (`--syntax-*`) are the only other hues; they are for code and terminal windows.
 
-Whitespace is generous. Sections breathe. Don't fight that.
+Theme: `data-theme="light" | "dark"` on `<html>`, stored in `localStorage["ts-theme"]` and falling back to the OS preference. Toggle with the header button, the palette, or the `t` key.
 
 ## Customisation
 
-Design tokens live in `src/styles/tokens.css` with their default values. To restyle the site, override tokens in `src/styles/theme.css` -- declarations there are unlayered, so they always beat the `@layer base` defaults. Don't edit `tokens.css` or `Base.astro` for visual changes.
+Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.card`, `.accent-card`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
 
-Colours are defined with `light-dark(<light>, <dark>)`, so each token carries both modes. Overriding with a plain colour changes light and dark at once; use `light-dark()` in the override to keep them distinct. There is no separate dark palette to maintain.
+Components (`src/components/`): `SiteHeader` (nav pill, ☰ menu below 760px, ⌘K palette, keyboard shortcuts; one vanilla client script), `SiteFooter`, `Window` (terminal chrome), `SectionLabel`, `Timeline` (compact/full), `PostCard` (feature/row/grid), `ProjectCard` (full/compact). Portable Text overrides are in `pt/`: `Block` (h2 ids for the TOC, NOTE callout), `Note`, `CodeBlock` (window chrome, line numbers, copy button).
 
-The display face is configured in `astro.config.mjs` under `fonts:` (the Astro Fonts API). To change it, swap the `name:` for any Google Fonts serif and keep `cssVariable: "--font-heading"`. Good pairings: Cormorant Garamond, Fraunces, EB Garamond, DM Serif Display. The body face (`--font-body`) is a plain token in `tokens.css` -- system sans, deliberately quiet; override it in `theme.css` only if you have a reason.
+Code highlighting uses `src/lib/highlight.ts`: Shiki's fine-grained core with a fixed grammar list and the JavaScript regex engine. Don't switch to Astro's `<Code>`; it bundles every grammar plus the WASM engine into the Worker. Add a language by adding it to `LANGS`.
 
-CSS variables worth knowing (see `tokens.css` for the full list):
-
-- `--color-brand`, `--color-on-brand`, `--color-brand-ring` -- the single accent, used very sparingly
-- `--color-bg`, `--color-surface`, `--color-text`, `--color-muted`, `--color-border` -- neutral palette
-- `--color-danger` -- form errors
-- `--font-heading` (Fonts API entry in `astro.config.mjs`), `--font-body` (token)
-- `--font-weight-heading` / `--font-weight-display` (both 500) -- raise for a heavier serif voice
-- `--font-size-4xl` -- the size of the homepage title and project titles
-- `--max-width` (720px), `--wide-width` (1200px) -- column widths
+Styling a child component through its `class` prop needs `:global()` in the parent: Astro scopes styles per component.
 
 ## What not to do
 
-- Don't introduce gradients, drop shadows on cards, or coloured section backgrounds. The template's voice is calm and editorial; those break it.
-- Don't change `--font-body` to a display font. Two display faces fight each other.
-- Don't add more than one accent colour.
-- Don't write generic copy like "Welcome to my portfolio" or "Crafting beautiful experiences". The work should speak; the words should be specific (a client name, a discipline, a year).
-- Don't pack the home page with every project. The "Selected Work" framing is intentional -- 3-6 is plenty.
-- Don't add a `gallery` of small thumbnails on the home page. Use one strong image per project; the gallery field renders on the project detail page only.
+- Don't add a second accent colour or coloured section backgrounds. The purple accent, its soft tint and the fixed-dark player card are the whole palette.
+- Don't use drop shadows on cards. Shadows exist only on floating layers (menu dropdown, palette).
+- Don't hardcode copy that belongs in the `profile` entry or a collection. The site is meant to be fully CMS-driven.
+- Don't write generic copy ("Welcome to my blog"). Keep it specific and dry, in the terminal/git voice.
+- Don't add JS frameworks for interactivity. The header, palette, filters and player are small vanilla scripts.

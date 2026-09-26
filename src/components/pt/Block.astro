@@ -1,0 +1,17 @@
+---
+/**
+ * Portable Text block renderer for post bodies. Same tags as EmDash's
+ * default, plus a slug `id` on h2 so the post's CONTENTS aside can link to
+ * it (ids come from the same slugify() as extractHeadings()). A lone
+ * blockquote renders as the NOTE callout.
+ */
+import { blockText, slugify } from "../../lib/content";
+import Note from "./Note.astro";
+
+const { node } = Astro.props as { node: { style?: string; children?: Array<{ text?: string }> } };
+const style = node.style ?? "normal";
+const Tag = (/^h[1-6]$/.test(style) ? style : "p") as any;
+const id = style === "h2" ? slugify(blockText(node)) : undefined;
+---
+
+{style === "blockquote" ? <Note><slot /></Note> : <Tag id={id}><slot /></Tag>}

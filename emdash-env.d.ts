@@ -3,18 +3,84 @@
 
 /// <reference types="emdash/locals" />
 
-import type { ContentBylineCredit, PortableTextBlock } from "emdash";
+import type { ContentBylineCredit, TaxonomyTerm, PortableTextBlock } from "emdash";
 
-export interface Page {
+export interface DeskItem {
   id: string;
   slug: string | null;
   status: string;
   title: string;
+  label?: string;
+  note?: string;
+  position?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
+export interface Playlist {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  meta?: string;
+  url?: string;
+  position?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
+export interface Post {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  date: string;
+  excerpt?: string;
+  featured_image?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  cover_caption?: string;
   content?: PortableTextBlock[];
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
   bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
+export interface Profile {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  status_line?: string;
+  hero_intro?: string;
+  email?: string;
+  github_url?: string;
+  linkedin_url?: string;
+  profile_lines?: unknown;
+  cta_home?: string;
+  resume_intro?: string;
+  skills?: unknown;
+  speaking_note?: string;
+  cta_resume?: string;
+  blog_title?: string;
+  blog_intro?: string;
+  projects_title?: string;
+  projects_intro?: string;
+  uses_title?: string;
+  uses_intro?: string;
+  soundtrack_note?: string;
+  desk_photo?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
 }
 
 export interface Project {
@@ -22,22 +88,86 @@ export interface Project {
   slug: string | null;
   status: string;
   title: string;
-  featured_image: { id: string; src?: string; alt?: string; width?: number; height?: number };
-  client?: string;
-  year?: string;
   summary?: string;
-  content?: PortableTextBlock[];
-  gallery?: unknown;
+  featured_image?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  language?: string;
+  project_status?: "active" | "maintained" | "archived";
+  stars?: string;
+  install?: string;
   url?: string;
+  featured?: boolean;
+  position?: number;
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
   bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
+export interface Role {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  org?: string;
+  period?: string;
+  commit_hash?: string;
+  ref?: string;
+  summary?: string;
+  highlights?: unknown;
+  additions?: string;
+  deletions?: string;
+  stack?: unknown;
+  position?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
+export interface Tool {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  category?: "ai" | "terminal" | "cli" | "apps";
+  glyph?: string;
+  why?: string;
+  position?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
+export interface Track {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  artist?: string;
+  album?: string;
+  duration_seconds?: number;
+  cover?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  position?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
 }
 
 declare module "emdash" {
   interface EmDashCollections {
-    pages: Page;
+    desk_items: DeskItem;
+    playlists: Playlist;
+    posts: Post;
+    profile: Profile;
     projects: Project;
+    roles: Role;
+    tools: Tool;
+    tracks: Track;
   }
 }
