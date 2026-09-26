@@ -4,7 +4,12 @@
 	"account_id": "7dac805f31c2d6d9d0b73499d61513d2",
 	"main": "./src/worker.ts",
 	"compatibility_date": "2026-02-24",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+	// EmDash reads its canonical origin from process.env (hence the flag above).
+	// The setup wizard refuses to run without it. Previews set their own `vars`.
+	"vars": {
+		"EMDASH_SITE_URL": "https://thijmen-dev.thijmenstavenuiter.workers.dev",
+	},
 	"observability": {
 		"logs": {
 			"enabled": true,
