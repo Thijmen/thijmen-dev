@@ -1,0 +1,92 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "timezone": "Europe/Amsterdam",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "prConcurrentLimit": 5,
+  "minimumReleaseAge": "1 day",
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 6am on the first day of the month"
+    ],
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "description": "EmDash can ship D1 migrations; branches deploy to the shared preview D1. Approve from the dashboard, merge by hand.",
+      "matchPackageNames": [
+        "emdash",
+        "@emdash-cms/**"
+      ],
+      "groupName": "emdash",
+      "minimumReleaseAge": null,
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "labels": [
+        "migrations"
+      ]
+    },
+    {
+      "matchPackageNames": [
+        "astro",
+        "@astrojs/**",
+        "!@astrojs/check"
+      ],
+      "groupName": "astro",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": [
+        "react",
+        "react-dom"
+      ],
+      "groupName": "react",
+      "rangeStrategy": "pin",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": [
+        "wrangler",
+        "@cloudflare/workers-types"
+      ],
+      "groupName": "cloudflare tooling",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true,
+      "description": "workers-types publishes near-daily, so this group runs monthly",
+      "schedule": [
+        "before 6am on the first day of the month"
+      ]
+    },
+    {
+      "matchPackageNames": [
+        "@astrojs/check",
+        "shiki"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true
+    },
+    {
+      "description": "Majors always get their own PR and a human",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": null,
+      "automerge": false
+    }
+  ]
+}
