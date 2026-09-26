@@ -22,7 +22,10 @@ export default defineConfig({
 			migrations: { runtime: "check", dev: "auto" },
 			// Cloudflare Access (Zero Trust) is the exclusive auth method in
 			// production — passkeys, magic links and invites are disabled there.
-			// Local dev automatically falls back to passkey login.
+			// With Access configured, no passkey routes exist, so /admin/login
+			// loops in dev. Log in locally via
+			// /_emdash/api/setup/dev-bypass?content=0&redirect=/_emdash/admin
+			// (dev-only; creates a dev@emdash.local admin session).
 			auth: access({
 				teamDomain: "thijmen.cloudflareaccess.com",
 				audienceEnvVar: "CF_ACCESS_AUDIENCE",

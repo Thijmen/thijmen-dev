@@ -53,6 +53,7 @@ Workers Builds deploys the site: build command `pnpm build`, production deploy c
 - The `--expected-target-fingerprint` values in `package.json` are the reviewed targets. Update one only after `pnpm migrate:status:prod|preview` shows the intended account and database.
 - The Workers Builds API token needs **D1 Edit**. Locally, the status scripts need `CLOUDFLARE_API_TOKEN` (the `wrangler login` session is not used).
 - Migrations are forward-only. After an ambiguous failure, run `migrate:status:*`; don't replay blindly. Release a stuck lock with `pnpm emdash migrate --release-lock <id> ...`. To roll back, restore the D1 from the logged Time Travel bookmark together with the matching build.
+- Spotify secrets: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN` (`wrangler secret put`, plus `.dev.vars` locally). Get the refresh token with `node scripts/spotify-auth.mjs` (redirect URI `http://127.0.0.1:8888/callback`).
 - All branches share the preview D1. If a branch with a newer EmDash migrated it, older branches fail their build on unknown migration records: rebase, or reset preview from a prod export.
 
 ## This Site
@@ -68,7 +69,7 @@ Personal site of Thijmen Stavenuiter, Staff Engineer: a blog, resume, open-sourc
 | Post     | `/blog/[slug]` | Progress bar, title (with `*accent*`), date/read-time/tag chips, 21:9 cover, Portable Text body, sticky CONTENTS aside, older/newer |
 | Resume   | `/resume`      | Name + role, Download PDF (`window.print()`, print CSS hides chrome), full git-log timeline, `skills.yml`, contact card |
 | Projects | `/projects`    | Project cards: screenshot, status pill, description, install command, language + stars                 |
-| Uses     | `/uses`        | Simulated now-playing card (no audio) + queue + playlists, tools with client-side category filter, desk |
+| Uses     | `/uses`        | Spotify now-playing card (live, polls `/api/now-playing`) + top tracks queue + playlists, tools with client-side category filter, desk |
 
 Old portfolio routes redirect: `/work` and `/work/*` → `/projects`, `/about` → `/resume`, `/contact` → `/` (config `redirects` plus `src/pages/work/[slug].astro`).
 
@@ -78,6 +79,7 @@ Old portfolio routes redirect: `/work` and `/work/*` → `/projects`, `/about` �
 - `projects`: `title` (repo name), `summary`, `featured_image`, `language`, `project_status` (select: active/maintained/archived), `stars`, `install`, `url`, `featured` (boolean, home page), `position`.
 - `roles`: `title`, `org`, `period`, `commit_hash`, `ref`, `summary`, `highlights` (json string[]), `additions`, `deletions`, `stack` (json string[]), `position`.
 - `tools`, `desk_items`, `tracks`, `playlists`: small ordered lists for `/uses`, all sorted by `position`.
+- Spotify (`src/lib/spotify.ts`) feeds SOUNDTRACK: now playing / last played, top tracks (`short_term`) and, per `playlists` entry, name/cover/`N tracks · Xh Ym` from its `url` (a Spotify playlist URL). CMS `tracks` and playlist `title`/`meta` are the fallback when Spotify is unconfigured or fails; then the player simulates playback as before. Responses are memoised in the Workers Cache API (now playing 20s, top tracks 1h, playlists 6h). Since Spotify's Feb 2026 API changes, track counts only come back for playlists the account owns.
 - `profile`: exactly one entry with slug `me`. It holds all site-wide copy: status line, intros, page titles, CTA cards, email/GitHub/LinkedIn, `profile_lines` and `skills` (json), desk photo. Read it with `getProfile()`.
 - Single `primary` menu: Home, Blog, Resume, Projects, Uses. The header derives the `g` + first-letter shortcuts from the labels.
 
