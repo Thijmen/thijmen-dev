@@ -1,12 +1,17 @@
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import { access, d1, r2 } from "@emdash-cms/cloudflare";
+import { aiWriter } from "@thijmen/plugin-ai-writer";
 import { defineConfig, fontProviders } from "astro/config";
 import emdash from "emdash/astro";
 
 export default defineConfig({
 	output: "server",
-	adapter: cloudflare(),
+	// Workers AI (ai-writer plugin) only runs remotely, and wrangler's remote
+	// proxy sits behind Cloudflare Access. Plain `pnpm dev` stays local and
+	// boots anywhere; `pnpm dev:ai` opts in (Access login in the browser, or
+	// CLOUDFLARE_ACCESS_CLIENT_ID/SECRET for a service token).
+	adapter: cloudflare({ remoteBindings: process.env.DEV_REMOTE_AI === "1" }),
 	image: {
 		layout: "constrained",
 		responsiveStyles: true,
@@ -31,6 +36,8 @@ export default defineConfig({
 				audienceEnvVar: "CF_ACCESS_AUDIENCE",
 				defaultRole: 50, // Admin — the Access policy itself restricts who gets in
 			}),
+			// Writes whole entries from a brief with Workers AI (plugins/ai-writer).
+			plugins: [aiWriter()],
 		}),
 	],
 	redirects: {

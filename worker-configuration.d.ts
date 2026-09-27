@@ -5,6 +5,10 @@ declare namespace Cloudflare {
 	interface Env {
 		MEDIA: R2Bucket;
 		DB: D1Database;
+		AI: Ai;
+		WriterAgent: DurableObjectNamespace;
+		/** "1" swaps Workers AI for the scripted mock model. */
+		AI_WRITER_MOCK?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
