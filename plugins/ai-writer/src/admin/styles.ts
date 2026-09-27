@@ -152,6 +152,11 @@ export const css = `
 .aw-code-bar i { width: 9px; height: 9px; border-radius: 50%; background: #3a3448; display: inline-block; }
 .aw-code-bar span { margin-left: 6px; }
 .aw-code pre { margin: 0; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+.aw-table-wrap { margin: 16px 0; overflow-x: auto; }
+.aw-pt-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.aw-pt-table th, .aw-pt-table td { border: 1px solid var(--aw-line); padding: 8px 10px; text-align: start; vertical-align: top; }
+.aw-pt-table th { background: var(--aw-recessed); font-weight: 600; }
+.aw-pt-table tbody tr:nth-child(even) { background: color-mix(in oklab, var(--aw-recessed) 50%, transparent); }
 .aw-todo { color: inherit; background: var(--aw-warning-soft); outline: 1px solid color-mix(in oklab, var(--aw-warning) 50%, transparent); border-radius: 3px; padding: 0 2px; font-family: var(--aw-mono); font-size: .8em; }
 .aw-live { position: relative; }
 .aw-live::before { content: "writing…"; position: absolute; top: -18px; right: 0; font: 11px var(--aw-mono); color: var(--aw-brand); }

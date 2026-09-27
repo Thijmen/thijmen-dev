@@ -2,8 +2,8 @@
  * Markdown (as written by the model) to Portable Text, in the node shapes the
  * site renders: h2/h3 blocks (h2 feeds the post's CONTENTS aside), blockquote
  * blocks (NOTE callout), bullet/number list items, `code` blocks with
- * `language` + optional `filename` (CodeBlock.astro), and strong/em/code marks
- * plus link markDefs. Also the reverse, for sending a field back as context.
+ * `language` + optional `filename` (CodeBlock.astro), GitHub-style pipe tables
+ * as EmDash `table` nodes, and strong/em/code marks plus link markDefs. Also the reverse, for sending a field back as context.
  */
 
 export type PtSpan = { _type: "span"; _key: string; text: string; marks: string[] };
@@ -18,7 +18,17 @@ export type PtBlock = {
 	level?: number;
 };
 export type PtCode = { _type: "code"; _key: string; code: string; language?: string; filename?: string };
-export type PtNode = PtBlock | PtCode;
+export type PtTableCell = {
+	_type: "tableCell";
+	_key: string;
+	content: PtSpan[];
+	markDefs?: PtLinkDef[];
+	isHeader?: boolean;
+	textAlign?: "left" | "center" | "right";
+};
+/** EmDash's native Portable Text table (rendered by emdash/ui's Table component). */
+export type PtTable = { _type: "table"; _key: string; hasHeaderRow: boolean; rows: Array<{ _type: "tableRow"; _key: string; cells: PtTableCell[] }> };
+export type PtNode = PtBlock | PtCode | PtTable;
 
 export function makeKey(): string {
 	return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
@@ -42,6 +52,8 @@ const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
 const LIST_ITEM = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const QUOTE = /^\s*>\s?(.*)$/;
 const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/;
+// GitHub table delimiter row: | --- | :---: | ---: |
+const TABLE_DELIMITER = /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/;
 
 export function markdownToPortableText(markdown: string): PtNode[] {
 	const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
@@ -84,6 +96,18 @@ export function markdownToPortableText(markdown: string): PtNode[] {
 
 		if (!line.trim()) {
 			flush();
+			continue;
+		}
+
+		if (line.includes("|") && i + 1 < lines.length && TABLE_DELIMITER.test(lines[i + 1])) {
+			flush();
+			const header = splitRow(line);
+			const align = splitRow(lines[i + 1]).map(alignmentOf);
+			const body: string[][] = [];
+			i += 2;
+			while (i < lines.length && lines[i].trim() && lines[i].includes("|")) body.push(splitRow(lines[i++]));
+			i--;
+			out.push(tableNode(header, body, align));
 			continue;
 		}
 
@@ -135,6 +159,40 @@ export function markdownToPortableText(markdown: string): PtNode[] {
 	return out;
 }
 
+function splitRow(line: string): string[] {
+	const trimmed = line.trim().replace(/^\|/, "").replace(/(?<!\\)\|$/, "");
+	return trimmed.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
+}
+
+function alignmentOf(delimiter: string): PtTableCell["textAlign"] {
+	const d = delimiter.trim();
+	if (d.startsWith(":") && d.endsWith(":")) return "center";
+	if (d.endsWith(":")) return "right";
+	if (d.startsWith(":")) return "left";
+	return undefined;
+}
+
+function tableNode(header: string[], body: string[][], align: Array<PtTableCell["textAlign"]>): PtTable {
+	const width = Math.max(header.length, ...body.map((r) => r.length));
+	const cell = (text: string, column: number, isHeader: boolean): PtTableCell => {
+		const { children, markDefs } = parseInline(text);
+		return {
+			_type: "tableCell",
+			_key: makeKey(),
+			content: children,
+			...(markDefs.length ? { markDefs } : {}),
+			...(isHeader ? { isHeader: true } : {}),
+			...(align[column] ? { textAlign: align[column] } : {}),
+		};
+	};
+	const row = (cells: string[], isHeader: boolean) => ({
+		_type: "tableRow" as const,
+		_key: makeKey(),
+		cells: Array.from({ length: width }, (_, c) => cell(cells[c] ?? "", c, isHeader)),
+	});
+	return { _type: "table", _key: makeKey(), hasHeaderRow: true, rows: [row(header, true), ...body.map((r) => row(r, false))] };
+}
+
 function textBlock(text: string, style: string): PtBlock {
 	const { children, markDefs } = parseInline(text);
 	return { _type: "block", _key: makeKey(), style, markDefs, children };
@@ -180,25 +238,27 @@ export function portableTextToMarkdown(value: unknown): string {
 	if (!Array.isArray(value)) return "";
 	const parts: string[] = [];
 	for (const node of value as Array<Record<string, any>>) {
+		if (node?._type === "table") {
+			const rows: string[][] = (node.rows ?? []).map((r: any) =>
+				(r.cells ?? []).map((c: any) => spansToMarkdown(c.content ?? [], c.markDefs ?? node.markDefs ?? []).replace(/\|/g, "\\|")),
+			);
+			if (!rows.length) continue;
+			const width = Math.max(...rows.map((r) => r.length));
+			const line = (r: string[]) => `| ${Array.from({ length: width }, (_, c) => r[c] ?? "").join(" | ")} |`;
+			const aligns = Array.from({ length: width }, (_, c) => {
+				const a = node.rows?.[0]?.cells?.[c]?.textAlign;
+				return a === "center" ? ":---:" : a === "right" ? "---:" : a === "left" ? ":---" : "---";
+			});
+			parts.push([line(rows[0]), `| ${aligns.join(" | ")} |`, ...rows.slice(1).map(line)].join("\n"));
+			continue;
+		}
 		if (node?._type === "code") {
 			const info = [node.language, node.filename].filter(Boolean).join(" ");
 			parts.push("```" + info + "\n" + (node.code ?? "") + "\n```");
 			continue;
 		}
 		if (node?._type !== "block") continue;
-		const defs = new Map<string, string>((node.markDefs ?? []).map((d: any) => [d._key, d.href]));
-		const text = (node.children ?? [])
-			.map((span: any) => {
-				let t = span.text ?? "";
-				for (const mark of span.marks ?? []) {
-					if (mark === "strong") t = `**${t}**`;
-					else if (mark === "em") t = `*${t}*`;
-					else if (mark === "code") t = "`" + t + "`";
-					else if (defs.has(mark)) t = `[${t}](${defs.get(mark)})`;
-				}
-				return t;
-			})
-			.join("");
+		const text = spansToMarkdown(node.children ?? [], node.markDefs ?? []);
 		if (node.listItem) {
 			const indent = "  ".repeat(Math.max((node.level ?? 1) - 1, 0));
 			parts.push(`${indent}${node.listItem === "number" ? "1." : "-"} ${text}`);
@@ -213,4 +273,20 @@ export function portableTextToMarkdown(value: unknown): string {
 		const listy = /^\s*(-|\d+\.) /;
 		return acc + (listy.test(part) && listy.test(parts[i - 1]) ? "\n" : "\n\n") + part;
 	}, "");
+}
+
+function spansToMarkdown(spans: Array<{ text?: string; marks?: string[] }>, markDefs: Array<{ _key: string; href?: string }>): string {
+	const defs = new Map(markDefs.map((d) => [d._key, d.href]));
+	return spans
+		.map((span) => {
+			let t = span.text ?? "";
+			for (const mark of span.marks ?? []) {
+				if (mark === "strong") t = `**${t}**`;
+				else if (mark === "em") t = `*${t}*`;
+				else if (mark === "code") t = "`" + t + "`";
+				else if (defs.has(mark)) t = `[${t}](${defs.get(mark)})`;
+			}
+			return t;
+		})
+		.join("");
 }

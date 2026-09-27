@@ -17,7 +17,7 @@ export const FORMAT: Record<Target["kind"], string> = {
 	string: "one line of plain text, no markdown",
 	text: "plain prose, no markdown, no headings",
 	portableText:
-		"Markdown. ## for sections, ### for sub-sections, never #. > for a single callout note. Fenced code blocks carry a language, optionally followed by a filename (```kotlin OrderService.kt). Links only to URLs you were given. No title, no closing summary section",
+		"Markdown. ## for sections, ### for sub-sections, never #. > for a single callout note. Fenced code blocks carry a language, optionally followed by a filename (```kotlin OrderService.kt). GitHub-style pipe tables (header row, then | --- | delimiter row) for genuinely tabular data. Links only to URLs you were given. No title, no closing summary section",
 	blocks: "a JSON array of blocks, passed as a string; the allowed types are listed under blockTypes",
 };
 

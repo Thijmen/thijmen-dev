@@ -124,6 +124,11 @@ function PortableText({ nodes }: { nodes: unknown[] }) {
 	};
 	(nodes as Block[]).forEach((node, i) => {
 		const key = node._key ?? String(i);
+		if (node._type === "table") {
+			flush();
+			out.push(<Table key={key} node={node as unknown as TableNode} />);
+			return;
+		}
 		if (node._type === "code") {
 			flush();
 			out.push(
@@ -157,6 +162,37 @@ function PortableText({ nodes }: { nodes: unknown[] }) {
 	});
 	flush();
 	return <>{out}</>;
+}
+
+type TableNode = {
+	hasHeaderRow?: boolean;
+	rows?: Array<{ _key?: string; cells?: Array<{ _key?: string; content?: Span[]; markDefs?: Block["markDefs"]; isHeader?: boolean; textAlign?: "left" | "center" | "right" }> }>;
+};
+
+function Table({ node }: { node: TableNode }) {
+	const rows = node.rows ?? [];
+	const cell = (c: NonNullable<NonNullable<TableNode["rows"]>[number]["cells"]>[number], i: number, head: boolean) => {
+		const content = spans({ _type: "block", children: c.content ?? [], markDefs: c.markDefs ?? [] });
+		const style = c.textAlign ? { textAlign: c.textAlign } : undefined;
+		return head ? <th key={c._key ?? i} style={style}>{content}</th> : <td key={c._key ?? i} style={style}>{content}</td>;
+	};
+	const [head, ...body] = node.hasHeaderRow ? rows : [undefined, ...rows];
+	return (
+		<div className="aw-table-wrap">
+			<table className="aw-pt-table">
+				{head && (
+					<thead>
+						<tr>{(head.cells ?? []).map((c, i) => cell(c, i, true))}</tr>
+					</thead>
+				)}
+				<tbody>
+					{body.map((r, ri) => (
+						<tr key={r?._key ?? ri}>{(r?.cells ?? []).map((c, i) => cell(c, i, c.isHeader === true))}</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
 }
 
 function spans(node: Block): ReactNode[] {
