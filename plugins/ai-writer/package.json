@@ -27,5 +27,8 @@
   },
   "devDependencies": {
     "@types/react": "^19.3.0"
+  },
+  "scripts": {
+    "catalog:sync": "node --experimental-strip-types --no-warnings scripts/sync-catalog.ts"
   }
 }

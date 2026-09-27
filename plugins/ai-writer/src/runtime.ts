@@ -3,6 +3,8 @@ import { definePlugin, type RouteContext } from "emdash";
 
 import { signToken, writerSecret } from "./agent/token";
 import { entrySpec, type Target } from "./entry-spec";
+import { CATALOG_URL, type CatalogModel, parseCatalog } from "./catalog";
+import snapshot from "./catalog.snapshot.json";
 import { DEFAULT_MAX_TOKENS, DEFAULT_MODEL, isValidModelId, labelFor, MODELS, type ModelOption } from "./models";
 import { DEFAULT_STYLE_GUIDE } from "./prompt";
 
@@ -87,16 +89,67 @@ async function saveRun(ctx: RouteContext, run: Run) {
 
 // ── Routes for the writer page (all run under the admin's session) ──
 
-export type WriterOptions = { models: ModelOption[]; defaultModel: string; mock: boolean };
+export type WriterOptions = { models: ModelOption[]; defaultModel: string; mock: boolean; catalog: { source: "live" | "snapshot"; at: string } };
 
-/** What the composer offers before a session exists: the model picker and its default. */
-async function options(ctx: RouteContext): Promise<WriterOptions> {
-	const config = await settings(ctx);
-	const models = [...MODELS];
-	if (config.customModel && !models.some((m) => m.value === config.customModel)) {
-		models.unshift({ value: config.customModel, label: `${config.customModel} (custom)`, group: "Custom" });
+const CATALOG_KEY = "catalog:v1";
+const CATALOG_TTL_MS = 24 * 3600 * 1000;
+
+/**
+ * Cloudflare's text-generation catalog: from the docs page (cached for a day
+ * in plugin KV), or the bundled snapshot when that can't be fetched (offline,
+ * a TLS-inspecting proxy in local dev, a docs layout change).
+ */
+async function catalog(ctx: RouteContext): Promise<{ models: CatalogModel[]; source: "live" | "snapshot"; at: string }> {
+	const cached = await ctx.kv.get<{ at: string; models: CatalogModel[] }>(CATALOG_KEY).catch(() => null);
+	if (cached && Date.now() - Date.parse(cached.at) < CATALOG_TTL_MS) return { ...cached, source: "live" };
+	try {
+		const res = await fetch(CATALOG_URL, { signal: AbortSignal.timeout(5000) });
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const models = parseCatalog(await res.text());
+		if (models.length < 20) throw new Error(`only ${models.length} models parsed`);
+		const fresh = { at: new Date().toISOString(), models };
+		await ctx.kv.set(CATALOG_KEY, fresh);
+		return { ...fresh, source: "live" };
+	} catch (error) {
+		ctx.log.warn(`ai-writer: model catalog fetch failed, using the snapshot: ${error instanceof Error ? error.message : error}`);
+		if (cached) return { ...cached, source: "live" };
+		return { models: snapshot.models as CatalogModel[], at: snapshot.fetchedAt, source: "snapshot" };
 	}
-	return { models, defaultModel: config.model, mock: (env as { AI_WRITER_MOCK?: string }).AI_WRITER_MOCK === "1" };
+}
+
+/** What the composer offers before a session exists: every model, recommended first, and the default. */
+async function options(ctx: RouteContext): Promise<WriterOptions> {
+	const [config, cat] = await Promise.all([settings(ctx), catalog(ctx)]);
+	const recommended = new Set(MODELS.map((m) => m.value));
+	const models: ModelOption[] = [];
+	if (config.customModel && !recommended.has(config.customModel)) {
+		models.push({ value: config.customModel, label: config.customModel, group: "Custom (settings)" });
+	}
+	for (const m of MODELS) {
+		const info = cat.models.find((c) => c.id === m.value);
+		models.push({ ...m, group: "Recommended", ...(info ? { description: info.description } : {}) });
+	}
+	const rest = cat.models
+		.filter((c) => !recommended.has(c.id) && c.id !== config.customModel)
+		.map((c) => ({
+			value: c.id,
+			label: c.id.slice(c.id.lastIndexOf("/") + 1),
+			group: c.hosted ? "Workers AI (Cloudflare-hosted)" : c.provider,
+			description: c.description,
+		}))
+		.sort((a, b) => (a.group === b.group ? a.label.localeCompare(b.label) : groupRank(a.group) - groupRank(b.group) || a.group.localeCompare(b.group)));
+	models.push(...rest);
+	return {
+		models,
+		defaultModel: config.model,
+		mock: (env as { AI_WRITER_MOCK?: string }).AI_WRITER_MOCK === "1",
+		catalog: { source: cat.source, at: cat.at },
+	};
+}
+
+/** Third-party providers first (alphabetical), Workers AI last. */
+function groupRank(group: string): number {
+	return group.startsWith("Workers AI") ? 1 : 0;
 }
 
 /** Start or resume a session: signed agent token, settings, entry spec, current values, profile, tags. */

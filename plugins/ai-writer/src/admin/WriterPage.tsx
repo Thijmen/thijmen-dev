@@ -129,11 +129,17 @@ function Composer({
 		api.options().then(setOptions, () => setOptions(null));
 	}, []);
 	const model = params.model ?? options?.defaultModel ?? "";
+	const [filter, setFilter] = useState("");
 	const groups = useMemo(() => {
+		const q = filter.trim().toLowerCase();
 		const byGroup = new Map<string, ModelOption[]>();
-		for (const m of options?.models ?? []) byGroup.set(m.group, [...(byGroup.get(m.group) ?? []), m]);
+		for (const m of options?.models ?? []) {
+			const hit = !q || m.value === model || `${m.value} ${m.label} ${m.group} ${m.description ?? ""}`.toLowerCase().includes(q);
+			if (hit) byGroup.set(m.group, [...(byGroup.get(m.group) ?? []), m]);
+		}
 		return [...byGroup.entries()];
-	}, [options]);
+	}, [options, filter, model]);
+	const selected = options?.models.find((m) => m.value === model);
 	const revising = params.entryId !== null;
 	const type = TYPES.find((t) => t.value === params.collection) ?? TYPES[0];
 	const canStart = revising || text.trim().length > 0;
@@ -197,28 +203,41 @@ function Composer({
 					<span className="aw-grow">{error}</span>
 				</div>
 			)}
-			<div className="aw-actions">
-				<label className="aw-model">
-					<span className="aw-subtle">Model</span>
-					<select
-						className="aw-select"
-						value={model}
+			<div className="aw-picker">
+				<span className="aw-label">Model</span>
+				<div className="aw-picker-row">
+					<input
+						className="aw-input aw-filter"
+						placeholder={options ? `Filter ${options.models.length} models: claude, gpt, gemini, llama…` : "Loading models…"}
+						value={filter}
+						onChange={(e) => setFilter(e.target.value)}
 						disabled={!options}
-						onChange={(e) => setParams({ ...params, model: e.target.value })}
-						title={model}
-					>
+					/>
+					<select className="aw-select" value={model} disabled={!options} onChange={(e) => setParams({ ...params, model: e.target.value })} title={model}>
 						{!options && <option value="">Loading models…</option>}
 						{groups.map(([group, models]) => (
-							<optgroup key={group} label={group === "Workers AI" ? "Workers AI" : `${group} · unified billing`}>
+							<optgroup key={group} label={group}>
 								{models.map((m) => (
-									<option key={m.value} value={m.value}>
+									<option key={m.value} value={m.value} title={m.description}>
 										{m.label}
 									</option>
 								))}
 							</optgroup>
 						))}
 					</select>
-				</label>
+				</div>
+				<p className="aw-model-note">
+					<span className="aw-mono">{model}</span>
+					{selected?.description ? ` · ${selected.description}` : ""}
+					{selected && selected.group !== "Recommended" ? " · Not tested with the writer; it needs tool calling." : ""}
+				</p>
+				{options && (
+					<p className="aw-model-note">
+						Third-party models are billed through AI Gateway unified billing. Catalog {options.catalog.source === "live" ? "from developers.cloudflare.com" : "snapshot"}, {new Date(options.catalog.at).toLocaleDateString()}.
+					</p>
+				)}
+			</div>
+			<div className="aw-actions">
 				<Button variant="primary" onClick={submit} disabled={!canStart} loading={starting} icon={MagicWandIcon}>
 					{revising ? "Start revising" : "Write it"}
 				</Button>

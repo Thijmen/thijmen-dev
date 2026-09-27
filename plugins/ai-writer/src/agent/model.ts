@@ -9,21 +9,26 @@ import { isAnthropic, isCatalogSlug } from "../models";
  * The language model for one writer turn, through the one `env.AI` binding.
  * `@cf/…` ids run on Workers AI; `provider/model` ids go through AI Gateway's
  * unified-billing path (the account's "default" gateway), parsed with the
- * provider's wire format: `anthropic` natively, the rest (OpenAI, Google,
- * xAI, Groq, DeepSeek, Qwen, MiniMax) as OpenAI chat-completions.
+ * provider's wire format: `anthropic` natively, the rest as OpenAI
+ * chat-completions.
  */
 export function writerModel(ai: Ai, modelId: string, session: string) {
-	const workersai = createWorkersAI({ binding: ai, providers: [openai, anthropic] });
 	// Model ids come from settings, so the id-typed overloads can't narrow them.
-	const build = workersai as unknown as (id: string, settings?: Record<string, unknown>) => ReturnType<typeof workersai>;
-	if (!isCatalogSlug(modelId)) return build(modelId);
-	return build(modelId, {
+	type Build = (id: string, settings?: Record<string, unknown>) => ReturnType<ReturnType<typeof createWorkersAI>>;
+	const metadata = { app: "ai-writer", session };
+	if (!isCatalogSlug(modelId)) return (createWorkersAI({ binding: ai }) as unknown as Build)(modelId);
+	if (DELEGATE_PROVIDERS.has(modelId.split("/")[0])) {
+		const build = createWorkersAI({ binding: ai, providers: [openai, anthropic] }) as unknown as Build;
 		// Gateway resume is still rolling out upstream; ai-chat already resumes the stream to the page.
-		resume: false,
-		// Spend per writing session in the AI Gateway dashboard.
-		metadata: { app: "ai-writer", session },
-	});
+		return build(modelId, { resume: false, metadata });
+	}
+	// Catalog providers the SDK's registry doesn't know yet (e.g. moonshotai,
+	// thinkingmachines): the bare unified-billing run path, OpenAI wire format.
+	return (createWorkersAI({ binding: ai }) as unknown as Build)(modelId, { metadata });
 }
+
+/** Providers workers-ai-provider 4.0 routes on the unified-billing run path with its own parsers. */
+const DELEGATE_PROVIDERS = new Set(["openai", "anthropic", "google", "xai", "groq", "alibaba", "minimax", "deepseek"]);
 
 /**
  * The system prompt, with a prompt-cache breakpoint for Anthropic so each

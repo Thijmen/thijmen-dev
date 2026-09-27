@@ -151,10 +151,14 @@ How it's wired:
 - The DO has **no CMS access**. The page loads everything CMS-derived through the plugin's private routes (`session`, `search`, `save`, `runs`) under your admin session and sends it as the chat `body`.
 - `src/worker.ts` routes `/agents/writer-agent/<session>` through `routeWriterAgent`, before EmDash. It requires an HMAC token that the `session` route mints for that session (`AI_WRITER_SECRET`; `astro dev` falls back to a fixed dev secret).
 - `src/entry-spec.ts` decides the writable fields from the live schema: prose types only, plus the `WRITABLE_FIELDS` allow-list and a `PURPOSE` hint per field. A new prose field needs adding to both. Blocks are validated against the seed's `blockTypes` (`src/blocks.ts`; figure/gallery are excluded).
-- **Models** (`src/models.ts`): a curated list grouped by provider, default **Claude Sonnet 5** (`anthropic/claude-sonnet-5`), plus Claude Opus 5 / Haiku 4.5, GPT-5.5 / 5.4 mini, Gemini 3.1 Pro / 3.5 Flash, Grok 4.5, and the Workers AI models.
-  - The composer has a per-run model picker.
-  - Settings → **Custom model id** takes any catalog id (developers.cloudflare.com/ai/models) and overrides the default. It must support tool calling.
-  - Other settings: style guide (the system prompt), max tokens per step (default 16000).
+- **Models:** the composer's picker lists **every text-generation model in Cloudflare's catalog** (~100, grouped by provider, with a filter), with the tested ones (`src/models.ts`) on top as *Recommended* and **Claude Sonnet 5** as the default.
+  - The catalog is parsed from the docs page (`src/catalog.ts`, developers.cloudflare.com/ai/models/index.md; there's no catalog API) and cached for a day in plugin KV.
+  - If that fetch fails, it falls back to the bundled `src/catalog.snapshot.json`. Refresh the snapshot with `pnpm --filter @thijmen/plugin-ai-writer catalog:sync`.
+  - Routing (`src/agent/model.ts`):
+    - Providers workers-ai-provider knows (openai, anthropic, google, xai, groq, alibaba, minimax, deepseek) use its gateway delegate.
+    - Other catalog providers (moonshotai, thinkingmachines, …) use the bare unified-billing run path with the OpenAI wire format.
+  - Models outside *Recommended* are untested with the writer; they need tool calling.
+  - Settings: default model, **Custom model id** (listed first in the picker), style guide, max tokens per step (default 16000).
 - **Unified billing setup:** buy credits under AI Gateway → Credits (a 5% fee on purchase; provider rates pass through) and optionally set a spend limit on the `default` gateway. Out of credits, unknown model ids and gateway auth errors show up in the writer as readable errors with Retry.
 
 Config and ops:

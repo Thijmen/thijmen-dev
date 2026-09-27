@@ -1,15 +1,15 @@
 /**
- * Models the writer offers, all through the one `env.AI` binding:
+ * The writer's recommended models (tested for tool calling), shown first in
+ * the picker; the picker also lists Cloudflare's whole text-generation
+ * catalog (`catalog.ts`). All run through the one `env.AI` binding:
  * - Workers AI (`@cf/…`), billed as Workers AI usage.
  * - Third-party catalog models (`<provider>/<model>`), routed by
  *   workers-ai-provider through AI Gateway's unified-billing path, so they
  *   land on the Cloudflare invoice too. Ids as listed on
  *   developers.cloudflare.com/ai/models (Sep 2026).
- * Any other catalog id works through the `customModel` setting; the writer
- * needs a model that supports tool calling.
+ * The writer needs a model that supports tool calling.
  */
-export type ModelGroup = "Custom" | "Anthropic" | "OpenAI" | "Google" | "xAI" | "Workers AI";
-export type ModelOption = { value: string; label: string; group: ModelGroup };
+export type ModelOption = { value: string; label: string; group: string; description?: string };
 
 export const MODELS: readonly ModelOption[] = [
 	{ value: "anthropic/claude-sonnet-5", label: "Claude Sonnet 5", group: "Anthropic" },
