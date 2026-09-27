@@ -5,7 +5,7 @@ import { z } from "zod";
 import { hasValue, matchTags, toFieldValue } from "../field-values";
 import { fetchUrl } from "./fetch-url";
 import { mockWriterModel } from "./mock-model";
-import { describeModelError, providerOptionsFor, writerModel } from "./model";
+import { describeModelError, systemFor, writerModel } from "./model";
 import { agentSystemPrompt, entrySpecForModel } from "./prompt";
 import { type FieldStatus, INITIAL_STATE, type SessionBody, type TurnMetadata, type WriterState } from "./types";
 
@@ -37,13 +37,12 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 
 		const result = streamText({
 			model,
-			system: agentSystemPrompt(body),
+			system: mock ? agentSystemPrompt(body) : systemFor(body.model, agentSystemPrompt(body)),
 			messages: await convertToModelMessages(this.messages),
 			tools: this.tools(body),
 			stopWhen: isStepCount(24),
 			maxOutputTokens: body.maxTokens,
 			abortSignal: options?.abortSignal,
-			...(mock ? {} : { providerOptions: providerOptionsFor(body.model) }),
 			// ai-chat replaces finish metadata with the finish reason, so turn stats travel in state.
 			onFinish: ({ usage }) => {
 				const turn: TurnMetadata = {

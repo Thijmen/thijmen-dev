@@ -1,3 +1,4 @@
+import { APICallError, type SystemModelMessage } from "ai";
 import { createWorkersAI, WorkersAIGatewayError } from "workers-ai-provider";
 import { anthropic } from "workers-ai-provider/anthropic";
 import { openai } from "workers-ai-provider/openai";
@@ -25,39 +26,60 @@ export function writerModel(ai: Ai, modelId: string, session: string) {
 }
 
 /**
- * Per-provider request options. Anthropic: automatic prompt caching, so each
- * step of the tool loop reuses the cached system prompt, tools and history
- * instead of paying for them again. OpenAI and Gemini cache on their own.
+ * The system prompt, with a prompt-cache breakpoint for Anthropic so each
+ * step of the tool loop reuses the cached system prompt and tools instead of
+ * paying for them again. A block-level breakpoint, not the newer top-level
+ * automatic `cache_control`, which is the prime suspect for the 400s from AI
+ * Gateway's unified-billing path. OpenAI and Gemini cache on their own.
  */
-export function providerOptionsFor(modelId: string) {
-	return isAnthropic(modelId) ? { anthropic: { cacheControl: { type: "ephemeral" as const } } } : undefined;
+export function systemFor(modelId: string, text: string): string | SystemModelMessage {
+	if (!isAnthropic(modelId)) return text;
+	return { role: "system", content: text, providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } };
 }
 
 /** A readable reason for a failed model call, shown in the writer with a Retry. */
 export function describeModelError(error: unknown, modelId: string): string {
 	const message = error instanceof Error ? error.message : String(error);
-	const gateway = findGatewayError(error);
-	if (/credit|insufficient|balance|payment required/i.test(message) || gateway?.status === 402) {
+	const gateway = find(error, (e): e is WorkersAIGatewayError => e instanceof WorkersAIGatewayError);
+	const call = find(error, (e): e is APICallError => APICallError.isInstance(e));
+	const status = gateway?.status ?? call?.statusCode ?? null;
+	// The provider's own explanation; "Bad Request" alone says nothing.
+	const detail = providerDetail(call?.responseBody) ?? providerDetail(gateway?.raw);
+
+	if (/credit|insufficient|balance|payment required/i.test(`${message} ${detail ?? ""}`) || status === 402) {
 		return `No unified billing credits for ${modelId}. Add credits under AI Gateway → Credits in the Cloudflare dashboard, then retry.`;
 	}
-	if (gateway) {
-		switch (gateway.code) {
-			case "not-found":
-				return `"${modelId}" isn't available through AI Gateway. Check the id on developers.cloudflare.com/ai/models or pick another model.`;
-			case "auth":
-				return `AI Gateway refused the request for ${modelId} (auth). Check that unified billing is enabled for the account's default gateway.`;
-			case "rate-limit":
-				return `Rate limited on ${modelId}. Wait a moment and retry, or switch models.`;
-			default:
-				return `${modelId}: ${gateway.message}`;
-		}
+	if (gateway?.code === "not-found" || status === 404) {
+		return `"${modelId}" isn't available through AI Gateway${detail ? ` (${detail})` : ""}. Check the id on developers.cloudflare.com/ai/models or pick another model.`;
 	}
-	return /run remotely/i.test(message) ? message : `${modelId}: ${message}`;
+	if (gateway?.code === "auth" || status === 401 || status === 403) {
+		return `AI Gateway refused the request for ${modelId}${detail ? `: ${detail}` : " (auth)"}. Check that unified billing is enabled for the account's default gateway.`;
+	}
+	if (gateway?.code === "rate-limit" || status === 429) return `Rate limited on ${modelId}. Wait a moment and retry, or switch models.`;
+	if (/run remotely/i.test(message)) return message;
+	return `${modelId}: ${status ? `${status} ` : ""}${detail ?? message}`;
 }
 
-function findGatewayError(error: unknown): WorkersAIGatewayError | null {
-	for (let e: unknown = error, depth = 0; e && depth < 4; e = (e as { cause?: unknown }).cause, depth++) {
-		if (e instanceof WorkersAIGatewayError) return e;
+function find<T>(error: unknown, match: (e: unknown) => e is T): T | null {
+	for (let e: unknown = error, depth = 0; e && depth < 5; e = (e as { cause?: unknown }).cause, depth++) {
+		if (match(e)) return e;
 	}
 	return null;
+}
+
+/** Pull the message out of an Anthropic, OpenAI or Cloudflare error envelope. */
+function providerDetail(raw: unknown): string | null {
+	if (raw == null) return null;
+	let data: unknown = raw;
+	if (typeof raw === "string") {
+		try {
+			data = JSON.parse(raw);
+		} catch {
+			return raw.trim().slice(0, 400) || null;
+		}
+	}
+	const d = data as { error?: { message?: string } | string; errors?: Array<{ message?: string }>; message?: string };
+	const text =
+		(typeof d.error === "object" ? d.error?.message : d.error) ?? d.errors?.map((e) => e.message).filter(Boolean).join("; ") ?? d.message;
+	return text ? String(text).slice(0, 400) : JSON.stringify(data).slice(0, 400);
 }
