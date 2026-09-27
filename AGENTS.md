@@ -149,7 +149,7 @@ How it's wired:
   - Requests carry `metadata: { app: "ai-writer", session }` for per-session spend in the AI Gateway dashboard.
 - Server tools: `get_entry_spec`, `get_profile`, `fetch_url` (public http(s) only, ~40 KB), `set_field` (validates through `src/field-values.ts` and updates the synced state), `suggest_tags`, `validate_entry`. Client tools, answered by the page: `search_content` (the plugin's `search` route) and `ask_user` (the question card).
 - The DO has **no CMS access**. The page loads everything CMS-derived through the plugin's private routes (`session`, `search`, `save`, `runs`) under your admin session and sends it as the chat `body`.
-- `src/worker.ts` routes `/agents/writer-agent/<session>` through `routeWriterAgent`, before EmDash. It requires an HMAC token that the `session` route mints for that session (`AI_WRITER_SECRET`; `astro dev` falls back to a fixed dev secret).
+- `src/worker.ts` routes `/agents/writer-agent/<session>` through `routeWriterAgent`, before EmDash. It lets a request through only after EmDash confirms a logged-in editor: an internal call to the plugin's private `agent-access` route, carrying the caller's cookie and Access headers, so EmDash's own auth and the `content:edit_own` check decide. No secret to configure.
 - `src/entry-spec.ts` decides the writable fields from the live schema: prose types only, plus the `WRITABLE_FIELDS` allow-list and a `PURPOSE` hint per field. A new prose field needs adding to both. Blocks are validated against the seed's `blockTypes` (`src/blocks.ts`; figure/gallery are excluded).
 - **Models:** the composer's picker lists **every text-generation model in Cloudflare's catalog** (~100, grouped by provider, with a filter), with the tested ones (`src/models.ts`) on top as *Recommended* and **Claude Sonnet 5** as the default.
   - The catalog is parsed from the docs page (`src/catalog.ts`, developers.cloudflare.com/ai/models/index.md; there's no catalog API) and cached for a day in plugin KV.
@@ -163,7 +163,6 @@ How it's wired:
 
 Config and ops:
 - `wrangler.jsonc`: the `AI` binding, and a `WriterAgent` Durable Object binding (both also in `previews`), plus `migrations` tag `v1` (`new_sqlite_classes: ["WriterAgent"]`). Renaming or removing the class needs a new migration tag.
-- **Secret:** `wrangler secret put AI_WRITER_SECRET` for prod, and the same for previews. Without it the writer page says so and refuses to start.
 - **Dev:** Workers AI only runs remotely, behind the Access-protected workers.dev proxy, so remote bindings are opt-in.
   - `pnpm dev`: no AI.
   - `pnpm dev:ai`: real models. Wrangler's remote proxy runs on the Access-protected `thijmen-dev.thijmenstavenuiter.workers.dev`, so it needs Access credentials. An interactive Access login works until it expires: the writer then reports a redirect loop, and a restart logs in again. For a login that doesn't expire:

@@ -7,8 +7,6 @@ declare namespace Cloudflare {
 		DB: D1Database;
 		AI: Ai;
 		WriterAgent: DurableObjectNamespace;
-		/** Signs AI writer agent tokens (wrangler secret; dev falls back to a fixed one). */
-		AI_WRITER_SECRET?: string;
 		/** "1" swaps Workers AI for the scripted mock model. */
 		AI_WRITER_MOCK?: string;
 	}

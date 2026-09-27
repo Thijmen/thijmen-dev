@@ -250,7 +250,7 @@ function Composer({
 // ── Workspace ──
 
 function sessionBody(info: SessionInfo): SessionBody {
-	const { token: _t, modelLabel: _l, mock: _m, ...body } = info;
+	const { modelLabel: _l, mock: _m, ...body } = info;
 	return body;
 }
 
@@ -259,7 +259,6 @@ function Workspace({ info, session, initialBrief, onStartOver }: { info: Session
 	const agent = useAgent<WriterState>({
 		agent: "WriterAgent",
 		name: session,
-		query: { token: info.token },
 		onStateUpdate: (s) => setState(s),
 	});
 	const body = useMemo(() => sessionBody(info), [info]);

@@ -1,7 +1,6 @@
 import { env } from "cloudflare:workers";
 import { definePlugin, type RouteContext } from "emdash";
 
-import { signToken, writerSecret } from "./agent/token";
 import { entrySpec, type Target } from "./entry-spec";
 import { CATALOG_URL, type CatalogModel, parseCatalog } from "./catalog";
 import snapshot from "./catalog.snapshot.json";
@@ -37,7 +36,6 @@ export type Run = {
 
 /** What the admin page needs to start or resume a writing session. */
 export type SessionInfo = {
-	token: string;
 	model: string;
 	modelLabel: string;
 	mock: boolean;
@@ -152,14 +150,12 @@ function groupRank(group: string): number {
 	return group.startsWith("Workers AI") ? 1 : 0;
 }
 
-/** Start or resume a session: signed agent token, settings, entry spec, current values, profile, tags. */
+/** Start or resume a session: settings, entry spec, current values, profile, tags. */
 async function session(ctx: RouteContext): Promise<SessionInfo> {
 	const { session: name, collection, entryId, model } = input<{ session: string; collection: string; entryId: string; model: string }>(ctx);
 	if (!name || !SESSION_RE.test(name)) throw new Error("Invalid session id");
 	if (!collection || !COLLECTIONS.includes(collection)) throw new Error(`Unsupported collection: ${collection}`);
 
-	const secret = writerSecret(env as { AI_WRITER_SECRET?: string });
-	if (!secret) throw new Error("AI_WRITER_SECRET is not set for this environment (wrangler secret put AI_WRITER_SECRET)");
 
 	const [config, schema] = await Promise.all([settings(ctx), ctx.schema!.getCollection(collection)]);
 	if (!schema) throw new Error(`Unknown collection: ${collection}`);
@@ -169,7 +165,6 @@ async function session(ctx: RouteContext): Promise<SessionInfo> {
 	if (entryId && !entry) throw new Error("That entry no longer exists");
 
 	return {
-		token: await signToken(secret, name),
 		model: chosen,
 		modelLabel: labelFor(chosen),
 		mock: (env as { AI_WRITER_MOCK?: string }).AI_WRITER_MOCK === "1",
@@ -313,6 +308,8 @@ export function createPlugin() {
 			runs: { indexes: ["createdAt", "collection", "entryId"] },
 		},
 		routes: {
+			// The Worker asks this before connecting anyone to the WriterAgent (agent/index.ts).
+			"agent-access": { permission: edit, handler: async () => ({ ok: true }) },
 			options: { permission: edit, handler: safe(options) },
 			session: { permission: edit, handler: safe(session) },
 			search: { permission: edit, handler: safe(search) },
