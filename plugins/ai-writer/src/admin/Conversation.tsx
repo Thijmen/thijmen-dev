@@ -2,7 +2,7 @@
 import { Button } from "@cloudflare/kumo";
 import { CheckCircleIcon, GlobeIcon, ListChecksIcon, MagnifyingGlassIcon, PencilSimpleLineIcon, QuestionIcon, TagIcon, TreeStructureIcon, UserCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import type { Answer, Question as Q } from "../agent/types";
 
@@ -153,10 +153,38 @@ function describe(
 /** The agent's questions. Pick an option or type an answer; skipping leaves a [TODO]. */
 function AskCard({ part, onAnswer }: { part: ToolPart; onAnswer: (id: string, answers: Answer[]) => void }) {
 	const questions = ((part.input?.questions as Q[] | undefined) ?? []).filter((q) => q?.question);
-	const [values, setValues] = useState<Array<string | null>>(() => questions.map(() => ""));
-	const answered = part.state.startsWith("output");
+	// Keyed by index, not sized at mount: the card can first render while the
+	// questions are still streaming in, and later questions must stay answerable.
+	const [values, setValues] = useState<Record<number, string | null>>({});
+	const [sending, setSending] = useState(false);
+	const [stuck, setStuck] = useState(false);
+	// If the answer doesn't land (connection dropped), say so and allow a retry.
+	useEffect(() => {
+		if (!sending) return;
+		const t = setTimeout(() => {
+			setSending(false);
+			setStuck(true);
+		}, 10_000);
+		return () => clearTimeout(t);
+	}, [sending]);
 
-	if (answered) {
+	if (part.state === "output-error") {
+		return (
+			<div className="aw-steps">
+				<div className="aw-step error">
+					<span className="aw-step-icon">
+						<WarningCircleIcon size={17} weight="fill" />
+					</span>
+					<span>
+						<span className="aw-step-title">The writer's questions were malformed</span>
+						<span className="aw-step-detail">It gets the error back and asks again.</span>
+					</span>
+					<span />
+				</div>
+			</div>
+		);
+	}
+	if (part.state.startsWith("output")) {
 		const answers = ((part.output as { answers?: Answer[] } | undefined)?.answers ?? []) as Answer[];
 		return (
 			<div className="aw-steps">
@@ -179,7 +207,7 @@ function AskCard({ part, onAnswer }: { part: ToolPart; onAnswer: (id: string, an
 			</div>
 		);
 	}
-	if (part.state === "input-streaming") {
+	if (part.state === "input-streaming" || !questions.length) {
 		return (
 			<div className="aw-ask">
 				<div className="aw-ask-head">
@@ -189,12 +217,19 @@ function AskCard({ part, onAnswer }: { part: ToolPart; onAnswer: (id: string, an
 		);
 	}
 
-	const set = (i: number, v: string | null) => setValues((prev) => prev.map((x, j) => (j === i ? v : x)));
-	const submit = (skipAll = false) =>
+	const set = (i: number, v: string | null) => setValues((prev) => ({ ...prev, [i]: v }));
+	const submit = (skipAll = false) => {
+		if (sending) return;
+		setStuck(false);
+		setSending(true);
 		onAnswer(
 			part.toolCallId,
-			questions.map((q, i) => ({ question: q.question, answer: skipAll ? null : values[i] === null || !String(values[i]).trim() ? null : String(values[i]).trim() })),
+			questions.map((q, i) => {
+				const v = values[i];
+				return { question: q.question, answer: skipAll || v == null || !v.trim() ? null : v.trim() };
+			}),
 		);
+	};
 
 	return (
 		<form
@@ -228,11 +263,17 @@ function AskCard({ part, onAnswer }: { part: ToolPart; onAnswer: (id: string, an
 					/>
 				</div>
 			))}
+			{stuck && (
+				<div className="aw-banner warn">
+					<WarningCircleIcon size={16} weight="fill" />
+					<span className="aw-grow">The answer didn't reach the writer. Check the connection banner above, or reload the page (the session is kept) and answer again.</span>
+				</div>
+			)}
 			<div className="aw-actions">
-				<Button type="submit" variant="primary">
+				<Button type="submit" variant="primary" loading={sending}>
 					Answer
 				</Button>
-				<Button type="button" variant="ghost" onClick={() => submit(true)}>
+				<Button type="button" variant="ghost" disabled={sending} onClick={() => submit(true)}>
 					Skip all (leave TODOs)
 				</Button>
 			</div>

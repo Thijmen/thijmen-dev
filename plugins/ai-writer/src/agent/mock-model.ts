@@ -121,8 +121,14 @@ function stream(step: Step) {
 		for (const word of step.text.split(/(?<= )/)) chunks.push({ type: "text-delta", id: "t", delta: word });
 		chunks.push({ type: "text-end", id: "t" });
 	}
+	// Stream tool inputs in pieces, as Workers AI does, so the UI sees partial input first.
 	for (const [i, call] of (step.calls ?? []).entries()) {
-		chunks.push({ type: "tool-call", toolCallId: `mock-${Date.now()}-${i}`, toolName: call.toolName, input: JSON.stringify(call.input) });
+		const id = `mock-${Date.now()}-${i}`;
+		const input = JSON.stringify(call.input);
+		chunks.push({ type: "tool-input-start", id, toolName: call.toolName });
+		for (let at = 0; at < input.length; at += 24) chunks.push({ type: "tool-input-delta", id, delta: input.slice(at, at + 24) });
+		chunks.push({ type: "tool-input-end", id });
+		chunks.push({ type: "tool-call", toolCallId: id, toolName: call.toolName, input });
 	}
 	chunks.push({
 		type: "finish",
@@ -132,7 +138,7 @@ function stream(step: Step) {
 			outputTokens: { total: 180, text: 180, reasoning: undefined },
 		},
 	});
-	return simulateReadableStream({ chunks, initialDelayInMs: 400, chunkDelayInMs: 45 }) as ReadableStream<never>;
+	return simulateReadableStream({ chunks, initialDelayInMs: 400, chunkDelayInMs: 12 }) as ReadableStream<never>;
 }
 
 function textOf(message: { content: unknown } | undefined): string {

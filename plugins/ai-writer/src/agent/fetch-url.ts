@@ -40,7 +40,13 @@ export async function fetchUrl(raw: string): Promise<FetchedPage> {
 			truncated: text.length > MAX_CHARS,
 		};
 	} catch (error) {
-		return { url: url.href, error: error instanceof Error ? error.message : String(error) };
+		const message = error instanceof Error ? error.message : String(error);
+		// workerd's opaque subrequest failure: DNS/TLS/connect. Locally that's often a
+		// corporate TLS-inspecting proxy whose CA workerd doesn't trust.
+		if (/internal error; reference/i.test(message)) {
+			return { url: url.href, error: "Couldn't connect (network or TLS failure). Don't retry this URL; work from the brief or ask Thijmen instead." };
+		}
+		return { url: url.href, error: message };
 	}
 }
 
