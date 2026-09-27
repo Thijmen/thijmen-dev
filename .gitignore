@@ -19,6 +19,8 @@ npm-debug.log*
 # environment variables
 .env
 .env.local
+# Access service token for wrangler's remote AI proxy (pnpm dev:ai)
+.env.access
 
 # Wrangler local secrets
 .dev.vars

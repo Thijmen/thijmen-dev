@@ -166,7 +166,10 @@ Config and ops:
 - **Secret:** `wrangler secret put AI_WRITER_SECRET` for prod, and the same for previews. Without it the writer page says so and refuses to start.
 - **Dev:** Workers AI only runs remotely, behind the Access-protected workers.dev proxy, so remote bindings are opt-in.
   - `pnpm dev`: no AI.
-  - `pnpm dev:ai`: real model (Access login, or `CLOUDFLARE_ACCESS_CLIENT_ID`/`_SECRET`).
+  - `pnpm dev:ai`: real models. Wrangler's remote proxy runs on the Access-protected `thijmen-dev.thijmenstavenuiter.workers.dev`, so it needs Access credentials. An interactive Access login works until it expires: the writer then reports a redirect loop, and a restart logs in again. For a login that doesn't expire:
+    1. Create a service token (Zero Trust → Access → Service credentials).
+    2. Add a Service Auth policy for it on that Access application.
+    3. Put `CLOUDFLARE_ACCESS_CLIENT_ID=…` and `CLOUDFLARE_ACCESS_CLIENT_SECRET=…` in `.env.access` (gitignored). `dev:ai` loads it with `node --env-file-if-exists`.
   - `AI_WRITER_MOCK=1` in `.dev.vars`: a scripted mock model (`src/agent/mock-model.ts`). It walks the whole flow (tools, a question, every field, tags, validate) under plain `pnpm dev`, for UI work without costs.
 - The admin page ships its own CSS (`src/admin/styles.ts`, on Kumo theme variables), because the admin's Tailwind doesn't scan plugin sources.
 

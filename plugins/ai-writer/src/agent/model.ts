@@ -62,6 +62,11 @@ export function describeModelError(error: unknown, modelId: string): string {
 	}
 	if (gateway?.code === "rate-limit" || status === 429) return `Rate limited on ${modelId}. Wait a moment and retry, or switch models.`;
 	if (/run remotely/i.test(message)) return message;
+	// pnpm dev:ai reaches Workers AI through wrangler's remote proxy on the
+	// Access-protected workers.dev host; an expired Access login shows up as a redirect loop.
+	if (/too many redirects|cloudflareaccess\.com/i.test(message)) {
+		return "Local dev lost its Cloudflare Access login for the remote AI proxy. Restart `pnpm dev:ai` to log in again, or put an Access service token in .env.access so it doesn't expire (see AGENTS.md → AI writer).";
+	}
 	return `${modelId}: ${status ? `${status} ` : ""}${detail ?? message}`;
 }
 
