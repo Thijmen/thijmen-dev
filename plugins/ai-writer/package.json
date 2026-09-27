@@ -14,6 +14,8 @@
     "react": "^19.0.0"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.65",
+    "@ai-sdk/openai": "^4.0.78",
     "@ai-sdk/react": "^4.0.119",
     "@cloudflare/ai-chat": "^0.12.0",
     "@cloudflare/kumo": "2.6.0",

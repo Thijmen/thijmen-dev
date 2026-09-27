@@ -3,12 +3,10 @@ import { Button, Loader } from "@cloudflare/kumo";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 
-import { MODELS } from "../models";
+import { labelFor } from "../models";
 import type { Run } from "../runtime";
 import { api, editorUrl } from "./api";
 import { css } from "./styles";
-
-const labels = new Map<string, string>(MODELS.map((m) => [m.value, m.label]));
 
 function ago(iso: string): string {
 	const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
@@ -83,7 +81,7 @@ export function RunsPage() {
 											<span className="aw-subtle">{r.collection} (unsaved)</span>
 										)}
 									</td>
-									<td>{labels.get(r.model) ?? r.model}</td>
+									<td title={r.model}>{r.model === "mock" ? "mock" : labelFor(r.model)}</td>
 									<td className="aw-mono">{r.inputTokens != null ? `${r.inputTokens} / ${r.outputTokens}` : "–"}</td>
 									<td className="aw-mono">{(r.ms / 1000).toFixed(1)}s</td>
 									<td style={{ maxWidth: 360 }}>

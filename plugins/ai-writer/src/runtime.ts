@@ -3,7 +3,7 @@ import { definePlugin, type RouteContext } from "emdash";
 
 import { signToken, writerSecret } from "./agent/token";
 import { entrySpec, type Target } from "./entry-spec";
-import { DEFAULT_MAX_TOKENS, DEFAULT_MODEL, MODELS } from "./models";
+import { DEFAULT_MAX_TOKENS, DEFAULT_MODEL, isValidModelId, labelFor, MODELS, type ModelOption } from "./models";
 import { DEFAULT_STYLE_GUIDE } from "./prompt";
 
 export const PLUGIN_ID = "ai-writer";
@@ -53,9 +53,12 @@ export type SessionInfo = {
 
 export type SearchHit = { collection: string; title: string; excerpt: string; url: string; tags: string[] };
 
-async function settings(ctx: RouteContext): Promise<WriterSettings> {
+async function settings(ctx: RouteContext): Promise<WriterSettings & { customModel: string | null }> {
+	const custom = (await ctx.settings.get<string>("customModel"))?.trim() || null;
 	return {
-		model: (await ctx.settings.get<string>("model")) || DEFAULT_MODEL,
+		customModel: custom && isValidModelId(custom) ? custom : null,
+		// A custom catalog id overrides the list.
+		model: (custom && isValidModelId(custom) ? custom : null) ?? ((await ctx.settings.get<string>("model")) || DEFAULT_MODEL),
 		styleGuide: (await ctx.settings.get<string>("styleGuide"))?.trim() || DEFAULT_STYLE_GUIDE,
 		maxTokens: (await ctx.settings.get<number>("maxTokens")) || DEFAULT_MAX_TOKENS,
 	};
@@ -84,9 +87,21 @@ async function saveRun(ctx: RouteContext, run: Run) {
 
 // ── Routes for the writer page (all run under the admin's session) ──
 
+export type WriterOptions = { models: ModelOption[]; defaultModel: string; mock: boolean };
+
+/** What the composer offers before a session exists: the model picker and its default. */
+async function options(ctx: RouteContext): Promise<WriterOptions> {
+	const config = await settings(ctx);
+	const models = [...MODELS];
+	if (config.customModel && !models.some((m) => m.value === config.customModel)) {
+		models.unshift({ value: config.customModel, label: `${config.customModel} (custom)`, group: "Custom" });
+	}
+	return { models, defaultModel: config.model, mock: (env as { AI_WRITER_MOCK?: string }).AI_WRITER_MOCK === "1" };
+}
+
 /** Start or resume a session: signed agent token, settings, entry spec, current values, profile, tags. */
 async function session(ctx: RouteContext): Promise<SessionInfo> {
-	const { session: name, collection, entryId } = input<{ session: string; collection: string; entryId: string }>(ctx);
+	const { session: name, collection, entryId, model } = input<{ session: string; collection: string; entryId: string; model: string }>(ctx);
 	if (!name || !SESSION_RE.test(name)) throw new Error("Invalid session id");
 	if (!collection || !COLLECTIONS.includes(collection)) throw new Error(`Unsupported collection: ${collection}`);
 
@@ -95,13 +110,15 @@ async function session(ctx: RouteContext): Promise<SessionInfo> {
 
 	const [config, schema] = await Promise.all([settings(ctx), ctx.schema!.getCollection(collection)]);
 	if (!schema) throw new Error(`Unknown collection: ${collection}`);
+	if (model && !isValidModelId(model)) throw new Error(`Not a model id: ${model}`);
+	const chosen = model || config.model;
 	const entry = entryId ? await ctx.content!.get(collection, entryId) : null;
 	if (entryId && !entry) throw new Error("That entry no longer exists");
 
 	return {
 		token: await signToken(secret, name),
-		model: config.model,
-		modelLabel: MODELS.find((m) => m.value === config.model)?.label ?? config.model,
+		model: chosen,
+		modelLabel: labelFor(chosen),
 		mock: (env as { AI_WRITER_MOCK?: string }).AI_WRITER_MOCK === "1",
 		styleGuide: config.styleGuide,
 		maxTokens: config.maxTokens,
@@ -243,6 +260,7 @@ export function createPlugin() {
 			runs: { indexes: ["createdAt", "collection", "entryId"] },
 		},
 		routes: {
+			options: { permission: edit, handler: safe(options) },
 			session: { permission: edit, handler: safe(session) },
 			search: { permission: edit, handler: safe(search) },
 			save: { permission: edit, handler: safe(save) },
@@ -258,10 +276,15 @@ export function createPlugin() {
 			settingsSchema: {
 				model: {
 					type: "select",
-					label: "Model",
-					description: "Workers AI text model for the writer agent. It must support tool calling.",
-					options: MODELS.map((m) => ({ value: m.value, label: m.label })),
+					label: "Default model",
+					description: "Preselected in the writer; you can switch per run. Third-party models are billed through AI Gateway unified billing (Cloudflare credits).",
+					options: MODELS.map((m) => ({ value: m.value, label: `${m.label} · ${m.group}` })),
 					default: DEFAULT_MODEL,
+				},
+				customModel: {
+					type: "string",
+					label: "Custom model id (optional)",
+					description: "Any model from Cloudflare's catalog, e.g. openai/gpt-5.6-sol or @cf/qwen/qwen3.8-27b. Overrides the default when set. It must support tool calling.",
 				},
 				styleGuide: {
 					type: "string",

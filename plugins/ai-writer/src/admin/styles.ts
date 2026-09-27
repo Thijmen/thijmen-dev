@@ -56,6 +56,9 @@ export const css = `
 .aw-hints { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 18px; font-size: 12px; color: var(--aw-subtle); }
 .aw-hints b { font-weight: 600; color: var(--aw-text); }
 .aw-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aw-model { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; margin-right: 4px; }
+.aw-select { font: inherit; font-size: 13px; padding: 7px 30px 7px 10px; border: 1px solid var(--aw-line); border-radius: 8px; background: var(--aw-bg); color: inherit; max-width: 260px; }
+.aw-select:focus { outline: 2px solid color-mix(in oklab, var(--aw-brand) 45%, transparent); outline-offset: 1px; border-color: var(--aw-brand); }
 .aw-kbd { font: 11px var(--aw-mono); padding: 2px 5px; border: 1px solid var(--aw-line); border-bottom-width: 2px; border-radius: 4px; color: var(--aw-subtle); }
 
 /* ── Workspace ── */

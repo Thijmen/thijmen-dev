@@ -141,13 +141,21 @@ Styling a child component through its `class` prop needs `:global()` in the pare
 - **AI runs**: one row per writer turn (model, tokens, time, brief or error).
 
 How it's wired:
-- **`WriterAgent`** (`src/agent/writer-agent.ts`, `AIChatAgent` from `@cloudflare/ai-chat`) runs `streamText` on Workers AI (`workers-ai-provider`) with tools.
-  - Server tools: `get_entry_spec`, `get_profile`, `fetch_url` (public http(s) only, ~40 KB), `set_field` (validates through `src/field-values.ts` and updates the synced state), `suggest_tags`, `validate_entry`.
-  - Client tools, answered by the page: `search_content` (the plugin's `search` route) and `ask_user` (the question card).
-  - The DO has **no CMS access**. The page loads everything CMS-derived through the plugin's private routes (`session`, `search`, `save`, `runs`) under your admin session and sends it as the chat `body`.
+- **`WriterAgent`** (`src/agent/writer-agent.ts`, `AIChatAgent` from `@cloudflare/ai-chat`) runs `streamText` with tools on **any model Cloudflare serves**, through the one `env.AI` binding (`src/agent/model.ts`, `workers-ai-provider`).
+  - `@cf/…` ids run on Workers AI.
+  - `provider/model` catalog ids (`anthropic/…`, `openai/…`, `google/…`, `xai/…`, …) go through AI Gateway's **unified-billing** run path on the account's `default` gateway, so everything lands on the Cloudflare invoice.
+  - Wire formats: `anthropic` native; the rest as OpenAI chat-completions.
+  - Claude requests use automatic prompt caching (`providerOptions.anthropic.cacheControl`). Gateway `resume` is off (still rolling out upstream).
+  - Requests carry `metadata: { app: "ai-writer", session }` for per-session spend in the AI Gateway dashboard.
+- Server tools: `get_entry_spec`, `get_profile`, `fetch_url` (public http(s) only, ~40 KB), `set_field` (validates through `src/field-values.ts` and updates the synced state), `suggest_tags`, `validate_entry`. Client tools, answered by the page: `search_content` (the plugin's `search` route) and `ask_user` (the question card).
+- The DO has **no CMS access**. The page loads everything CMS-derived through the plugin's private routes (`session`, `search`, `save`, `runs`) under your admin session and sends it as the chat `body`.
 - `src/worker.ts` routes `/agents/writer-agent/<session>` through `routeWriterAgent`, before EmDash. It requires an HMAC token that the `session` route mints for that session (`AI_WRITER_SECRET`; `astro dev` falls back to a fixed dev secret).
 - `src/entry-spec.ts` decides the writable fields from the live schema: prose types only, plus the `WRITABLE_FIELDS` allow-list and a `PURPOSE` hint per field. A new prose field needs adding to both. Blocks are validated against the seed's `blockTypes` (`src/blocks.ts`; figure/gallery are excluded).
-- Settings (Plugins → AI writer): model (it must support tool calling; `src/models.ts`), style guide (the system prompt), max tokens per step.
+- **Models** (`src/models.ts`): a curated list grouped by provider, default **Claude Sonnet 5** (`anthropic/claude-sonnet-5`), plus Claude Opus 5 / Haiku 4.5, GPT-5.5 / 5.4 mini, Gemini 3.1 Pro / 3.5 Flash, Grok 4.5, and the Workers AI models.
+  - The composer has a per-run model picker.
+  - Settings → **Custom model id** takes any catalog id (developers.cloudflare.com/ai/models) and overrides the default. It must support tool calling.
+  - Other settings: style guide (the system prompt), max tokens per step (default 16000).
+- **Unified billing setup:** buy credits under AI Gateway → Credits (a 5% fee on purchase; provider rates pass through) and optionally set a spend limit on the `default` gateway. Out of credits, unknown model ids and gateway auth errors show up in the writer as readable errors with Retry.
 
 Config and ops:
 - `wrangler.jsonc`: the `AI` binding, and a `WriterAgent` Durable Object binding (both also in `previews`), plus `migrations` tag `v1` (`new_sqlite_classes: ["WriterAgent"]`). Renaming or removing the class needs a new migration tag.

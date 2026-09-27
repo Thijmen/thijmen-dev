@@ -1,6 +1,6 @@
 import { apiFetch, parseApiResponse } from "emdash/plugin-utils";
 
-import type { Run, SearchHit, SessionInfo } from "../runtime";
+import type { Run, SearchHit, SessionInfo, WriterOptions } from "../runtime";
 
 /** POST to one of this plugin's routes. Routes answer `{ error }` instead of throwing. */
 async function call<T>(route: string, body: unknown, init?: { keepalive?: boolean }): Promise<T> {
@@ -16,7 +16,9 @@ async function call<T>(route: string, body: unknown, init?: { keepalive?: boolea
 }
 
 export const api = {
-	session: (session: string, collection: string, entryId: string | null) => call<SessionInfo>("session", { session, collection, entryId }),
+	options: () => call<WriterOptions>("options", {}),
+	session: (session: string, collection: string, entryId: string | null, model: string | null) =>
+		call<SessionInfo>("session", { session, collection, entryId, ...(model ? { model } : {}) }),
 	search: (input: unknown) => call<{ results: SearchHit[] }>("search", input),
 	save: (collection: string, entryId: string | null, fields: Record<string, unknown>) =>
 		call<{ id: string; collection: string; created: boolean }>("save", { collection, entryId, fields }),

@@ -1,11 +1,11 @@
 import { AIChatAgent, type OnChatMessageOptions } from "@cloudflare/ai-chat";
 import { convertToModelMessages, createUIMessageStreamResponse, isStepCount, streamText, tool, toUIMessageStream } from "ai";
-import { createWorkersAI } from "workers-ai-provider";
 import { z } from "zod";
 
 import { hasValue, matchTags, toFieldValue } from "../field-values";
 import { fetchUrl } from "./fetch-url";
 import { mockWriterModel } from "./mock-model";
+import { describeModelError, providerOptionsFor, writerModel } from "./model";
 import { agentSystemPrompt, entrySpecForModel } from "./prompt";
 import { type FieldStatus, INITIAL_STATE, type SessionBody, type TurnMetadata, type WriterState } from "./types";
 
@@ -14,7 +14,8 @@ type AgentEnv = Cloudflare.Env & { AI_WRITER_MOCK?: string };
 /**
  * The AI writer's engine: one Durable Object per writing session (the
  * instance name is the session id in the admin page's URL). Runs a
- * tool-calling loop on Workers AI and streams it to the page. It holds no
+ * tool-calling loop on any model Cloudflare serves (Workers AI, or a
+ * third-party model via AI Gateway unified billing) and streams it to the page. It holds no
  * CMS access: CMS reads arrive in the request body or through client-side
  * tools the browser answers under the admin session, and saving is a
  * button on the page.
@@ -31,7 +32,7 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 		this.syncSession(body);
 
 		const mock = this.env.AI_WRITER_MOCK === "1";
-		const model = mock ? mockWriterModel(body) : createWorkersAI({ binding: this.env.AI })(body.model as never);
+		const model = mock ? mockWriterModel(body) : writerModel(this.env.AI, body.model, this.name);
 		const started = Date.now();
 
 		const result = streamText({
@@ -42,6 +43,7 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 			stopWhen: isStepCount(24),
 			maxOutputTokens: body.maxTokens,
 			abortSignal: options?.abortSignal,
+			...(mock ? {} : { providerOptions: providerOptionsFor(body.model) }),
 			// ai-chat replaces finish metadata with the finish reason, so turn stats travel in state.
 			onFinish: ({ usage }) => {
 				const turn: TurnMetadata = {
@@ -57,8 +59,8 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 		return createUIMessageStreamResponse({
 			stream: toUIMessageStream({
 				stream: result.stream,
-				// Admin-only surface: show the real reason (e.g. no Workers AI in local dev).
-				onError: (error) => (error instanceof Error ? error.message : String(error)),
+				// Admin-only surface: show the real reason (no credits, unknown model, no Workers AI in dev).
+				onError: (error) => describeModelError(error, body.model),
 			}),
 		});
 	}
@@ -114,10 +116,16 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 
 			// Client tool: the page shows the questions and returns Thijmen's answers.
 			ask_user: tool({
-				description: "Ask Thijmen up to 3 short questions about facts you can't find. Offer options when you can guess. An answer of null means he skipped it: write a [TODO: …] there.",
+				description:
+					'Ask Thijmen up to 3 short questions about facts you can\'t find. Each item in `questions` is one object holding the question and, optionally, its own answer options: {"question": "Which provider?", "options": ["Stripe", "Adyen"]}. An answer of null means he skipped it: write a [TODO: …] there.',
 				inputSchema: z.object({
 					questions: z
-						.array(z.object({ question: z.string(), options: z.array(z.string()).max(5).optional() }))
+						.array(
+							z.object({
+								question: z.string().describe("The question itself, one sentence"),
+								options: z.array(z.string()).max(5).optional().describe("Likely answers for this same question"),
+							}),
+						)
 						.min(1)
 						.max(3),
 				}),

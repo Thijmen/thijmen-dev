@@ -7,7 +7,8 @@ import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type Answer, INITIAL_STATE, type SessionBody, type WriterState } from "../agent/types";
-import type { SessionInfo } from "../runtime";
+import type { ModelOption } from "../models";
+import type { SessionInfo, WriterOptions } from "../runtime";
 import { api, editorUrl } from "./api";
 import { Conversation } from "./Conversation";
 import { type LiveField, Preview } from "./Preview";
@@ -19,11 +20,11 @@ const TYPES = [
 	{ value: "pages", label: "Page", hint: "A /now or /colophon style page", icon: FileTextIcon },
 ] as const;
 
-type Params = { session: string | null; collection: string; entryId: string | null };
+type Params = { session: string | null; collection: string; entryId: string | null; model: string | null };
 
 function readParams(): Params {
 	const q = new URLSearchParams(window.location.search);
-	return { session: q.get("session"), collection: q.get("collection") ?? "posts", entryId: q.get("id") };
+	return { session: q.get("session"), collection: q.get("collection") ?? "posts", entryId: q.get("id"), model: q.get("model") };
 }
 
 /** Opened from the editor panel (`start=1`): begin at once, with its brief if any. */
@@ -40,6 +41,7 @@ function writeParams(p: Params) {
 	if (p.session) q.set("session", p.session);
 	q.set("collection", p.collection);
 	if (p.entryId) q.set("id", p.entryId);
+	if (p.model) q.set("model", p.model);
 	window.history.replaceState(window.history.state, "", `${window.location.pathname}?${q}`);
 }
 
@@ -62,7 +64,7 @@ export function WriterPage() {
 		try {
 			const session = p.session ?? `w-${crypto.randomUUID()}`;
 			const next = { ...p, session };
-			const loaded = await api.session(session, p.collection, p.entryId);
+			const loaded = await api.session(session, p.collection, p.entryId, p.model);
 			writeParams(next);
 			setParams(next);
 			setBrief(firstBrief);
@@ -83,7 +85,7 @@ export function WriterPage() {
 	}, []);
 
 	const startOver = () => {
-		const next = { session: null, collection: params.collection, entryId: null };
+		const next = { session: null, collection: params.collection, entryId: null, model: params.model };
 		writeParams(next);
 		setParams(next);
 		setInfo(null);
@@ -100,7 +102,7 @@ export function WriterPage() {
 					<Loader /> {params.session ? "Reconnecting to the writing session…" : "Starting the writer…"}
 				</div>
 			) : (
-				<Composer params={params} setParams={setParams} starting={starting} error={error} onStart={(b) => open({ ...params, session: null }, b)} />
+				<Composer params={params} setParams={setParams} starting={starting} error={error} onStart={(b, m) => open({ ...params, session: null, model: m }, b)} />
 			)}
 		</div>
 	);
@@ -119,15 +121,25 @@ function Composer({
 	setParams: (p: Params) => void;
 	starting: boolean;
 	error: string | null;
-	onStart: (brief: string) => void;
+	onStart: (brief: string, model: string | null) => void;
 }) {
 	const [text, setText] = useState("");
+	const [options, setOptions] = useState<WriterOptions | null>(null);
+	useEffect(() => {
+		api.options().then(setOptions, () => setOptions(null));
+	}, []);
+	const model = params.model ?? options?.defaultModel ?? "";
+	const groups = useMemo(() => {
+		const byGroup = new Map<string, ModelOption[]>();
+		for (const m of options?.models ?? []) byGroup.set(m.group, [...(byGroup.get(m.group) ?? []), m]);
+		return [...byGroup.entries()];
+	}, [options]);
 	const revising = params.entryId !== null;
 	const type = TYPES.find((t) => t.value === params.collection) ?? TYPES[0];
 	const canStart = revising || text.trim().length > 0;
 	const submit = () => {
 		if (!canStart || starting) return;
-		onStart(text.trim() || DEFAULT_REVISE_BRIEF);
+		onStart(text.trim() || DEFAULT_REVISE_BRIEF, model || null);
 	};
 
 	return (
@@ -186,6 +198,27 @@ function Composer({
 				</div>
 			)}
 			<div className="aw-actions">
+				<label className="aw-model">
+					<span className="aw-subtle">Model</span>
+					<select
+						className="aw-select"
+						value={model}
+						disabled={!options}
+						onChange={(e) => setParams({ ...params, model: e.target.value })}
+						title={model}
+					>
+						{!options && <option value="">Loading models…</option>}
+						{groups.map(([group, models]) => (
+							<optgroup key={group} label={group === "Workers AI" ? "Workers AI" : `${group} · unified billing`}>
+								{models.map((m) => (
+									<option key={m.value} value={m.value}>
+										{m.label}
+									</option>
+								))}
+							</optgroup>
+						))}
+					</select>
+				</label>
 				<Button variant="primary" onClick={submit} disabled={!canStart} loading={starting} icon={MagicWandIcon}>
 					{revising ? "Start revising" : "Write it"}
 				</Button>
