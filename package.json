@@ -24,7 +24,7 @@
     "@emdash-cms/cloudflare": "^0.42.0",
     "@thijmen/plugin-ai-writer": "workspace:*",
     "astro": "^7.3.2",
-    "emdash": "^0.42.0",
+    "emdash": "^1.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "shiki": "^4.4.3"
