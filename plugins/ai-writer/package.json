@@ -11,7 +11,7 @@
   },
   "peerDependencies": {
     "emdash": "^0.41.0 || ^0.42.0",
-    "react": "^19.0.0"
+    "react": "19.3.0"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.65",
