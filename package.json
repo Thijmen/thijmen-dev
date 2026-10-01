@@ -21,7 +21,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.1",
     "@astrojs/react": "^6.0.5",
-    "@emdash-cms/cloudflare": "^0.42.0",
+    "@emdash-cms/cloudflare": "^1.0.0",
     "@thijmen/plugin-ai-writer": "workspace:*",
     "astro": "^7.3.2",
     "emdash": "^0.42.0",
