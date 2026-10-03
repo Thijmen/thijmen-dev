@@ -53,6 +53,10 @@ export default defineConfig({
 			weights: [400, 500],
 			styles: ["normal", "italic"],
 			fallbacks: ["serif"],
+			// Serve the optical-size axis: without it Google sends the static
+			// 16pt text cut, which looks heavy at display sizes. The browser
+			// picks the cut per font-size (font-optical-sizing: auto).
+			options: { experimental: { variableAxis: { opsz: [["6", "72"]] } } },
 		},
 		{
 			provider: fontProviders.google(),

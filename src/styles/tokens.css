@@ -49,10 +49,12 @@
 		--wide-width: 1200px;
 		--gutter: clamp(20px, 5vw, 64px);
 		--radius-pill: 999px;
+		/* xl: wide feature cards, big windows, floating panels. lg: every card
+		   and window. md: tiles nested in a card. sm: thumbs and small marks. */
 		--radius-xl: 22px;
 		--radius-lg: 18px;
-		--radius-md: 16px;
-		--radius-sm: 10px;
+		--radius-md: 12px;
+		--radius-sm: 8px;
 
 		/* Transitions */
 		--transition-fast: 150ms ease;
