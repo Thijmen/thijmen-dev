@@ -65,6 +65,9 @@ const pageCtx = createPublicPageContext({
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>{fullTitle}</title>
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<meta name="theme-color" content="#faf9fc" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#100e17" media="(prefers-color-scheme: dark)" />
 		<script is:inline>
 			// Apply the stored theme before paint; fall back to the OS preference.
 			try {
@@ -134,6 +137,11 @@ const pageCtx = createPublicPageContext({
 					max-width: 100%;
 					height: auto;
 					display: block;
+				}
+
+				:focus-visible {
+					outline: 2px solid var(--color-brand);
+					outline-offset: 2px;
 				}
 
 				::selection {

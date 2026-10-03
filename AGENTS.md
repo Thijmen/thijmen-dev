@@ -110,7 +110,7 @@ Gotchas found while building this:
 ## Visual character
 
 Three faces, loaded through the Fonts API in `astro.config.mjs`:
-- **Newsreader** (`--font-heading`): serif for display titles, card titles, post body and italic accents.
+- **Newsreader** (`--font-heading`): serif for display titles, card titles, post body and italic accents. It loads as a variable font with its `opsz` axis (6–72), so big titles get the fine display cut and body text the sturdier text cut. Without the axis Google serves the static text cut, which looks heavy at display sizes.
 - **Geist** (`--font-body`): UI and body sans.
 - **JetBrains Mono** (`--font-mono`): kickers, meta lines, chips, terminal windows and code.
 
@@ -120,7 +120,7 @@ Theme: `data-theme="light" | "dark"` on `<html>`, stored in `localStorage["ts-th
 
 ## Customisation
 
-Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.card`, `.accent-card`, `.prose`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
+Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Corners use the token scale only: `xl` 22 (wide features, big windows, floating panels), `lg` 18 (cards, windows), `md` 12 (tiles inside a card), `sm` 8 (thumbs), `pill`. Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.card`, `.accent-card`, `.prose`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
 
 Components (`src/components/`): `SiteHeader` (nav pill, ☰ menu below 760px, ⌘K palette, keyboard shortcuts; one vanilla client script), `SiteFooter`, `Window` (terminal chrome), `SectionLabel`, `Timeline` (compact/full), `PostCard` (feature/row/grid), `ProjectCard` (full/compact, optional `href`), `Soundtrack` (the Spotify player; `/uses` and the `now_playing` block). Portable Text overrides are in `pt/`: `Block` (h2 ids for the TOC, NOTE callout), `Note`, `CodeBlock` (window chrome, line numbers, copy button), and `components.ts` (the map shared by posts and the `prose` block). Block renderers are in `blocks/`, all framed by `BlockSection` (optional SectionLabel; `narrow` = the 700px reading measure).
 

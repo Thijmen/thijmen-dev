@@ -148,7 +148,7 @@ const desk = deskRes.entries.map((e) => e.data);
 		place-items: center;
 		width: 40px;
 		height: 40px;
-		border-radius: 11px;
+		border-radius: var(--radius-md);
 		background: var(--color-brand-soft);
 		color: var(--color-brand);
 		font-family: var(--font-mono);
@@ -196,7 +196,7 @@ const desk = deskRes.entries.map((e) => e.data);
 		position: relative;
 		aspect-ratio: 4 / 3;
 		overflow: hidden;
-		border-radius: 20px;
+		border-radius: var(--radius-lg);
 		border: 1px solid var(--color-border);
 		background: var(--color-surface);
 	}
@@ -205,7 +205,7 @@ const desk = deskRes.entries.map((e) => e.data);
 		display: flex;
 		flex-direction: column;
 		padding: 6px 24px;
-		border-radius: 20px;
+		border-radius: var(--radius-lg);
 	}
 
 	.desk-item {
