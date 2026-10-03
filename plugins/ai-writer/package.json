@@ -10,7 +10,7 @@
     "./admin": "./src/admin/index.tsx"
   },
   "peerDependencies": {
-    "emdash": "^0.41.0 || ^0.42.0 || ^1.0.0",
+    "emdash": "^1.1.0",
     "react": "^19.0.0"
   },
   "dependencies": {
