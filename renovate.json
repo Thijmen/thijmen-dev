@@ -81,9 +81,13 @@
       "automerge": true
     },
     {
-      "description": "Majors always get their own PR and a human",
+      "description": "Majors always get their own PR and a human (EmDash stays grouped: its packages pin each other)",
       "matchUpdateTypes": [
         "major"
+      ],
+      "matchPackageNames": [
+        "!emdash",
+        "!@emdash-cms/**"
       ],
       "groupName": null,
       "automerge": false
