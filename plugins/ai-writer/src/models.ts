@@ -42,10 +42,6 @@ export function isCatalogSlug(id: string): boolean {
 	return !id.startsWith("@cf/") && id.includes("/");
 }
 
-export function isAnthropic(id: string): boolean {
-	return id.startsWith("anthropic/");
-}
-
 /** The curated label, or the raw id for a custom model. */
 export function labelFor(id: string): string {
 	return MODELS.find((m) => m.value === id)?.label ?? id;

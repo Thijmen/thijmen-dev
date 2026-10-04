@@ -3,9 +3,10 @@ import { convertToModelMessages, createUIMessageStreamResponse, isStepCount, str
 import { z } from "zod";
 
 import { hasValue, matchTags, toFieldValue } from "../field-values";
+import { addUsage, costOf, NO_USAGE, usageOf } from "../pricing";
 import { fetchUrl } from "./fetch-url";
 import { mockWriterModel } from "./mock-model";
-import { describeModelError, systemFor, writerModel } from "./model";
+import { describeModelError, writerModel } from "./model";
 import { agentSystemPrompt, entrySpecForModel } from "./prompt";
 import { type FieldStatus, INITIAL_STATE, type SessionBody, type TurnMetadata, type WriterState } from "./types";
 
@@ -34,24 +35,41 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 		const mock = this.env.AI_WRITER_MOCK === "1";
 		const model = mock ? mockWriterModel(body) : writerModel(this.env.AI, body.model, this.name);
 		const started = Date.now();
+		const price = mock ? null : body.price;
+		const turn = { usage: NO_USAGE, cost: 0 };
 
 		const result = streamText({
 			model,
-			system: mock ? agentSystemPrompt(body) : systemFor(body.model, agentSystemPrompt(body)),
+			system: agentSystemPrompt(body),
 			messages: await convertToModelMessages(this.messages),
 			tools: this.tools(body),
 			stopWhen: isStepCount(24),
 			maxOutputTokens: body.maxTokens,
 			abortSignal: options?.abortSignal,
+			// Every step is billed, also in a turn that fails later: count per step.
+			onStepFinish: ({ usage }) => {
+				const step = usageOf(usage);
+				const cost = price ? costOf(step, price) : null;
+				turn.usage = addUsage(turn.usage, step);
+				if (cost !== null) turn.cost += cost;
+				// Sessions from before cost tracking start at 0; an unknown price makes the total unknown.
+				const total = this.state.cost === undefined ? 0 : this.state.cost;
+				this.setState({
+					...this.state,
+					usage: addUsage(this.state.usage ?? NO_USAGE, step),
+					cost: cost === null || total === null ? null : total + cost,
+				});
+			},
 			// ai-chat replaces finish metadata with the finish reason, so turn stats travel in state.
-			onFinish: ({ usage }) => {
-				const turn: TurnMetadata = {
+			onFinish: () => {
+				const t: TurnMetadata = {
 					model: mock ? "mock" : body.model,
 					ms: Date.now() - started,
-					inputTokens: usage.inputTokens,
-					outputTokens: usage.outputTokens,
+					inputTokens: turn.usage.input + turn.usage.cacheRead + turn.usage.cacheWrite,
+					outputTokens: turn.usage.output,
+					...(price ? { cost: turn.cost } : {}),
 				};
-				this.setState({ ...this.state, lastTurn: { ...turn, at: new Date().toISOString() } });
+				this.setState({ ...this.state, lastTurn: { ...t, at: new Date().toISOString() } });
 			},
 		});
 
@@ -78,7 +96,18 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 			if (hasValue(value)) fields[t.field] = value;
 			status[t.field] = hasValue(value) ? (JSON.stringify(value).includes("[TODO:") ? "todo" : "done") : "pending";
 		}
-		this.setState({ ...INITIAL_STATE, collection: body.collection, entryId: body.entryId, targets, fields, status, todos: countTodos(fields) });
+		this.setState({
+			...INITIAL_STATE,
+			// What the session spent so far stays spent.
+			usage: this.state.usage ?? INITIAL_STATE.usage,
+			cost: this.state.cost === undefined ? INITIAL_STATE.cost : this.state.cost,
+			collection: body.collection,
+			entryId: body.entryId,
+			targets,
+			fields,
+			status,
+			todos: countTodos(fields),
+		});
 	}
 
 	private tools(body: SessionBody) {
