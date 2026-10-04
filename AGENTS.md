@@ -146,7 +146,7 @@ How it's wired:
   - `@cf/…` ids run on Workers AI.
   - `provider/model` catalog ids (`anthropic/…`, `openai/…`, `google/…`, `xai/…`, …) go through AI Gateway's **unified-billing** run path on the account's `default` gateway, so everything lands on the Cloudflare invoice.
   - Wire formats: `anthropic` native; the rest as OpenAI chat-completions.
-  - Claude requests use automatic prompt caching (`providerOptions.anthropic.cacheControl`). Gateway `resume` is off (still rolling out upstream).
+  - Claude requests go through `anthropicRun` (`src/agent/model.ts`), which fits the body to the unified-billing run schema: `system` as a plain string (it rejects the block array `@ai-sdk/anthropic` sends) and the prompt-cache breakpoint on the last user message. Gateway `resume` is off (still rolling out upstream).
   - Requests carry `metadata: { app: "ai-writer", session }` for per-session spend in the AI Gateway dashboard.
 - Server tools: `get_entry_spec`, `get_profile`, `fetch_url` (public http(s) only, ~40 KB), `set_field` (validates through `src/field-values.ts` and updates the synced state), `suggest_tags`, `validate_entry`. Client tools, answered by the page: `search_content` (the plugin's `search` route) and `ask_user` (the question card).
 - The DO has **no CMS access**. The page loads everything CMS-derived through the plugin's private routes (`session`, `search`, `save`, `runs`) under your admin session and sends it as the chat `body`.

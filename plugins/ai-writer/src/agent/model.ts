@@ -1,9 +1,9 @@
-import { APICallError, type SystemModelMessage } from "ai";
-import { createWorkersAI, WorkersAIGatewayError } from "workers-ai-provider";
-import { anthropic } from "workers-ai-provider/anthropic";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { APICallError } from "ai";
+import { createWorkersAI, type ProviderPlugin, WorkersAIGatewayError } from "workers-ai-provider";
 import { openai } from "workers-ai-provider/openai";
 
-import { isAnthropic, isCatalogSlug } from "../models";
+import { isCatalogSlug } from "../models";
 
 /**
  * The language model for one writer turn, through the one `env.AI` binding.
@@ -18,7 +18,7 @@ export function writerModel(ai: Ai, modelId: string, session: string) {
 	const metadata = { app: "ai-writer", session };
 	if (!isCatalogSlug(modelId)) return (createWorkersAI({ binding: ai }) as unknown as Build)(modelId);
 	if (DELEGATE_PROVIDERS.has(modelId.split("/")[0])) {
-		const build = createWorkersAI({ binding: ai, providers: [openai, anthropic] }) as unknown as Build;
+		const build = createWorkersAI({ binding: ai, providers: [openai, anthropicRun] }) as unknown as Build;
 		// Gateway resume is still rolling out upstream; ai-chat already resumes the stream to the page.
 		return build(modelId, { resume: false, metadata });
 	}
@@ -31,15 +31,39 @@ export function writerModel(ai: Ai, modelId: string, session: string) {
 const DELEGATE_PROVIDERS = new Set(["openai", "anthropic", "google", "xai", "groq", "alibaba", "minimax", "deepseek"]);
 
 /**
- * The system prompt, with a prompt-cache breakpoint for Anthropic so each
- * step of the tool loop reuses the cached system prompt and tools instead of
- * paying for them again. A block-level breakpoint, not the newer top-level
- * automatic `cache_control`, which is the prime suspect for the 400s from AI
- * Gateway's unified-billing path. OpenAI and Gemini cache on their own.
+ * workers-ai-provider's `anthropic` plugin, with the request body reshaped to
+ * fit the unified-billing run schema. That schema takes `system` as a plain
+ * string and rejects the block array `@ai-sdk/anthropic` always sends ("Invalid
+ * value at system: expected string, received array"), so a system prompt can't
+ * carry a cache breakpoint. The breakpoint goes on the last message instead
+ * (message blocks do accept `cache_control`): each step of the tool loop then
+ * reads tools, system prompt and history so far from the cache.
  */
-export function systemFor(modelId: string, text: string): string | SystemModelMessage {
-	if (!isAnthropic(modelId)) return text;
-	return { role: "system", content: text, providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } };
+const anthropicRun: ProviderPlugin = {
+	wireFormat: "anthropic",
+	create: ({ modelId, fetch, baseURL }) =>
+		createAnthropic({ apiKey: "unused", fetch: fitRunSchema(fetch), ...(baseURL ? { baseURL } : {}) })(modelId),
+};
+
+type AnthropicBlock = { type: string; text?: string; cache_control?: unknown };
+type AnthropicBody = { system?: string | AnthropicBlock[]; messages?: Array<{ role: string; content: string | AnthropicBlock[] }> };
+
+function fitRunSchema(fetch: typeof globalThis.fetch): typeof globalThis.fetch {
+	return (input, init) => {
+		if (typeof init?.body !== "string") return fetch(input, init);
+		const body = JSON.parse(init.body) as AnthropicBody;
+		if (Array.isArray(body.system)) {
+			body.system = body.system.map((block) => block.text ?? "").join("\n\n");
+		}
+		const last = body.messages?.at(-1);
+		if (last?.role === "user") {
+			const blocks = typeof last.content === "string" ? [{ type: "text", text: last.content }] : last.content;
+			const tail = blocks.at(-1);
+			if (tail && !tail.cache_control) tail.cache_control = { type: "ephemeral" };
+			last.content = blocks;
+		}
+		return fetch(input, { ...init, body: JSON.stringify(body) });
+	};
 }
 
 /** A readable reason for a failed model call, shown in the writer with a Retry. */

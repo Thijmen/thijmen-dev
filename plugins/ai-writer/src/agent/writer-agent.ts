@@ -5,7 +5,7 @@ import { z } from "zod";
 import { hasValue, matchTags, toFieldValue } from "../field-values";
 import { fetchUrl } from "./fetch-url";
 import { mockWriterModel } from "./mock-model";
-import { describeModelError, systemFor, writerModel } from "./model";
+import { describeModelError, writerModel } from "./model";
 import { agentSystemPrompt, entrySpecForModel } from "./prompt";
 import { type FieldStatus, INITIAL_STATE, type SessionBody, type TurnMetadata, type WriterState } from "./types";
 
@@ -37,7 +37,7 @@ export class WriterAgent extends AIChatAgent<AgentEnv, WriterState> {
 
 		const result = streamText({
 			model,
-			system: mock ? agentSystemPrompt(body) : systemFor(body.model, agentSystemPrompt(body)),
+			system: agentSystemPrompt(body),
 			messages: await convertToModelMessages(this.messages),
 			tools: this.tools(body),
 			stopWhen: isStepCount(24),
