@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type Answer, INITIAL_STATE, type SessionBody, type WriterState } from "../agent/types";
 import type { ModelOption } from "../models";
+import { formatUsd, NO_USAGE, type Price } from "../pricing";
 import type { SessionInfo, WriterOptions } from "../runtime";
 import { api, editorUrl } from "./api";
 import { Conversation } from "./Conversation";
@@ -338,7 +339,7 @@ function Workspace({ info, session, initialBrief, onStartOver }: { info: Session
 
 	// Log each finished turn (brief → idle) to the runs page, tokens summed over continuations.
 	// A turn ends once the agent stays idle for 2s, on a follow-up, or when the page goes away.
-	const run = useRef<{ start: number; input: number; output: number; seen: string | null; idleAt: number | null } | null>(null);
+	const run = useRef<{ start: number; input: number; output: number; cost: number | null; seen: string | null; idleAt: number | null } | null>(null);
 	const latest = useRef({ messages, state, saved, error });
 	latest.current = { messages, state, saved, error };
 	const flushRun = useCallback(() => {
@@ -357,13 +358,14 @@ function Workspace({ info, session, initialBrief, onStartOver }: { info: Session
 			ms: r.idleAt - r.start,
 			inputTokens: r.input,
 			outputTokens: r.output,
+			...(r.cost !== null ? { cost: r.cost } : {}),
 			written: Object.values(st.status).filter((x) => x === "done" || x === "todo").length,
 			todos: st.todos,
 		});
 	}, [info]);
 	useEffect(() => {
-		if (isStreaming && !run.current) run.current = { start: Date.now(), input: 0, output: 0, seen: null, idleAt: null };
-	}, [isStreaming]);
+		if (isStreaming && !run.current) run.current = { start: Date.now(), input: 0, output: 0, cost: info.price && !info.mock ? 0 : null, seen: null, idleAt: null };
+	}, [isStreaming, info.price, info.mock]);
 	useEffect(() => {
 		const r = run.current;
 		const t = state.lastTurn;
@@ -371,6 +373,7 @@ function Workspace({ info, session, initialBrief, onStartOver }: { info: Session
 			r.seen = t.at;
 			r.input += t.inputTokens ?? 0;
 			r.output += t.outputTokens ?? 0;
+			if (r.cost !== null) r.cost += t.cost ?? 0;
 		}
 	}, [state.lastTurn]);
 	useEffect(() => {
@@ -427,6 +430,7 @@ function Workspace({ info, session, initialBrief, onStartOver }: { info: Session
 					{info.mock ? "mock model" : info.modelLabel}
 					{isStreaming ? " · working" : pending ? " · waiting for you" : ""}
 				</span>
+				{!info.mock && <SessionCost state={state} price={info.price} />}
 				<Button variant="ghost" size="sm" onClick={onStartOver}>
 					Start over
 				</Button>
@@ -516,7 +520,9 @@ function Workspace({ info, session, initialBrief, onStartOver }: { info: Session
 					</div>
 					<div className="aw-foot">
 						<span className="aw-stats">
-							{state.lastTurn ? `${((state.lastTurn.ms ?? 0) / 1000).toFixed(1)}s · ${state.lastTurn.inputTokens ?? "?"}→${state.lastTurn.outputTokens ?? "?"} tokens` : " "}
+							{state.lastTurn
+								? `${((state.lastTurn.ms ?? 0) / 1000).toFixed(1)}s · ${state.lastTurn.inputTokens ?? "?"}→${state.lastTurn.outputTokens ?? "?"} tokens${state.lastTurn.cost != null ? ` · ${formatUsd(state.lastTurn.cost)}` : ""}`
+								: " "}
 						</span>
 						{saveError && <span className="aw-subtle" style={{ color: "var(--aw-danger)" }}>{saveError}</span>}
 						{saved && !dirty && lastSavedKey.current !== null && (
@@ -570,6 +576,22 @@ function findLiveField(messages: UIMessage[], streaming: boolean): LiveField | n
 		return null;
 	}
 	return null;
+}
+
+/** What the session has cost so far at list price, with the token split on hover. */
+function SessionCost({ state, price }: { state: WriterState; price: Price | null }) {
+	const u = state.usage ?? NO_USAGE;
+	const n = (x: number) => x.toLocaleString("en");
+	const tokens = `${n(u.input + u.cacheRead + u.cacheWrite)} in (${n(u.cacheRead)} cache read, ${n(u.cacheWrite)} cache write) · ${n(u.output)} out`;
+	const rates = price
+		? `List price per 1M tokens: $${price.input} in, $${price.output} out${price.cacheRead != null ? `, $${price.cacheRead} cache read` : ""}${price.cacheWrite != null ? `, $${price.cacheWrite} cache write` : ""}. Unified billing adds a 5% fee when you buy credits.`
+		: "No list price found for this model on developers.cloudflare.com.";
+	const cost = price ? (state.cost === undefined ? 0 : state.cost) : null;
+	return (
+		<span className="aw-pill aw-cost" title={`${tokens}\n${rates}`}>
+			{cost === null ? "cost unknown" : `${formatUsd(cost)} this session`}
+		</span>
+	);
 }
 
 /** True when the last assistant part is finished, i.e. the model is between steps. */

@@ -139,7 +139,10 @@ Styling a child component through its `class` prop needs `:global()` in the pare
   - Follow-ups ("shorter excerpt") revise in place. **Save draft** creates the entry, or saves draft changes on an existing one; it never publishes. Then **Open in editor**.
   - The session id is in the URL, so a reload resumes the conversation.
 - **Editor sidebar → AI writer**: opens the writer on that saved entry, optionally with what should change, and starts right away. EmDash disables Block Kit editor panels for plugins with a React admin entry, so there's no in-editor patch preview anymore.
-- **AI runs**: one row per writer turn (model, tokens, time, brief or error).
+- **Cost**: the writer's header shows what the session has cost so far (hover for the token split and the rates); the footer shows the last turn's cost.
+  - It's list price: `src/pricing.ts` reads third-party prices from each model's docs page and Workers AI prices from the Workers AI pricing table. Each is cached for a day in plugin KV, with the snapshot as fallback. Unified billing's 5% credit fee isn't included.
+  - The agent counts every step in `onStepFinish` (uncached input, cache reads, cache writes, output), so a turn that fails halfway still counts what was billed. Models without a listed price show "cost unknown".
+- **AI runs**: one row per writer turn (model, tokens, cost, time, brief or error).
 
 How it's wired:
 - **`WriterAgent`** (`src/agent/writer-agent.ts`, `AIChatAgent` from `@cloudflare/ai-chat`) runs `streamText` with tools on **any model Cloudflare serves**, through the one `env.AI` binding (`src/agent/model.ts`, `workers-ai-provider`).
@@ -154,7 +157,7 @@ How it's wired:
 - `src/entry-spec.ts` decides the writable fields from the live schema: prose types only, plus the `WRITABLE_FIELDS` allow-list and a `PURPOSE` hint per field. A new prose field needs adding to both. Blocks are validated against the seed's `blockTypes` (`src/blocks.ts`; figure/gallery are excluded).
 - **Models:** the composer's picker lists **every text-generation model in Cloudflare's catalog** (~100, grouped by provider, with a filter), with the tested ones (`src/models.ts`) on top as *Recommended* and **Claude Sonnet 5** as the default.
   - The catalog is parsed from the docs page (`src/catalog.ts`, developers.cloudflare.com/ai/models/index.md; there's no catalog API) and cached for a day in plugin KV.
-  - If that fetch fails, it falls back to the bundled `src/catalog.snapshot.json`. Refresh the snapshot with `pnpm --filter @thijmen/plugin-ai-writer catalog:sync`.
+  - If that fetch fails, it falls back to the bundled `src/catalog.snapshot.json`, which also holds every model's price. Refresh the snapshot with `pnpm --filter @thijmen/plugin-ai-writer catalog:sync`.
   - Routing (`src/agent/model.ts`):
     - Providers workers-ai-provider knows (openai, anthropic, google, xai, groq, alibaba, minimax, deepseek) use its gateway delegate.
     - Other catalog providers (moonshotai, thinkingmachines, …) use the bare unified-billing run path with the OpenAI wire format.

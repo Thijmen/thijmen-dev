@@ -5,6 +5,7 @@ import { entrySpec, type Target } from "./entry-spec";
 import { CATALOG_URL, type CatalogModel, parseCatalog } from "./catalog";
 import snapshot from "./catalog.snapshot.json";
 import { DEFAULT_MAX_TOKENS, DEFAULT_MODEL, isValidModelId, labelFor, MODELS, type ModelOption } from "./models";
+import { modelPageUrl, parseModelPagePrice, parseWorkersAIPrices, type Price, WORKERS_AI_PRICING_URL } from "./pricing";
 import { DEFAULT_STYLE_GUIDE } from "./prompt";
 
 export const PLUGIN_ID = "ai-writer";
@@ -30,6 +31,8 @@ export type Run = {
 	written?: number;
 	inputTokens?: number;
 	outputTokens?: number;
+	/** USD at list price; missing when the model's price is unknown. */
+	cost?: number;
 	ms: number;
 	todos?: number;
 };
@@ -39,6 +42,8 @@ export type SessionInfo = {
 	model: string;
 	modelLabel: string;
 	mock: boolean;
+	/** List price of the model, for the session's cost; null when unknown. */
+	price: Price | null;
 	styleGuide: string;
 	maxTokens: number;
 	collection: string;
@@ -115,6 +120,39 @@ async function catalog(ctx: RouteContext): Promise<{ models: CatalogModel[]; sou
 	}
 }
 
+const PRICE_TTL_MS = 24 * 3600 * 1000;
+
+/**
+ * A model's list price: Workers AI models from the pricing page's table,
+ * third-party ones from their model page. Cached for a day in plugin KV;
+ * the bundled snapshot covers a failed fetch.
+ */
+async function price(ctx: RouteContext, model: string): Promise<Price | null> {
+	const hosted = model.startsWith("@cf/");
+	const key = hosted ? "prices:workers-ai:v1" : `price:v1:${model}`;
+	const cached = await ctx.kv.get<{ at: string; value: Price | Record<string, Price> | null }>(key).catch(() => null);
+	const pick = (value: Price | Record<string, Price> | null | undefined) =>
+		(hosted ? (value as Record<string, Price> | null)?.[model] : (value as Price | null)) ?? null;
+	if (cached && Date.now() - Date.parse(cached.at) < PRICE_TTL_MS) return pick(cached.value) ?? fromSnapshot(model);
+	try {
+		const res = await fetch(hosted ? WORKERS_AI_PRICING_URL : modelPageUrl(model), { signal: AbortSignal.timeout(5000) });
+		// A model without a docs page (custom id, renamed model) has no known price; cache that too.
+		if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+		const text = res.ok ? await res.text() : "";
+		const value = hosted ? parseWorkersAIPrices(text) : parseModelPagePrice(text);
+		if (hosted && Object.keys(value ?? {}).length < 10) throw new Error("Workers AI pricing table not found");
+		await ctx.kv.set(key, { at: new Date().toISOString(), value });
+		return pick(value) ?? fromSnapshot(model);
+	} catch (error) {
+		ctx.log.warn(`ai-writer: price lookup for ${model} failed: ${error instanceof Error ? error.message : error}`);
+		return pick(cached?.value) ?? fromSnapshot(model);
+	}
+}
+
+function fromSnapshot(model: string): Price | null {
+	return (snapshot as { prices?: Record<string, Price> }).prices?.[model] ?? null;
+}
+
 /** What the composer offers before a session exists: every model, recommended first, and the default. */
 async function options(ctx: RouteContext): Promise<WriterOptions> {
 	const [config, cat] = await Promise.all([settings(ctx), catalog(ctx)]);
@@ -168,6 +206,7 @@ async function session(ctx: RouteContext): Promise<SessionInfo> {
 		model: chosen,
 		modelLabel: labelFor(chosen),
 		mock: (env as { AI_WRITER_MOCK?: string }).AI_WRITER_MOCK === "1",
+		price: await price(ctx, chosen),
 		styleGuide: config.styleGuide,
 		maxTokens: config.maxTokens,
 		collection,
@@ -260,6 +299,7 @@ async function logRun(ctx: RouteContext) {
 		...(run.error ? { error: str(run.error).slice(0, 500) } : {}),
 		...(typeof run.written === "number" ? { written: run.written } : {}),
 		...(typeof run.inputTokens === "number" ? { inputTokens: run.inputTokens, outputTokens: run.outputTokens } : {}),
+		...(typeof run.cost === "number" && Number.isFinite(run.cost) ? { cost: run.cost } : {}),
 		ms: typeof run.ms === "number" ? run.ms : 0,
 		...(typeof run.todos === "number" ? { todos: run.todos } : {}),
 	});

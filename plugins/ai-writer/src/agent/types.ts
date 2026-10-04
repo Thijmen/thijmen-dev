@@ -1,4 +1,5 @@
 import type { Target } from "../entry-spec";
+import { NO_USAGE, type Price, type Usage } from "../pricing";
 
 /**
  * What the admin page sends with every chat request (the AI SDK `body`).
@@ -20,6 +21,8 @@ export type SessionBody = {
 	/** Existing tag labels. */
 	tags: string[];
 	model: string;
+	/** List price of the model; null when unknown (no cost is shown then). */
+	price: Price | null;
 	styleGuide: string;
 	maxTokens: number;
 };
@@ -42,6 +45,10 @@ export type WriterState = {
 	dropped: string[];
 	/** Stats of the last finished turn, for the page's footer and the run log. */
 	lastTurn: (TurnMetadata & { at: string }) | null;
+	/** Tokens over the whole session, every step of every turn. */
+	usage: Usage;
+	/** USD at list price over the whole session; null while the price is unknown. */
+	cost: number | null;
 };
 
 export const INITIAL_STATE: WriterState = {
@@ -55,6 +62,8 @@ export const INITIAL_STATE: WriterState = {
 	tags: [],
 	dropped: [],
 	lastTurn: null,
+	usage: NO_USAGE,
+	cost: 0,
 };
 
 /** One question in an ask_user call. */
@@ -62,4 +71,4 @@ export type Question = { question: string; options?: string[] };
 export type Answer = { question: string; answer: string | null };
 
 /** Stats of one agent turn. */
-export type TurnMetadata = { model?: string; ms?: number; inputTokens?: number; outputTokens?: number };
+export type TurnMetadata = { model?: string; ms?: number; inputTokens?: number; outputTokens?: number; cost?: number };

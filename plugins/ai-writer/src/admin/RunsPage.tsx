@@ -4,6 +4,7 @@ import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 
 import { labelFor } from "../models";
+import { formatUsd } from "../pricing";
 import type { Run } from "../runtime";
 import { api, editorUrl } from "./api";
 import { css } from "./styles";
@@ -58,6 +59,7 @@ export function RunsPage() {
 								<th>Entry</th>
 								<th>Model</th>
 								<th>Tokens in/out</th>
+								<th>Cost</th>
 								<th>Time</th>
 								<th>Brief / error</th>
 							</tr>
@@ -83,6 +85,7 @@ export function RunsPage() {
 									</td>
 									<td title={r.model}>{r.model === "mock" ? "mock" : labelFor(r.model)}</td>
 									<td className="aw-mono">{r.inputTokens != null ? `${r.inputTokens} / ${r.outputTokens}` : "–"}</td>
+									<td className="aw-mono">{r.cost != null ? formatUsd(r.cost) : "–"}</td>
 									<td className="aw-mono">{(r.ms / 1000).toFixed(1)}s</td>
 									<td style={{ maxWidth: 360 }}>
 										{r.status === "error" ? (

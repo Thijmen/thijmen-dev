@@ -36,6 +36,7 @@ export const css = `
 .aw-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .aw-head h1 { font-size: 22px; font-weight: 600; margin: 0; color: var(--aw-strong); }
 .aw-head .aw-pill { margin-left: auto; }
+.aw-head .aw-pill.aw-cost { margin-left: 0; color: var(--aw-text); }
 .aw-pill { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--aw-mono); padding: 5px 9px; border: 1px solid var(--aw-line); border-radius: 999px; color: var(--aw-subtle); background: var(--aw-raised); }
 .aw-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--aw-subtle); }
 .aw-dot.live { background: var(--aw-success); box-shadow: 0 0 0 3px color-mix(in oklab, var(--aw-success) 25%, transparent); animation: aw-pulse 1.6s ease-in-out infinite; }
