@@ -1,5 +1,5 @@
 ---
-import { getEmDashCollection, getMenu, getSiteSettings } from "emdash";
+import { getEmDashCollection, getMenuWithCacheHint, getSiteSettingsWithCacheHint } from "emdash";
 import { EmDashHead } from "emdash/ui";
 import { createPublicPageContext } from "emdash/page";
 import { Font } from "astro:assets";
@@ -22,15 +22,23 @@ interface Props {
 
 const { title, description, image, type = "website", glow = "right" } = Astro.props;
 
-const [settings, menu, { profile, cacheHint: profileHint }, { entries: latest, cacheHint: latestHint }] =
-	await Promise.all([
-		getSiteSettings(),
-		getMenu("primary"),
-		getProfile(),
-		getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 1 }),
-	]);
+const [
+	{ data: settings, cacheHint: settingsHint },
+	{ data: menu, cacheHint: menuHint },
+	{ profile, cacheHint: profileHint },
+	{ entries: latest, cacheHint: latestHint },
+] = await Promise.all([
+	getSiteSettingsWithCacheHint(),
+	getMenuWithCacheHint("primary"),
+	getProfile(),
+	getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 1 }),
+]);
 
+// Every page shows the header and footer, so every page carries their tags:
+// editing the menu, site settings or profile purges the whole site.
 if (Astro.cache?.enabled) {
+	Astro.cache.set(settingsHint);
+	Astro.cache.set(menuHint);
 	if (profileHint) Astro.cache.set(profileHint);
 	Astro.cache.set(latestHint);
 }
