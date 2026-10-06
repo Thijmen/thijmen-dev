@@ -56,8 +56,57 @@
 		--radius-md: 12px;
 		--radius-sm: 8px;
 
-		/* Transitions */
-		--transition-fast: 150ms ease;
+		/* Motion. Timings always apply (fades survive reduced motion);
+		   distances are zero unless motion is "full" (see below and
+		   motion.css), so one rule serves full, reduced and no-JS. */
+		--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+		--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+		--dur-fast: 150ms; /* colour and border hovers */
+		--dur-ui: 220ms; /* palette, menu, small UI */
+		--dur-move: 220ms; /* sliding indicators (nav, TOC, queue) */
+		--dur-reveal: 560ms; /* entrances and scroll reveals */
+		--dur-title: 640ms; /* display-title word rise */
+		--dur-header: 500ms; /* header condensing into the pill */
+		--dur-page: 250ms; /* page crossfade */
+		--dur-morph: 450ms; /* card → page morphs */
+		--stagger: 60ms;
+		--stagger-word: 55ms;
+		--type-char: 25ms;
+		--print-step: 30ms;
+		--print-total: 600ms;
+		--rise-y: 0px;
+		--lift: 0px;
+		--word-y: 0%;
+		--word-from: 0;
+		--img-blur: 0px;
+		--img-scale: 1;
+		--pop-scale: 1;
+		--drop-y: 0px;
+		--transition-fast: var(--dur-fast) ease;
+	}
+
+	/* Set before paint by the boot script in Base.astro. */
+	:root[data-motion="full"] {
+		--rise-y: 18px;
+		--lift: -3px;
+		--word-y: 115%;
+		--word-from: 1;
+		--img-blur: 12px;
+		--img-scale: 1.04;
+		--pop-scale: 0.96;
+		--drop-y: -8px;
+	}
+
+	:root[data-motion="reduced"] {
+		--stagger: 0ms;
+		--stagger-word: 0ms;
+		--type-char: 0ms;
+		--print-step: 0ms;
+		--dur-move: 0ms;
+		--dur-reveal: 200ms;
+		--dur-title: 200ms;
+		--dur-header: 0ms;
+		--dur-morph: 0ms;
 	}
 
 	:root[data-theme="light"] {

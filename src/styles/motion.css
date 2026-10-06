@@ -1,0 +1,42 @@
+/*
+  motion.css -- the site's shared motion. Timings live in tokens.css.
+
+  Contract (set before paint by the boot script in Base.astro):
+  - <html data-motion="full">     everything moves.
+  - <html data-motion="reduced">  prefers-reduced-motion, or `set motion=off`
+                                  in the palette (localStorage "ts-motion").
+                                  Distance tokens stay 0, so the same rules
+                                  play as short opacity fades.
+  - no data-motion                no JS: nothing is ever hidden or animated.
+  Hidden starting states only exist under :root[data-motion] inside
+  @media screen, so print and no-JS always show everything. Loops and
+  JS-driven effects check for "full" themselves.
+
+  Layered like components.css: a component's scoped (unlayered) style
+  beats anything here, so a component's own motion lives in its scoped
+  style under :global(:root[data-motion="full"]).
+*/
+
+@layer base {
+	@keyframes m-rise {
+		from {
+			opacity: 0;
+			translate: 0 var(--rise-y);
+		}
+	}
+
+	@keyframes m-fade {
+		from {
+			opacity: 0;
+		}
+	}
+
+	@media print {
+		*,
+		*::before,
+		*::after {
+			animation: none !important;
+			transition: none !important;
+		}
+	}
+}

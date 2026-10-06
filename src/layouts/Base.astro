@@ -8,6 +8,7 @@ import SiteFooter from "../components/SiteFooter.astro";
 import { getProfile, plainTitle } from "../lib/content";
 import "../styles/tokens.css";
 import "../styles/components.css";
+import "../styles/motion.css";
 import "../styles/theme.css";
 
 interface Props {
@@ -69,12 +70,25 @@ const pageCtx = createPublicPageContext({
 		<meta name="theme-color" content="#faf9fc" media="(prefers-color-scheme: light)" />
 		<meta name="theme-color" content="#100e17" media="(prefers-color-scheme: dark)" />
 		<script is:inline>
-			// Apply the stored theme before paint; fall back to the OS preference.
-			try {
-				document.documentElement.dataset.theme =
-					localStorage.getItem("ts-theme") ||
-					(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-			} catch (e) {}
+			(function () {
+				var r = document.documentElement;
+				var get = function (k) {
+					try {
+						return localStorage.getItem(k);
+					} catch (e) {
+						return null;
+					}
+				};
+				// Apply the stored theme before paint; fall back to the OS preference.
+				r.dataset.theme = get("ts-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+				// Motion flag (see styles/motion.css). If scripts/motion.ts never runs,
+				// drop it again so nothing stays hidden.
+				r.dataset.motion =
+					matchMedia("(prefers-reduced-motion: reduce)").matches || get("ts-motion") === "off" ? "reduced" : "full";
+				addEventListener("DOMContentLoaded", function () {
+					if (!r.hasAttribute("data-motion-ready")) r.removeAttribute("data-motion");
+				});
+			})();
 		</script>
 		<EmDashHead page={pageCtx} />
 		<Font cssVariable="--font-heading" preload />
@@ -88,6 +102,10 @@ const pageCtx = createPublicPageContext({
 			<slot />
 			<SiteFooter name={siteTitle} {...contact} />
 		</div>
+
+		<script>
+			import "../scripts/motion";
+		</script>
 
 		<style is:global>
 			/*
@@ -109,8 +127,11 @@ const pageCtx = createPublicPageContext({
 				}
 
 				html {
-					scroll-behavior: smooth;
 					scrollbar-gutter: stable;
+				}
+
+				:root[data-motion="full"] {
+					scroll-behavior: smooth;
 				}
 
 				body {

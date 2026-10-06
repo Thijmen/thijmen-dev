@@ -287,4 +287,8 @@
 			animation: none;
 		}
 	}
+
+	:root[data-motion="reduced"] .cursor {
+		animation: none;
+	}
 }

@@ -35,6 +35,8 @@ const commands: Command[] = [
 	})),
 	...(latestPost ? [{ label: `Read: ${latestPost.title}`, hint: "post", href: latestPost.url }] : []),
 	{ label: "Toggle light / dark", hint: "t", action: "theme" },
+	{ label: "set motion=off", hint: "calm", action: "motion-off" },
+	{ label: "set motion=on", hint: "lively", action: "motion-on" },
 	...(email ? [{ label: "Copy email address", hint: "mail", action: "copy-email" }] : []),
 	...(github ? [{ label: "Open GitHub", hint: "↗", href: github, action: "external" }] : []),
 ];
@@ -126,6 +128,8 @@ const commands: Command[] = [
 </header>
 
 <script>
+	import { applyMotionPref } from "../scripts/motion";
+
 	const root = document.documentElement;
 	const header = document.querySelector<HTMLElement>(".site-header")!;
 	const themeLabel = header.querySelector<HTMLElement>(".theme-label")!;
@@ -185,6 +189,7 @@ const commands: Command[] = [
 	function run(cmd: HTMLButtonElement) {
 		const { href, action } = cmd.dataset;
 		if (action === "theme") toggleTheme();
+		else if (action === "motion-off" || action === "motion-on") applyMotionPref(action === "motion-off" ? "off" : "on");
 		else if (action === "copy-email") navigator.clipboard?.writeText(header.dataset.email ?? "").catch(() => {});
 		else if (action === "external" && href) window.open(href, "_blank", "noopener");
 		else if (href) location.href = href;
