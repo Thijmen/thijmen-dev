@@ -118,8 +118,11 @@ export function countUp(el: HTMLElement, delay = 0) {
 	counts.set(el, done);
 	el.textContent = fmt(0);
 	setTimeout(() => {
-		const start = performance.now();
+		// Time from the first frame's own timestamp: rAF's clock can sit
+		// slightly behind performance.now().
+		let start = -1;
 		const tick = (now: number) => {
+			if (start < 0) start = now;
 			const t = Math.min(1, (now - start) / 900);
 			if (t >= 1) return done();
 			el.textContent = fmt(target * (1 - Math.pow(2, -10 * t)));
