@@ -20,6 +20,14 @@ export function slugify(text: string): string {
 		.replace(/^-|-$/g, "");
 }
 
+/**
+ * View-transition name stem for a post or project (`post-retry-budget`).
+ * Cards and the matching page add `-cover` / `-title`; see motion.ts.
+ */
+export function vtKey(kind: "post" | "project", slug: string): string {
+	return `${kind}-${slugify(slug) || "x"}`;
+}
+
 /** h2 headings of a Portable Text body, for the post's table of contents. */
 export function extractHeadings(pt: unknown): Array<{ id: string; text: string }> {
 	if (!Array.isArray(pt)) return [];

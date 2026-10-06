@@ -11,6 +11,7 @@ import {
 	hasImage,
 	plainTitle,
 	readingTime,
+	vtKey,
 } from "../../lib/content";
 
 const slug = decodeSlug(Astro.params.slug);
@@ -39,6 +40,8 @@ const newer = index > 0 ? all[index - 1] : undefined;
 const older = index >= 0 && index < all.length - 1 ? all[index + 1] : undefined;
 
 const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : undefined;
+// Morph targets for the card → post view transition (styles/motion.css).
+const vt = vtKey("post", post.id);
 ---
 
 <Base title={title} description={d.excerpt} image={coverSrc} type="article" glow="right">
@@ -46,7 +49,7 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : un
 	<main class="page post">
 		<header class="post-head">
 			<a href="/blog" class="chip back">← cd ../blog</a>
-			<h1 class="title" set:html={emphasize(d.title)} />
+			<h1 class="title vt-title" style={`--vt-name:${vt}-title`} set:html={emphasize(d.title)} />
 			<div class="meta">
 				<span class="pill">{formatDate(d.date)}</span>
 				<span class="pill">{readingTime(d.content)} min read</span>
@@ -61,7 +64,7 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : un
 		</header>
 
 		<figure class="cover">
-			<div class:list={["cover-frame", { placeholder: !coverSrc }]}>
+			<div class:list={["cover-frame", "vt-cover", { placeholder: !coverSrc }]} style={`--vt-name:${vt}-cover`}>
 				{coverSrc ? <Image image={d.featured_image as any} class="cover-img" priority /> : <span>cover.png · 2100×900</span>}
 			</div>
 			{d.cover_caption && <figcaption>{d.cover_caption}</figcaption>}
@@ -140,7 +143,7 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : un
 		position: fixed;
 		top: 0;
 		left: 0;
-		z-index: 50;
+		z-index: 25;
 		width: 0;
 		height: 3px;
 		background: var(--color-brand);
@@ -274,7 +277,7 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : un
 		/* The row is wrap-reverse, so flex-end is the top edge. */
 		align-self: flex-end;
 		position: sticky;
-		top: 24px;
+		top: calc(var(--header-offset, 0px) + 24px);
 		display: flex;
 		flex-direction: column;
 		gap: 14px;

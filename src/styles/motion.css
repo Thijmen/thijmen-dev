@@ -17,7 +17,62 @@
   style under :global(:root[data-motion="full"]).
 */
 
+/* Page navigations crossfade (Chrome, Edge, Safari 18.2+; others hard-load). */
+@view-transition {
+	navigation: auto;
+}
+
 @layer base {
+	/* View transitions ---------------------------------------------------- */
+	::view-transition-group(root) {
+		animation-duration: var(--dur-page);
+	}
+
+	/*
+	 * Card → page morphs. A card's parts get names only at pageswap
+	 * (scripts/motion.ts); the post or project page names its .vt-cover and
+	 * .vt-title only when it was reached from such a card (`vt-morph`, set
+	 * on pagereveal in Base.astro). Names: <post|project>-<slug>-<part>.
+	 */
+	:root.vt-morph[data-motion="full"] .vt-cover {
+		view-transition-name: var(--vt-name);
+		view-transition-class: morph morph-cover;
+	}
+
+	:root.vt-morph[data-motion="full"] .vt-title {
+		view-transition-name: var(--vt-name);
+		view-transition-class: morph morph-title;
+	}
+
+	::view-transition-group(*.morph) {
+		animation-duration: var(--dur-morph);
+		animation-timing-function: var(--ease-out);
+	}
+
+	/* 16:9 card cover → 21:9 page cover: crop instead of stretching. */
+	::view-transition-old(*.morph-cover),
+	::view-transition-new(*.morph-cover) {
+		height: 100%;
+		object-fit: cover;
+	}
+
+	/* Theme reveal (SiteHeader): one clip-path animation on the new root. */
+	:root.theme-vt::view-transition-old(root),
+	:root.theme-vt::view-transition-new(root) {
+		animation: none;
+		mix-blend-mode: normal;
+	}
+
+	:root.theme-vt,
+	:root.theme-vt * {
+		transition: none !important;
+	}
+
+	:root.theme-vt :is(.vt-cover, .vt-title, [data-vt-part]) {
+		view-transition-name: none !important;
+	}
+
+	/* Keyframes ------------------------------------------------------------ */
 	@keyframes m-rise {
 		from {
 			opacity: 0;

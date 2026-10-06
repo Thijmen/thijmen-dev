@@ -7,7 +7,7 @@ import { decodeSlug, getEmDashEntry, sanitizeHref } from "emdash";
 import { Blocks, Image } from "emdash/ui";
 import Base from "../../layouts/Base.astro";
 import { MissingBlock, projectBody } from "../../components/blocks";
-import { hasImage } from "../../lib/content";
+import { hasImage, vtKey } from "../../lib/content";
 
 const slug = decodeSlug(Astro.params.slug);
 if (!slug) return Astro.redirect("/404");
@@ -19,6 +19,8 @@ if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
 const d = project.data;
 const status = (d.project_status ?? "active").toLowerCase();
 const coverSrc = hasImage(d.featured_image) ? (d.featured_image as { src?: string }).src : undefined;
+// Morph targets for the card → case study view transition (styles/motion.css).
+const vt = vtKey("project", project.id);
 ---
 
 <Base title={d.title} description={d.summary} image={coverSrc} glow="left">
@@ -26,7 +28,7 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as { src?: strin
 		<header class="hero">
 			<a href="/projects" class="chip back">← cd ../projects</a>
 			<span class="kicker"><span class="sigil">$</span> cat {d.title}/README.md</span>
-			<h1 class="display name">{d.title}</h1>
+			<h1 class="display name vt-title" style={`--vt-name:${vt}-title`}>{d.title}</h1>
 			{d.summary && <p class="lede">{d.summary}</p>}
 			<div class="meta">
 				<span class:list={["pill", "status", status]}>{status}</span>
@@ -43,7 +45,7 @@ const coverSrc = hasImage(d.featured_image) ? (d.featured_image as { src?: strin
 
 		{
 			coverSrc && (
-				<div class="cover">
+				<div class="cover vt-cover" style={`--vt-name:${vt}-cover`}>
 					<Image image={d.featured_image as any} class="cover-img" priority />
 				</div>
 			)

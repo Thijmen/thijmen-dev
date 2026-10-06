@@ -4,7 +4,7 @@
  * status, install command and stars; `compact` (home) is name + blurb + lang.
  */
 import { Image } from "emdash/ui";
-import { hasImage } from "../lib/content";
+import { hasImage, vtKey } from "../lib/content";
 
 export interface Project {
 	title: string;
@@ -28,19 +28,21 @@ interface Props {
 const { project: p, variant = "full", showImage = true, href } = Astro.props;
 const titleHref = href ?? p.url;
 const status = (p.project_status ?? "active").toLowerCase();
+// Screenshot + name morph into the case study when it exists (motion.ts).
+const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 ---
 
 {
 	variant === "compact" ? (
-		<a href={href ?? "/projects"} class="card compact">
-			<span class="name">{p.title}</span>
+		<a href={href ?? "/projects"} class="card compact" data-vt={vt}>
+			<span class="name" data-vt-part={vt && "title"}>{p.title}</span>
 			{p.summary && <span class="desc">{p.summary}</span>}
 			{p.language && <span class="lang">● {p.language}</span>}
 		</a>
 	) : (
-		<article class="card hoverable full">
+		<article class="card hoverable full" data-vt={vt}>
 			{showImage && (
-				<div class="shot">
+				<div class="shot" data-vt-part={vt && "cover"}>
 					{hasImage(p.featured_image) ? (
 						<Image image={p.featured_image as any} class="cover-img" />
 					) : (
@@ -51,7 +53,7 @@ const status = (p.project_status ?? "active").toLowerCase();
 			<div class="body">
 				<div class="head">
 					{titleHref ? (
-						<a href={titleHref} class="name">
+						<a href={titleHref} class="name" data-vt-part={vt && "title"}>
 							{p.title}
 						</a>
 					) : (

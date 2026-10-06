@@ -6,7 +6,7 @@
  *  - grid:    blog index grid card
  */
 import { Image } from "emdash/ui";
-import { placeholderName, type PostSummary } from "../lib/content";
+import { placeholderName, vtKey, type PostSummary } from "../lib/content";
 
 interface Props {
 	post: PostSummary;
@@ -16,14 +16,16 @@ interface Props {
 
 const { post, variant = "grid", wide = false } = Astro.props;
 const meta = `${post.date} · ${post.readMin} min`;
+// Cover + title morph into the post page when this card is clicked (motion.ts).
+const vt = vtKey("post", post.slug);
 ---
 
 {
 	variant === "row" ? (
-		<a href={post.url} class="card row">
-			<span class="thumb">{post.image && <Image image={post.image as any} class="cover-img" />}</span>
+		<a href={post.url} class="card row" data-vt={vt}>
+			<span class="thumb" data-vt-part="cover">{post.image && <Image image={post.image as any} class="cover-img" />}</span>
 			<span class="row-text">
-				<span class="row-title">{post.title}</span>
+				<span class="row-title" data-vt-part="title">{post.title}</span>
 				<span class="meta">
 					{post.date}
 					{post.tag && (
@@ -36,8 +38,8 @@ const meta = `${post.date} · ${post.readMin} min`;
 			</span>
 		</a>
 	) : variant === "feature" ? (
-		<a href={post.url} class:list={["card", "feature", { wide }]}>
-			<div class:list={["cover", { placeholder: !post.image }]}>
+		<a href={post.url} class:list={["card", "feature", { wide }]} data-vt={vt}>
+			<div class:list={["cover", { placeholder: !post.image }]} data-vt-part="cover">
 				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{wide ? placeholderName(post.slug) : "cover.png"}</span>}
 			</div>
 			<div class="feature-body">
@@ -55,19 +57,19 @@ const meta = `${post.date} · ${post.readMin} min`;
 						{` · ${post.readMin} min`}
 					</span>
 				)}
-				<span class="feature-title">{post.title}</span>
+				<span class="feature-title" data-vt-part="title">{post.title}</span>
 				{post.excerpt && <span class="excerpt">{post.excerpt}</span>}
 				{wide && <span class="meta">{meta}</span>}
 			</div>
 		</a>
 	) : (
-		<a href={post.url} class="card grid">
-			<div class:list={["cover", { placeholder: !post.image }]}>
+		<a href={post.url} class="card grid" data-vt={vt}>
+			<div class:list={["cover", { placeholder: !post.image }]} data-vt-part="cover">
 				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{placeholderName(post.slug)}</span>}
 			</div>
 			<div class="grid-body">
 				{post.tag && <span class="tag mono-sm">#{post.tag}</span>}
-				<span class="grid-title">{post.title}</span>
+				<span class="grid-title" data-vt-part="title">{post.title}</span>
 				{post.excerpt && <span class="excerpt">{post.excerpt}</span>}
 				<span class="meta">{meta}</span>
 			</div>

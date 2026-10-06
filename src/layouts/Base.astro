@@ -88,6 +88,14 @@ const pageCtx = createPublicPageContext({
 				addEventListener("DOMContentLoaded", function () {
 					if (!r.hasAttribute("data-motion-ready")) r.removeAttribute("data-motion");
 				});
+				// Arriving through a card → page view transition (motion.ts sets the
+				// key on pageswap): name this page's cover and title so they morph.
+				addEventListener("pagereveal", function (e) {
+					try {
+						if (e.viewTransition && sessionStorage.getItem("vt-morph") === location.pathname) r.classList.add("vt-morph");
+						sessionStorage.removeItem("vt-morph");
+					} catch (err) {}
+				});
 			})();
 		</script>
 		<EmDashHead page={pageCtx} />
@@ -128,6 +136,8 @@ const pageCtx = createPublicPageContext({
 
 				html {
 					scrollbar-gutter: stable;
+					/* Set by SiteHeader once it sticks. */
+					scroll-padding-top: var(--header-offset, 0px);
 				}
 
 				:root[data-motion="full"] {
