@@ -11,7 +11,7 @@ const { value } = Astro.props;
 
 {
 	hasImage(value.image) && (
-		<figure class:list={["figure", value.width === "wide" ? "wide" : "normal"]}>
+		<figure class:list={["figure", value.width === "wide" ? "wide" : "normal"]} data-reveal>
 			<div class="frame">
 				<Image image={value.image as any} />
 			</div>

@@ -1,0 +1,310 @@
+/*
+  motion.css -- the site's shared motion. Timings live in tokens.css.
+
+  Contract (set before paint by the boot script in Base.astro):
+  - <html data-motion="full">     everything moves.
+  - <html data-motion="reduced">  prefers-reduced-motion, or `set motion=off`
+                                  in the palette (localStorage "ts-motion").
+                                  Distance tokens stay 0, so the same rules
+                                  play as short opacity fades.
+  - no data-motion                no JS: nothing is ever hidden or animated.
+  Hidden starting states only exist under :root[data-motion] inside
+  @media screen, so print and no-JS always show everything. Loops and
+  JS-driven effects check for "full" themselves.
+
+  Layered like components.css: a component's scoped (unlayered) style
+  beats anything here, so a component's own motion lives in its scoped
+  style under :global(:root[data-motion="full"]).
+*/
+
+/* Page navigations crossfade (Chrome, Edge, Safari 18.2+; others hard-load). */
+@view-transition {
+	navigation: auto;
+}
+
+@layer base {
+	/* View transitions ---------------------------------------------------- */
+	::view-transition-group(root) {
+		animation-duration: var(--dur-page);
+	}
+
+	/*
+	 * Card → page morphs. A card's parts get names only at pageswap
+	 * (scripts/motion.ts); the post or project page names its .vt-cover and
+	 * .vt-title only when it was reached from such a card (`vt-morph`, set
+	 * on pagereveal in Base.astro). Names: <post|project>-<slug>-<part>.
+	 */
+	:root.vt-morph[data-motion="full"] .vt-cover {
+		view-transition-name: var(--vt-name);
+		view-transition-class: morph morph-cover;
+	}
+
+	:root.vt-morph[data-motion="full"] .vt-title {
+		view-transition-name: var(--vt-name);
+		view-transition-class: morph morph-title;
+	}
+
+	::view-transition-group(*.morph) {
+		animation-duration: var(--dur-morph);
+		animation-timing-function: var(--ease-out);
+	}
+
+	/* 16:9 card cover → 21:9 page cover: crop instead of stretching. */
+	::view-transition-old(*.morph-cover),
+	::view-transition-new(*.morph-cover) {
+		height: 100%;
+		object-fit: cover;
+	}
+
+	/* Theme reveal (SiteHeader): one clip-path animation on the new root. */
+	:root.theme-vt::view-transition-old(root),
+	:root.theme-vt::view-transition-new(root) {
+		animation: none;
+		mix-blend-mode: normal;
+	}
+
+	:root.theme-vt,
+	:root.theme-vt * {
+		transition: none !important;
+	}
+
+	:root:is(.theme-vt, .reflow-vt) :is(.vt-cover, .vt-title, [data-vt-part]) {
+		view-transition-name: none !important;
+	}
+
+	/* /uses tools filter: cards glide to their new slots; the page itself
+	   swaps without a crossfade, so nothing below ghosts. */
+	:root.reflow-vt::view-transition-group(*) {
+		animation-duration: 380ms;
+		animation-timing-function: var(--ease-out);
+	}
+
+	:root.reflow-vt::view-transition-old(root),
+	:root.reflow-vt::view-transition-new(root) {
+		animation: none;
+	}
+
+	:root.reflow-vt::view-transition-old(*):only-child {
+		animation: m-pop-out 200ms var(--ease-out) both;
+	}
+
+	:root.reflow-vt::view-transition-new(*):only-child {
+		animation: m-pop-in 320ms var(--ease-out) 80ms both;
+	}
+
+	/* Hero entrance -------------------------------------------------------- */
+	/* Children of [data-hero] rise in on load, --stagger apart. Elements
+	   outside it join with [data-hero-item] and an explicit --hero-i. */
+	[data-hero] > :nth-child(1) {
+		--hero-i: 0;
+	}
+	[data-hero] > :nth-child(2) {
+		--hero-i: 1;
+	}
+	[data-hero] > :nth-child(3) {
+		--hero-i: 2;
+	}
+	[data-hero] > :nth-child(4) {
+		--hero-i: 3;
+	}
+	[data-hero] > :nth-child(5) {
+		--hero-i: 4;
+	}
+	[data-hero] > :nth-child(6) {
+		--hero-i: 5;
+	}
+	[data-hero] > :nth-child(n + 7) {
+		--hero-i: 6;
+	}
+
+	:root[data-motion] :is([data-hero] > *, [data-hero-item]) {
+		animation: m-rise var(--dur-reveal) var(--ease-out) calc(var(--hero-i, 0) * var(--stagger)) backwards;
+	}
+
+	/* Titles rise word by word and kickers type (Kicker.astro) instead. */
+	:root[data-motion] [data-hero] > [data-words],
+	:root[data-motion="full"] [data-hero] > [data-type] {
+		animation: none;
+	}
+
+	/* Display titles from riseWords(): every word rises out of its own mask.
+	   The padding/negative margin pair leaves room for descenders and
+	   italic overhang without changing the layout. */
+	.w,
+	.wi {
+		display: inline-block;
+	}
+
+	:root[data-motion="full"] .w {
+		padding: 0.2em 0.1em 0.26em;
+		margin: -0.2em -0.1em -0.26em;
+		clip-path: inset(0);
+	}
+
+	:root[data-motion] .wi {
+		animation: m-word var(--dur-title) var(--ease-out)
+			calc(var(--hero-i, 0) * var(--stagger) + var(--w, 0) * var(--stagger-word)) backwards;
+	}
+
+	/* Arriving through a morph: the morphing parts must hold still. */
+	:root.vt-morph :is(.vt-cover, .vt-title, .vt-title .wi),
+	:root.vt-morph :is([data-hero] > *, [data-hero-item]):has(.vt-cover, .vt-title) {
+		animation: none;
+	}
+
+	/* Scroll reveals (scripts/motion.ts adds .is-in) ----------------------- */
+	@media screen {
+		:root[data-motion] :is([data-reveal], [data-stagger] > *):not(.is-in) {
+			opacity: 0;
+		}
+
+		:root[data-motion] [data-print]:not(.is-in) :is(.line, .gutter > span, [data-line]) {
+			opacity: 0;
+		}
+	}
+
+	:root[data-motion] :is([data-reveal], [data-stagger] > *).is-in {
+		animation: m-rise var(--dur-reveal) var(--ease-out) var(--reveal-delay, 0ms) backwards;
+	}
+
+	/* A reveal inside a reveal only fades, or the distances would add up. */
+	:is([data-reveal], [data-stagger] > *) :is([data-reveal], [data-stagger] > *) {
+		--rise-y: 0px;
+	}
+
+	/* Terminal windows print their lines top to bottom, 600ms at most. */
+	:root[data-motion] [data-print].is-in :is(.line, .gutter > span, [data-line]) {
+		animation: m-fade 90ms linear
+			calc(var(--reveal-delay, 0ms) + var(--line, 0) * min(var(--print-step), var(--print-total) / var(--lines, 20)))
+			backwards;
+	}
+
+	/* Images fade and de-blur in once loaded (motion.ts sets data-loaded).
+	   An LQIP background stays visible and sharpens instead; priority (LCP)
+	   images are left alone. */
+	@media screen {
+		:root[data-motion] :is(img.cover-img, .frame img):not([fetchpriority="high"], [loading="eager"], [data-loaded]) {
+			filter: blur(var(--img-blur));
+			scale: var(--img-scale);
+		}
+
+		:root[data-motion]
+			:is(img.cover-img, .frame img):not([fetchpriority="high"], [loading="eager"], [data-loaded], [style*="background"]) {
+			opacity: 0;
+		}
+	}
+
+	:root[data-motion] :is(img.cover-img, .frame img) {
+		transition:
+			opacity var(--dur-reveal) var(--ease-out),
+			filter var(--dur-reveal) var(--ease-out),
+			scale var(--dur-reveal) var(--ease-out);
+	}
+
+	/* Cards: a 3px lift and a brand-soft spotlight that follows the cursor
+	   (--mx/--my from motion.ts). A glow, never a shadow. */
+	@media (hover: hover) and (pointer: fine) {
+		:root[data-motion="full"] :is(a.card, .card.hoverable, a.accent-card) {
+			transition:
+				border-color var(--dur-fast) ease,
+				transform var(--dur-ui) var(--ease-out);
+		}
+
+		:root[data-motion="full"] :is(a.card, .card.hoverable, a.accent-card):hover {
+			transform: translateY(var(--lift));
+		}
+
+		:root[data-motion="full"] :is(a.card, .card.hoverable) {
+			position: relative;
+			isolation: isolate;
+		}
+
+		:root[data-motion="full"] :is(a.card, .card.hoverable)::before {
+			content: "";
+			position: absolute;
+			inset: 0;
+			z-index: -1;
+			border-radius: inherit;
+			background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), var(--color-brand-soft), transparent 70%);
+			opacity: 0;
+			transition: opacity var(--dur-reveal) var(--ease-out);
+			pointer-events: none;
+		}
+
+		:root[data-motion="full"] :is(a.card, .card.hoverable):hover::before {
+			opacity: 1;
+		}
+	}
+
+	/* Status pill: the green dot pings every few seconds. */
+	:root[data-motion="full"] .status-pill::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: 14px;
+		width: 7px;
+		height: 7px;
+		margin-top: -3.5px;
+		border-radius: 50%;
+		background: var(--syntax-string);
+		opacity: 0;
+		animation: m-ping 3.2s cubic-bezier(0, 0, 0.2, 1) 1.2s infinite;
+		pointer-events: none;
+	}
+
+	/* Keyframes ------------------------------------------------------------ */
+	@keyframes m-word {
+		from {
+			opacity: var(--word-from);
+			transform: translateY(var(--word-y));
+		}
+	}
+
+	@keyframes m-pop-out {
+		to {
+			opacity: 0;
+			scale: 0.94;
+		}
+	}
+
+	@keyframes m-pop-in {
+		from {
+			opacity: 0;
+			scale: 0.94;
+		}
+	}
+
+	@keyframes m-ping {
+		0% {
+			opacity: 0.75;
+			scale: 1;
+		}
+		45%,
+		100% {
+			opacity: 0;
+			scale: 2.8;
+		}
+	}
+
+	@keyframes m-rise {
+		from {
+			opacity: 0;
+			translate: 0 var(--rise-y);
+		}
+	}
+
+	@keyframes m-fade {
+		from {
+			opacity: 0;
+		}
+	}
+
+	@media print {
+		*,
+		*::before,
+		*::after {
+			animation: none !important;
+			transition: none !important;
+		}
+	}
+}

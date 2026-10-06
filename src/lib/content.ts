@@ -20,6 +20,14 @@ export function slugify(text: string): string {
 		.replace(/^-|-$/g, "");
 }
 
+/**
+ * View-transition name stem for a post or project (`post-retry-budget`).
+ * Cards and the matching page add `-cover` / `-title`; see motion.ts.
+ */
+export function vtKey(kind: "post" | "project", slug: string): string {
+	return `${kind}-${slugify(slug) || "x"}`;
+}
+
 /** h2 headings of a Portable Text body, for the post's table of contents. */
 export function extractHeadings(pt: unknown): Array<{ id: string; text: string }> {
 	if (!Array.isArray(pt)) return [];
@@ -113,6 +121,49 @@ export function emphasize(text: unknown): string {
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;")
 		.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+}
+
+/**
+ * Display-title HTML whose words rise from a mask (styles/motion.css):
+ * like emphasize(), but every whitespace-separated word becomes a
+ * `.w` mask holding one `.wi` per plain or accent piece, numbered by
+ * `--w` so the accent lands last. `\n` becomes a line break. Give the
+ * heading `aria-label={plainTitle(text)}`: browsers put a space between
+ * the inline-block pieces of a glued word ("Uses*.json*").
+ */
+export function riseWords(text: unknown): string {
+	const esc = (t: string) =>
+		t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+	type Piece = { text: string; em: boolean };
+	const words: Array<Piece[] | string> = [];
+	let word: Piece[] = [];
+	const flush = () => word.length && (words.push(word), (word = []));
+	for (const seg of String(text ?? "").split(/(\*[^*]+\*)/)) {
+		const em = /^\*[^*]+\*$/.test(seg);
+		for (const tok of (em ? seg.slice(1, -1) : seg).split(/(\s+)/)) {
+			if (!tok) continue;
+			if (/^\s+$/.test(tok)) {
+				flush();
+				words.push(tok.includes("\n") ? "<br>" : " ");
+			} else word.push({ text: tok, em });
+		}
+	}
+	flush();
+	const pieces = words.flatMap((w) => (typeof w === "string" ? [] : w));
+	const plain = pieces.filter((p) => !p.em);
+	const order = new Map([...plain, ...pieces.filter((p) => p.em)].map((p, i) => [p, i]));
+	return words
+		.map((w) =>
+			typeof w === "string"
+				? w
+				: `<span class="w">${w
+						.map((p) => {
+							const inner = p.em ? `<em>${esc(p.text)}</em>` : esc(p.text);
+							return `<span class="wi" style="--w:${order.get(p)}">${inner}</span>`;
+						})
+						.join("")}</span>`,
+		)
+		.join("");
 }
 
 /** A json field that should hold an array; anything else becomes []. */

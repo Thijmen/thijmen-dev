@@ -1,10 +1,11 @@
 ---
 import { getEmDashCollection, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
+import Kicker from "../components/Kicker.astro";
 import SectionLabel from "../components/SectionLabel.astro";
 import Timeline from "../components/Timeline.astro";
 import Window from "../components/Window.astro";
-import { asArray, emphasize, getProfile } from "../lib/content";
+import { asArray, emphasize, getProfile, riseWords } from "../lib/content";
 
 const [settings, { profile, cacheHint: profileHint }, rolesRes, postsRes] = await Promise.all([
 	getSiteSettings(),
@@ -31,12 +32,12 @@ const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(
 	<main class="page resume">
 		<header class="head">
 			<div class="head-row">
-				<div class="hero">
-					<span class="kicker"><span class="sigil">$</span> cat resume.yml</span>
-					<h1 class="display">{name}</h1>
+				<div class="hero" data-hero>
+					<Kicker cmd="cat resume.yml" />
+					<h1 class="display" data-words aria-label={name} set:html={riseWords(name)} />
 					{profile?.status_line && <span class="role">{profile.status_line}</span>}
 				</div>
-				<div class="actions">
+				<div class="actions" data-hero-item style="--hero-i:3">
 					<button type="button" class="btn btn-primary" data-print>Download PDF ↓</button>
 					{email && <a href={`mailto:${email}`} class="btn">Get in touch</a>}
 				</div>
@@ -44,18 +45,18 @@ const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(
 		</header>
 
 		<div class="layout">
-			<section class="card history">
+			<section class="card history" data-reveal>
 				<SectionLabel label="HISTORY" note="git log --stat" />
 				<Timeline roles={roles as any} variant="full" />
 			</section>
 
-			<aside class="side">
+			<aside class="side" data-stagger>
 				{
 					skills.length > 0 && (
-						<Window title="skills.yml" class="skills">
+						<Window title="skills.yml" class="skills" data-print style={`--lines:${skills.length}`}>
 							<div class="skills-body">
-								{skills.map((s) => (
-									<div>
+								{skills.map((s, i) => (
+									<div data-line style={`--line:${i}`}>
 										<span class="k">{s.k}</span>: [
 										<span class="s">{Array.isArray(s.items) ? s.items.join(", ") : s.items}</span>]
 									</div>
@@ -66,7 +67,9 @@ const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(
 				}
 				<div class="card speaking">
 					<div class="label">SPEAKING &amp; WRITING</div>
-					<a href="/blog" class="posts-link">{postCount} posts on this blog →</a>
+					<a href="/blog" class="posts-link">
+						<span data-count>{postCount}</span> posts on this blog →
+					</a>
 					{profile?.speaking_note && <span class="muted">{profile.speaking_note}</span>}
 				</div>
 				<div class="accent-card contact">

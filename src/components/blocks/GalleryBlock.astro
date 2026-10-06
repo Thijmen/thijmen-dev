@@ -13,8 +13,8 @@ const items = (value.items ?? []).filter((i) => hasImage(i.image));
 
 {
 	items.length > 0 && (
-		<BlockSection label={value.label} note={`ls *.jpg | wc -l → ${items.length}`}>
-			<div class="gallery">
+		<BlockSection label={value.label} note={`ls *.jpg | wc -l → ${items.length}`} reveal={false}>
+			<div class="gallery" data-stagger>
 				{items.map((i) => (
 					<figure>
 						<div class="frame">

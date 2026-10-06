@@ -11,7 +11,7 @@ interface Props {
 const { label, href, linkText, note, rule = false } = Astro.props;
 ---
 
-<div class:list={["section-label", { rule }]}>
+<div class:list={["section-label", { rule }]} data-reveal>
 	<span class="label">{label}</span>
 	{href && <a href={href}>{linkText}</a>}
 	{note && <span class="note">{note}</span>}
@@ -27,9 +27,20 @@ const { label, href, linkText, note, rule = false } = Astro.props;
 		font-size: 13px;
 	}
 
+	/* The rule is a background so it can draw in when the label reveals. */
 	.rule {
 		padding-bottom: 12px;
-		border-bottom: 1px solid var(--color-border);
+		background: linear-gradient(var(--color-border), var(--color-border)) left bottom / 100% 1px no-repeat;
+	}
+
+	:global(:root[data-motion="full"]) .rule {
+		transition: background-size 900ms var(--ease-out) calc(var(--reveal-delay, 0ms) + 120ms);
+	}
+
+	@media screen {
+		:global(:root[data-motion="full"]) .rule:not(:global(.is-in)) {
+			background-size: 0% 1px;
+		}
 	}
 
 	.label {

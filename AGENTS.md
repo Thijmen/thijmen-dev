@@ -18,8 +18,10 @@ The admin UI is at `http://localhost:4321/_emdash/admin`.
 | `src/live.config.ts`     | EmDash loader registration (boilerplate -- don't modify)                           |
 | `seed/seed.json`         | Schema definition + demo content (collections, fields, taxonomies, menus, widgets) |
 | `emdash-env.d.ts`        | Generated types for collections (auto-regenerated on dev server start)             |
-| `src/layouts/Base.astro` | Base layout: EmDash head, theme boot script, `SiteHeader` / `SiteFooter`, glow      |
-| `src/lib/content.ts`     | Shared helpers: `getProfile()`, `toPostSummary()`, `emphasize()`, reading time      |
+| `src/layouts/Base.astro` | Base layout: EmDash head, theme + motion boot script, `SiteHeader` / `SiteFooter`, glow |
+| `src/lib/content.ts`     | Shared helpers: `getProfile()`, `toPostSummary()`, `emphasize()`, `riseWords()`, `vtKey()`, reading time |
+| `src/styles/motion.css`  | Shared motion: view transitions, hero entrance, reveals, cards (see Motion below)    |
+| `src/scripts/motion.ts`  | Motion runtime: reveal observer, count-ups, spotlight, image fade-in, card morph names |
 | `src/pages/`             | Astro pages -- all server-rendered                                                 |
 
 ## Skills
@@ -96,7 +98,7 @@ Old portfolio routes redirect: `/work` → `/projects`, `/work/<slug>` → that 
 - Spotify (`src/lib/spotify.ts`) feeds SOUNDTRACK: now playing / last played, top tracks (`short_term`) and, per `playlists` entry, name/cover/`N tracks · Xh Ym` from its `url` (a Spotify playlist URL). CMS `tracks` and playlist `title`/`meta` are the fallback when Spotify is unconfigured or fails; then the player simulates playback as before. Responses are memoised in the Workers Cache API (now playing 20s, top tracks 1h, playlists 6h). Since Spotify's Feb 2026 API changes, track counts only come back for playlists the account owns.
 - `profile`: exactly one entry with slug `me`. It holds all site-wide copy: status line, intros, page titles, CTA cards, email/GitHub/LinkedIn, `profile_lines` and `skills` (json), desk photo. Read it with `getProfile()`.
 - Block types (seed `blockTypes`, all v1): content `prose`, `note`, `terminal`, `figure`, `gallery`, `cta`, `links`, `faq`; data `post_list`, `project_grid`, `history`, `now_playing`. Data blocks store filters (tag, limit, variant, featured-only) and query collections themselves, because block fields can't hold references. `allowedTypes`: `posts.sections` = note, figure, gallery, cta, links, faq, post_list; `projects.body` = prose, note, terminal, figure, gallery, links, faq; `pages.body` = all. Renderers are in `src/components/blocks/`; `index.ts` has one `defineBlockComponents` map per field, typed against the generated `PostSectionsBlock` / `ProjectBodyBlock` / `PageBodyBlock` unions, so `astro check` fails when an allowed type has no component.
-- Single `primary` menu: Home, Blog, Resume, Projects, Uses (+ Now, Colophon in the seed). The header derives the `g` + first-letter shortcuts from the labels.
+- Single `primary` menu: Home, Blog, Resume, Projects, Uses (+ Now, Colophon in the seed). The header derives the `g` + first-letter shortcuts from the labels; `g g` scrolls to the top while no label starts with `g`.
 
 Gotchas found while building this:
 - `status` is a reserved field slug (hence `project_status`). `validateSeed` does not catch it; only apply does.
@@ -116,13 +118,33 @@ Three faces, loaded through the Fonts API in `astro.config.mjs`:
 
 Colour is oklch: near-white/near-black lilac-tinted neutrals and one purple accent (`--color-brand`) with a soft tint (`--color-brand-soft`). Headings mark an accent phrase in italic brand colour. Editors write `*phrase*` in CMS text and `emphasize()` renders it. A soft radial glow sits behind the top of each page (`glow="left" | "right"` on `Base`). The syntax colours (`--syntax-*`) are the only other hues; they are for code and terminal windows.
 
-Theme: `data-theme="light" | "dark"` on `<html>`, stored in `localStorage["ts-theme"]` and falling back to the OS preference. Toggle with the header button, the palette, or the `t` key.
+Theme: `data-theme="light" | "dark"` on `<html>`, stored in `localStorage["ts-theme"]` and falling back to the OS preference. Toggle with the header button, the palette, or the `t` key; with full motion the new theme grows as a circle from the button (a same-document View Transition).
+
+## Motion
+
+Lively but quick, modelled on aulianza.com/portfolio: everything you touch reacts and content arrives, but nothing loops except the cursor, the equalizer, the glow drift and the status ping. Vanilla CSS plus one ~4 KB script; no animation library.
+
+- **Contract.** The boot script in `Base.astro` sets `<html data-motion="full" | "reduced">` before paint: `reduced` for `prefers-reduced-motion` or `localStorage["ts-motion"] = "off"` (palette: `set motion=off` / `set motion=on`; the OS setting always wins). No attribute = no JS: nothing is hidden or animated. A `DOMContentLoaded` failsafe drops the attribute if `motion.ts` never ran.
+- **Tokens** (`tokens.css`): timings (`--dur-*`, `--ease-out`, `--stagger`, `--type-char`) always apply; distances (`--rise-y`, `--lift`, `--word-y`, `--img-blur`, …) are 0 unless `data-motion="full"`. So one rule like `translate: 0 var(--rise-y)` is a fade under reduced motion. Only loops and JS effects check for `full` themselves.
+- **Hidden starting states** live only under `:root[data-motion]` inside `@media screen`. Print (the resume PDF) and no-JS always see everything.
+- **Opting in** (attributes, styled in `motion.css`):
+  - `data-hero` on a hero: its children rise in on load, `--stagger` apart (`--hero-i` by `nth-child`). `data-hero-item` + `style="--hero-i:N"` joins from outside.
+  - `data-words` on a display `<h1>` whose HTML comes from `riseWords(text)`: every word rises from a mask, the `*accent*` last. Give it `aria-label={plainTitle(text)}`.
+  - `Kicker` (`cmd`, `out`, `count`, `cursor`) types itself in a hero; over 34 characters it just rises.
+  - `data-reveal` (one unit) or `data-stagger` (each child) fades up once on first scroll into view (`.is-in` from `motion.ts`). A reveal nested in a reveal only fades.
+  - `data-print` + `--lines` on a `Window`; lines (`.line`, gutter spans, `[data-line]`) carry `--line` and print in, 600ms at most.
+  - `data-count` on a number (`412`, `1.2k`, `48,213`): counts up, ending on the exact server string.
+- **Calm zone:** nothing inside a post's `.prose` reveals; only its code windows print in. `sections` blocks animate.
+- **Automatic:** link cards (`a.card`, `.card.hoverable`) lift 3px under a brand-soft spotlight on fine pointers; `img.cover-img` / `.frame img` fade and de-blur in once loaded (priority images excluded); the glow drifts; the status dot pings.
+- **Header:** sticks and, past 80px, condenses into a floating blurred pill (badge only). Its height never changes; `--header-offset` feeds `scroll-padding-top` and the post TOC. Never give `.site-header` a transform, filter, backdrop-filter or will-change: it holds the fixed palette and back-to-top button. The nav highlight, TOC and Soundtrack queue use one sliding highlight each.
+- **Page transitions:** `@view-transition { navigation: auto }` crossfades every navigation (Chrome, Safari 18.2+; Firefox hard-loads). Post and project cards carry `data-vt="<post|project>-<slug>"` (`vtKey()`) and `data-vt-part="cover|title"`; `motion.ts` names only the clicked card's parts at `pageswap`, so lists never hold duplicates (a duplicate name makes Chrome skip the transition). The post or project page names its `.vt-cover` / `.vt-title` (`--vt-name`) only when `html.vt-morph` says it arrived from a card. Never put static names on list cards.
+- **Scoped-style gotchas:** `motion.css` is layered, so a component's scoped (unlayered) style beats it; a component's own motion lives in its scoped style under `:global(:root[data-motion="full"])`. `set:html` content needs global rules. `::view-transition-*` selectors can't live in scoped styles. Keyframe names are global: prefix them (`m-`, `k-`, `tl-`).
 
 ## Customisation
 
 Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Corners use the token scale only: `xl` 22 (wide features, big windows, floating panels), `lg` 18 (cards, windows), `md` 12 (tiles inside a card), `sm` 8 (thumbs), `pill`. Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.card`, `.accent-card`, `.prose`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
 
-Components (`src/components/`): `SiteHeader` (nav pill, ☰ menu below 760px, ⌘K palette, keyboard shortcuts; one vanilla client script), `SiteFooter`, `Window` (terminal chrome), `SectionLabel`, `Timeline` (compact/full), `PostCard` (feature/row/grid), `ProjectCard` (full/compact, optional `href`), `Soundtrack` (the Spotify player; `/uses` and the `now_playing` block). Portable Text overrides are in `pt/`: `Block` (h2 ids for the TOC, NOTE callout), `Note`, `CodeBlock` (window chrome, line numbers, copy button), and `components.ts` (the map shared by posts and the `prose` block). Block renderers are in `blocks/`, all framed by `BlockSection` (optional SectionLabel; `narrow` = the 700px reading measure).
+Components (`src/components/`): `SiteHeader` (sticky nav pill with a sliding highlight, ☰ menu below 760px, ⌘K palette, `↑ gg` back-to-top, keyboard shortcuts; one vanilla client script), `SiteFooter`, `Kicker` (the typing `$ cmd` line over a hero title), `Window` (terminal chrome), `SectionLabel`, `Timeline` (compact/full), `PostCard` (feature/row/grid), `ProjectCard` (full/compact, optional `href`), `Soundtrack` (the Spotify player; `/uses` and the `now_playing` block). Portable Text overrides are in `pt/`: `Block` (h2 ids for the TOC, NOTE callout), `Note`, `CodeBlock` (window chrome, line numbers, copy button), and `components.ts` (the map shared by posts and the `prose` block). Block renderers are in `blocks/`, all framed by `BlockSection` (optional SectionLabel; `narrow` = the 700px reading measure).
 
 Code highlighting uses `src/lib/highlight.ts`: Shiki's fine-grained core with a fixed grammar list and the JavaScript regex engine. Don't switch to Astro's `<Code>`; it bundles every grammar plus the WASM engine into the Worker. Add a language by adding it to `LANGS`, and to the `terminal` block's `language` options (a compatible change: same version).
 
@@ -179,7 +201,8 @@ Config and ops:
 ## What not to do
 
 - Don't add a second accent colour or coloured section backgrounds. The purple accent, its soft tint and the fixed-dark player card are the whole palette.
-- Don't use drop shadows on cards. Shadows exist only on floating layers (menu dropdown, palette).
+- Don't use drop shadows on cards. Shadows exist only on floating layers (menu dropdown, palette). The condensed header pill and the back-to-top button don't get one either.
 - Don't hardcode copy that belongs in the `profile` entry or a collection. The site is meant to be fully CMS-driven.
 - Don't write generic copy ("Welcome to my blog"). Keep it specific and dry, in the terminal/git voice.
 - Don't add JS frameworks for interactivity. The header, palette, filters and player are small vanilla scripts.
+- Don't add animation libraries (AOS, GSAP, Motion) or new infinite loops. Hover effects go behind `@media (hover: hover) and (pointer: fine)`, movement behind `data-motion="full"`, and anything that starts hidden behind `:root[data-motion]` + `@media screen`.

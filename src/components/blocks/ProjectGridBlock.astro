@@ -22,8 +22,8 @@ if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
 
 {
 	entries.length > 0 && (
-		<BlockSection label={value.label} note="ls -la projects/">
-			<div class:list={["projects", variant]}>
+		<BlockSection label={value.label} note="ls -la projects/" reveal={false}>
+			<div class:list={["projects", variant]} data-stagger>
 				{entries.map((e) => (
 					<ProjectCard project={e.data as any} variant={variant} href={projectHref(e)} />
 				))}

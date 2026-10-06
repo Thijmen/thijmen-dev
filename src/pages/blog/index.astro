@@ -1,8 +1,9 @@
 ---
 import { getEmDashCollection, getTaxonomyTermsWithCacheHint } from "emdash";
 import Base from "../../layouts/Base.astro";
+import Kicker from "../../components/Kicker.astro";
 import PostCard from "../../components/PostCard.astro";
-import { emphasize, getProfile, toPostSummary } from "../../lib/content";
+import { getProfile, plainTitle, riseWords, toPostSummary } from "../../lib/content";
 
 const [{ profile, cacheHint: profileHint }, { data: allTags, cacheHint: tagsHint }] = await Promise.all([
 	getProfile(),
@@ -29,19 +30,25 @@ if (Astro.cache?.enabled) {
 const total = entries.length;
 const posts = entries.map(toPostSummary).filter((p) => !active || p.tags.some((t) => t.slug === active));
 const [feature, ...rest] = posts;
+const blogTitle = profile?.blog_title || "Writing *from production.*";
 ---
 
 <Base title="Blog" description={profile?.blog_intro} glow="left">
 	<main class="page blog">
 		<div class="head">
-			<div class="hero">
-				<span class="kicker"><span class="sigil">$</span> ls -lt blog/ | wc -l <span class="ink">→ {total}</span></span>
-				<h1 class="display" set:html={emphasize(profile?.blog_title || "Writing *from production.*")} />
+			<div class="hero" data-hero>
+				<Kicker cmd="ls -lt blog/ | wc -l" out={total} count />
+				<h1
+					class="display"
+					data-words
+					aria-label={plainTitle(blogTitle)}
+					set:html={riseWords(blogTitle)}
+				/>
 				{profile?.blog_intro && <p class="lede">{profile.blog_intro}</p>}
 			</div>
 		</div>
 
-		<nav class="chip-row" aria-label="Filter by tag">
+		<nav class="chip-row" aria-label="Filter by tag" data-stagger>
 			<a href="/blog" class="chip" aria-current={active ? undefined : "page"}>
 				#all <span class="count">{total}</span>
 			</a>
@@ -54,11 +61,11 @@ const [feature, ...rest] = posts;
 			}
 		</nav>
 
-		{feature ? <PostCard post={feature} variant="feature" wide /> : <p class="lede">No posts yet.</p>}
+		{feature ? <PostCard post={feature} variant="feature" wide data-reveal /> : <p class="lede">No posts yet.</p>}
 
 		{
 			rest.length > 0 && (
-				<div class="grid">
+				<div class="grid" data-stagger>
 					{rest.map((p) => (
 						<PostCard post={p} variant="grid" />
 					))}
@@ -83,10 +90,6 @@ const [feature, ...rest] = posts;
 
 	.head .hero {
 		max-width: 720px;
-	}
-
-	.ink {
-		color: var(--color-text);
 	}
 
 	.grid {

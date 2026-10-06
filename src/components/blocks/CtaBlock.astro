@@ -9,7 +9,7 @@ interface Props {
 const { value } = Astro.props;
 ---
 
-<a href={sanitizeHref(value.link_url)} class="accent-card cta">
+<a href={sanitizeHref(value.link_url)} class="accent-card cta" data-reveal>
 	<span class="cta-text" set:html={emphasize(value.text)} />
 	<span class="cta-link">{value.link_label || `$ open ${value.link_url} →`}</span>
 </a>

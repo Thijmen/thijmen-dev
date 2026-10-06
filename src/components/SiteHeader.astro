@@ -25,6 +25,8 @@ const isCurrent = (url: string) =>
 	url === "/" ? path === "/" : path === url || path.startsWith(`${url}/`);
 const navPath = (url: string) => (url === "/" ? "~/" : `~${url}`);
 const shortcut = (label: string) => label.charAt(0).toLowerCase();
+// `g g` scrolls to the top, vim-style, unless a nav label claims `g`.
+const ggFree = !nav.some((n) => shortcut(n.label) === "g");
 
 type Command = { label: string; hint: string; href?: string; action?: string };
 const commands: Command[] = [
@@ -35,19 +37,28 @@ const commands: Command[] = [
 	})),
 	...(latestPost ? [{ label: `Read: ${latestPost.title}`, hint: "post", href: latestPost.url }] : []),
 	{ label: "Toggle light / dark", hint: "t", action: "theme" },
+	{ label: "Back to top", hint: ggFree ? "g g" : "↑", action: "top" },
+	{ label: "set motion=off", hint: "calm", action: "motion-off" },
+	{ label: "set motion=on", hint: "lively", action: "motion-on" },
 	...(email ? [{ label: "Copy email address", hint: "mail", action: "copy-email" }] : []),
 	...(github ? [{ label: "Open GitHub", hint: "↗", href: github, action: "external" }] : []),
 ];
 ---
 
-<header class="site-header" data-email={email}>
+<header class="site-header" data-email={email} data-gg={ggFree ? "" : undefined}>
 	<div class="bar">
 		<a href="/" class="brand">
 			<span class="badge">TS</span>
-			<span class="brand-path">~/thijmen<span class="crumb">{crumb}</span></span>
+			<span class="brand-path">
+				<span class="roll">
+					<span class="roll-a">~/thijmen<span class="crumb">{crumb}</span></span>
+					<span class="roll-b" aria-hidden="true">cd ~</span>
+				</span>
+			</span>
 		</a>
 
 		<nav class="nav-pill" aria-label="Primary">
+			<span class="nav-glide" aria-hidden="true"></span>
 			{
 				nav.map((n) => (
 					<a
@@ -78,8 +89,8 @@ const commands: Command[] = [
 	<div class="menu" id="mobile-menu" hidden>
 		<nav class="menu-inner" aria-label="Primary">
 			{
-				nav.map((n) => (
-					<a href={n.url} class:list={["menu-link", { current: isCurrent(n.url) }]}>
+				nav.map((n, i) => (
+					<a href={n.url} class:list={["menu-link", { current: isCurrent(n.url) }]} style={`--i:${i}`}>
 						<span>{n.label}</span>
 						<span class="menu-path">{navPath(n.url)}</span>
 					</a>
@@ -123,9 +134,15 @@ const commands: Command[] = [
 			</div>
 		</div>
 	</div>
+
+	<button type="button" class="to-top" data-to-top aria-label={ggFree ? "Back to top (g g)" : "Back to top"}>
+		↑ {ggFree ? "gg" : "top"}
+	</button>
 </header>
 
 <script>
+	import { applyMotionPref } from "../scripts/motion";
+
 	const root = document.documentElement;
 	const header = document.querySelector<HTMLElement>(".site-header")!;
 	const themeLabel = header.querySelector<HTMLElement>(".theme-label")!;
@@ -136,21 +153,120 @@ const commands: Command[] = [
 	const cmds = [...palette.querySelectorAll<HTMLButtonElement>(".cmd")];
 	const empty = palette.querySelector<HTMLElement>(".palette-empty")!;
 	const navKeys = [...header.querySelectorAll<HTMLAnchorElement>(".nav-link")];
+	const brand = header.querySelector<HTMLAnchorElement>(".brand")!;
+	const toTopBtn = header.querySelector<HTMLButtonElement>("[data-to-top]")!;
+	const ggFree = header.hasAttribute("data-gg");
+	const full = () => root.dataset.motion === "full";
 
 	// Theme ------------------------------------------------------------
 	const currentTheme = () =>
 		root.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 	const syncThemeLabel = () => (themeLabel.textContent = ` ${currentTheme()}`);
-	function toggleTheme() {
+	/**
+	 * Swap the theme. With full motion and View Transitions the new theme
+	 * grows as a circle from `origin` (the toggle; the viewport centre for
+	 * `t` and the palette). Otherwise the body's colour fade does the job.
+	 */
+	function toggleTheme(origin?: { x: number; y: number }) {
 		const next = currentTheme() === "light" ? "dark" : "light";
-		root.dataset.theme = next;
-		try {
-			localStorage.setItem("ts-theme", next);
-		} catch {}
-		syncThemeLabel();
+		const apply = () => {
+			root.dataset.theme = next;
+			try {
+				localStorage.setItem("ts-theme", next);
+			} catch {}
+			syncThemeLabel();
+		};
+		if (!document.startViewTransition || !full()) return apply();
+		const { x, y } = origin ?? { x: innerWidth / 2, y: innerHeight / 2 };
+		const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+		// Freezes transitions so the new snapshot already has the new colours.
+		root.classList.add("theme-vt");
+		const vt = document.startViewTransition(apply);
+		vt.ready
+			.then(() =>
+				root.animate(
+					{ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+					{ duration: 560, easing: "cubic-bezier(0.16, 1, 0.3, 1)", pseudoElement: "::view-transition-new(root)" },
+				),
+			)
+			.catch(() => {});
+		vt.finished.finally(() => root.classList.remove("theme-vt"));
 	}
 	syncThemeLabel();
-	header.querySelector("[data-toggle-theme]")!.addEventListener("click", toggleTheme);
+	header.querySelector("[data-toggle-theme]")!.addEventListener("click", (e) => {
+		const b = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		toggleTheme({ x: b.left + b.width / 2, y: b.top + b.height / 2 });
+	});
+
+	// Sticky header ----------------------------------------------------
+	// Sticks and condenses into a floating pill past 80px. Its height never
+	// changes, so nothing below moves; --header-offset feeds scroll-padding.
+	header.classList.add("js-sticky");
+	const syncOffset = () => root.style.setProperty("--header-offset", `${header.offsetHeight}px`);
+	new ResizeObserver(syncOffset).observe(header);
+	let condensed: boolean | undefined;
+	let showTop: boolean | undefined;
+	let ticking = false;
+	function onScroll() {
+		ticking = false;
+		const y = scrollY;
+		if (condensed !== y > 80) header.classList.toggle("condensed", (condensed = y > 80));
+		if (showTop !== y > innerHeight) toTopBtn.classList.toggle("show", (showTop = y > innerHeight));
+	}
+	addEventListener(
+		"scroll",
+		() => {
+			if (!ticking) requestAnimationFrame(onScroll);
+			ticking = true;
+		},
+		{ passive: true },
+	);
+	onScroll();
+	// Transitions only after the first placement: a reload halfway down
+	// the page starts condensed instead of animating into it.
+	requestAnimationFrame(() => requestAnimationFrame(() => header.classList.add("header-ready")));
+
+	function toTop() {
+		scrollTo({ top: 0, behavior: full() ? "smooth" : "auto" });
+		// The button hides at the top; keep focus somewhere sensible.
+		brand.focus({ preventScroll: true });
+	}
+	toTopBtn.addEventListener("click", toTop);
+
+	// Nav glide --------------------------------------------------------
+	// One highlight that slides to the hovered or focused link and back
+	// to the current page's link.
+	const pill = header.querySelector<HTMLElement>(".nav-pill")!;
+	const glide = pill.querySelector<HTMLElement>(".nav-glide")!;
+	const current = navKeys.find((a) => a.classList.contains("current"));
+	let target: HTMLElement | undefined;
+	function glideTo(link: HTMLElement | undefined, jump = false) {
+		target = link;
+		if (!link || !link.offsetWidth) return glide.classList.remove("on");
+		// Appearing from nothing (or re-measuring): place it, don't slide.
+		jump ||= !glide.classList.contains("on");
+		if (jump) glide.style.transition = "none";
+		glide.style.setProperty("--x", `${link.offsetLeft}px`);
+		glide.style.setProperty("--y", `${link.offsetTop}px`);
+		glide.style.setProperty("--w", `${link.offsetWidth}px`);
+		glide.style.setProperty("--h", `${link.offsetHeight}px`);
+		if (jump) {
+			void glide.offsetWidth;
+			glide.style.transition = "";
+		}
+		glide.classList.add("on");
+	}
+	pill.classList.add("has-glide");
+	navKeys.forEach((a) => {
+		a.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && glideTo(a));
+		a.addEventListener("focus", () => glideTo(a));
+	});
+	pill.addEventListener("pointerleave", () => glideTo(current));
+	pill.addEventListener("focusout", (e) => !pill.contains(e.relatedTarget as Node) && glideTo(current));
+	// Font swaps, breakpoints and the pill hiding below 760px.
+	new ResizeObserver(() => glideTo(target, true)).observe(pill);
+	document.fonts?.ready.then(() => glideTo(target, true));
+	glideTo(current, true);
 
 	// Mobile menu ------------------------------------------------------
 	function setMenu(open: boolean) {
@@ -173,18 +289,30 @@ const commands: Command[] = [
 		empty.hidden = list.length > 0;
 		empty.querySelector("span")!.textContent = input.value;
 	}
+	let opener: HTMLElement | null = null;
 	function openPalette() {
 		setMenu(false);
+		opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		palette.hidden = false;
 		input.value = "";
 		sel = 0;
 		render();
 		input.focus();
 	}
-	const closePalette = () => (palette.hidden = true);
+	function closePalette() {
+		const hadFocus = palette.contains(document.activeElement);
+		palette.hidden = true;
+		// Back to whatever opened it (the palette fades out for a moment).
+		if (hadFocus && opener?.isConnected) opener.focus({ preventScroll: true });
+	}
 	function run(cmd: HTMLButtonElement) {
 		const { href, action } = cmd.dataset;
-		if (action === "theme") toggleTheme();
+		if (action === "theme") {
+			// Close first so the theme reveal doesn't capture a half-open palette.
+			palette.hidden = true;
+			toggleTheme();
+		} else if (action === "top") toTop();
+		else if (action === "motion-off" || action === "motion-on") applyMotionPref(action === "motion-off" ? "off" : "on");
 		else if (action === "copy-email") navigator.clipboard?.writeText(header.dataset.email ?? "").catch(() => {});
 		else if (action === "external" && href) window.open(href, "_blank", "noopener");
 		else if (href) location.href = href;
@@ -239,8 +367,12 @@ const commands: Command[] = [
 			e.preventDefault();
 			openPalette();
 		} else if (e.key === "t") toggleTheme();
-		else if (e.key === "g") gAt = Date.now();
-		else if (Date.now() - gAt < 900) {
+		else if (e.key === "g") {
+			if (ggFree && Date.now() - gAt < 900) {
+				gAt = 0;
+				toTop();
+			} else gAt = Date.now();
+		} else if (Date.now() - gAt < 900) {
 			const link = navKeys.find((a) => a.dataset.key === e.key);
 			if (link) location.href = link.href;
 		}
@@ -248,14 +380,34 @@ const commands: Command[] = [
 </script>
 
 <style>
+	/*
+	 * Never give .site-header a transform, filter, backdrop-filter or
+	 * will-change: it holds the fixed palette and back-to-top button, and
+	 * any of those would make it their containing block.
+	 */
 	.site-header {
 		position: relative;
-		z-index: 5;
+		z-index: 30;
 		font-size: 14px;
 		color: var(--color-text);
 	}
 
+	/* Sticky once the script runs. The strip around the pill lets clicks through. */
+	.js-sticky {
+		position: sticky;
+		top: 0;
+		pointer-events: none;
+	}
+
+	.js-sticky .bar > *,
+	.js-sticky .menu,
+	.js-sticky .palette,
+	.js-sticky .to-top {
+		pointer-events: auto;
+	}
+
 	.bar {
+		position: relative;
 		max-width: var(--wide-width);
 		margin: 0 auto;
 		padding: 20px var(--gutter);
@@ -263,6 +415,76 @@ const commands: Command[] = [
 		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		gap: 14px 20px;
 		align-items: center;
+	}
+
+	/* The floating pill behind the condensed bar. */
+	.bar::before {
+		content: "";
+		position: absolute;
+		inset: 12px 0;
+		z-index: -1;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+		background: color-mix(in oklch, var(--color-bg) 76%, transparent);
+		-webkit-backdrop-filter: blur(14px) saturate(1.4);
+		backdrop-filter: blur(14px) saturate(1.4);
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.condensed .bar {
+		max-width: min(var(--header-pill-w, 940px), 100% - 24px);
+		padding-inline: 22px 14px;
+	}
+
+	.condensed .bar::before {
+		opacity: 1;
+	}
+
+	.condensed .brand {
+		gap: 0;
+	}
+
+	.condensed .brand-path {
+		max-width: 0;
+		opacity: 0;
+	}
+
+	.condensed .nav-pill {
+		border-color: transparent;
+		background: transparent;
+	}
+
+	.condensed .wide-only {
+		display: none;
+	}
+
+	.header-ready .bar {
+		transition:
+			max-width var(--dur-header) var(--ease-out),
+			padding var(--dur-header) var(--ease-out);
+	}
+
+	.header-ready .bar::before {
+		transition: opacity var(--dur-header) var(--ease-out);
+	}
+
+	.header-ready .brand,
+	.header-ready .brand-path,
+	.header-ready .nav-pill {
+		transition:
+			gap var(--dur-header) var(--ease-out),
+			max-width var(--dur-header) var(--ease-out),
+			opacity var(--dur-header) var(--ease-out),
+			border-color var(--dur-header),
+			background-color var(--dur-header);
+	}
+
+	@media (prefers-reduced-transparency: reduce) {
+		.bar::before {
+			background: var(--color-bg);
+			backdrop-filter: none;
+		}
 	}
 
 	.brand {
@@ -295,9 +517,39 @@ const commands: Command[] = [
 	}
 
 	.brand-path {
+		min-width: 0;
+		max-width: 100%;
+		overflow: hidden;
+	}
+
+	/* Logo roll: hovering `~/thijmen/…` rolls it up to `cd ~`. */
+	.roll {
+		display: grid;
+	}
+
+	.roll > * {
+		grid-area: 1 / 1;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.roll-b {
+		translate: 0 110%;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		:global(:root[data-motion="full"]) .roll > * {
+			transition: translate 300ms var(--ease-in-out);
+		}
+
+		:global(:root[data-motion="full"]) .brand:is(:hover, :focus-visible) .roll-a {
+			translate: 0 -110%;
+		}
+
+		:global(:root[data-motion="full"]) .brand:is(:hover, :focus-visible) .roll-b {
+			translate: 0 0;
+		}
 	}
 
 	.crumb {
@@ -305,6 +557,7 @@ const commands: Command[] = [
 	}
 
 	.nav-pill {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 4px;
@@ -315,11 +568,38 @@ const commands: Command[] = [
 	}
 
 	.nav-link {
+		position: relative;
 		padding: 7px 14px;
 		border-radius: var(--radius-pill);
 		color: var(--color-text);
 		text-decoration: none;
 		white-space: nowrap;
+	}
+
+	/* Sliding highlight, positioned by the script. */
+	.nav-glide {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: var(--w, 0);
+		height: var(--h, 0);
+		translate: var(--x, 0) var(--y, 0);
+		border-radius: var(--radius-pill);
+		background: var(--color-brand-soft);
+		opacity: 0;
+		transition:
+			translate var(--dur-move) var(--ease-out),
+			width var(--dur-move) var(--ease-out),
+			opacity var(--dur-fast);
+	}
+
+	.nav-glide.on {
+		opacity: 1;
+	}
+
+	.has-glide .nav-link:hover,
+	.has-glide .nav-link.current {
+		background: transparent;
 	}
 
 	.nav-link:hover {
@@ -402,6 +682,45 @@ const commands: Command[] = [
 		padding: 0 clamp(16px, 5vw, 64px);
 	}
 
+	/*
+	 * Menu and palette animate in and out around the `hidden` toggle:
+	 * @starting-style for the way in, `display … allow-discrete` keeps them
+	 * on screen for the way out (a transition outranks [hidden]'s
+	 * !important). Browsers without either just snap, as before.
+	 */
+	.menu {
+		transition:
+			opacity var(--dur-ui) var(--ease-out),
+			translate var(--dur-ui) var(--ease-out),
+			display var(--dur-ui) allow-discrete;
+	}
+
+	.menu[hidden] {
+		opacity: 0;
+		translate: 0 var(--drop-y);
+		pointer-events: none;
+	}
+
+	@starting-style {
+		.menu:not([hidden]) {
+			opacity: 0;
+			translate: 0 var(--drop-y);
+		}
+	}
+
+	.menu-link {
+		transition:
+			opacity var(--dur-reveal) var(--ease-out) calc(var(--i, 0) * 25ms),
+			translate var(--dur-reveal) var(--ease-out) calc(var(--i, 0) * 25ms);
+	}
+
+	@starting-style {
+		.menu:not([hidden]) .menu-link {
+			opacity: 0;
+			translate: 0 calc(var(--drop-y) * -1);
+		}
+	}
+
 	.menu-inner {
 		display: flex;
 		flex-direction: column;
@@ -469,8 +788,43 @@ const commands: Command[] = [
 		backdrop-filter: blur(4px);
 	}
 
+	.palette {
+		transition:
+			opacity var(--dur-ui) var(--ease-out),
+			display var(--dur-ui) allow-discrete;
+	}
+
 	.palette[hidden] {
 		display: none;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	@starting-style {
+		.palette:not([hidden]) {
+			opacity: 0;
+		}
+	}
+
+	.palette-box {
+		transition:
+			opacity var(--dur-ui) var(--ease-out),
+			scale var(--dur-ui) var(--ease-out),
+			translate var(--dur-ui) var(--ease-out);
+	}
+
+	.palette[hidden] .palette-box {
+		opacity: 0;
+		scale: var(--pop-scale);
+		translate: 0 var(--drop-y);
+	}
+
+	@starting-style {
+		.palette:not([hidden]) .palette-box {
+			opacity: 0;
+			scale: var(--pop-scale);
+			translate: 0 var(--drop-y);
+		}
 	}
 
 	.palette-box {
@@ -539,6 +893,10 @@ const commands: Command[] = [
 		cursor: pointer;
 	}
 
+	.cmd {
+		transition: background-color var(--dur-fast);
+	}
+
 	.cmd.selected {
 		background: var(--color-brand-soft);
 	}
@@ -553,6 +911,50 @@ const commands: Command[] = [
 		padding: 14px 12px;
 		color: var(--color-muted);
 		font-size: 13px;
+	}
+
+	/* Back to top */
+	.to-top {
+		position: fixed;
+		right: max(16px, env(safe-area-inset-right));
+		bottom: max(16px, env(safe-area-inset-bottom));
+		min-height: 40px;
+		padding: 8px 15px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+		background: color-mix(in oklch, var(--color-bg) 76%, transparent);
+		-webkit-backdrop-filter: blur(14px) saturate(1.4);
+		backdrop-filter: blur(14px) saturate(1.4);
+		color: var(--color-text);
+		font: inherit;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		cursor: pointer;
+		opacity: 0;
+		visibility: hidden;
+		translate: 0 calc(-1 * var(--drop-y));
+		transition:
+			opacity var(--dur-ui) var(--ease-out),
+			translate var(--dur-ui) var(--ease-out),
+			border-color var(--dur-fast),
+			visibility 0s linear var(--dur-ui);
+	}
+
+	.to-top.show {
+		opacity: 1;
+		visibility: visible;
+		translate: 0 0;
+		transition-delay: 0s;
+	}
+
+	.to-top:hover {
+		border-color: var(--color-brand);
+	}
+
+	@media print {
+		.to-top {
+			display: none;
+		}
 	}
 
 	.palette-foot {
@@ -575,6 +977,15 @@ const commands: Command[] = [
 	@media (max-width: 759px) {
 		.bar {
 			padding-block: 14px;
+		}
+
+		/* Keep the round ☰ button concentric with the pill's end cap. */
+		.bar::before {
+			inset-block: 10px;
+		}
+
+		.condensed .bar {
+			padding-inline: 14px 4px;
 		}
 
 		.nav-pill,

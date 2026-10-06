@@ -56,5 +56,16 @@ export async function highlight(code: string, language?: string): Promise<string
 	const lang = key in LANGS ? key : ALIASES[key];
 	if (!lang) return null;
 	const hl = await getHighlighter();
-	return hl.codeToHtml(code, { lang, theme: "css-variables" });
+	return hl.codeToHtml(code, {
+		lang,
+		theme: "css-variables",
+		// Line index for the print-in effect (styles/motion.css).
+		transformers: [
+			{
+				line(node, line) {
+					node.properties.style = `--line:${line - 1}`;
+				},
+			},
+		],
+	});
 }

@@ -6,13 +6,15 @@
 interface Props {
 	title: string;
 	class?: string;
+	style?: string;
 	size?: "sm" | "md";
 }
 
-const { title, class: className, size = "sm" } = Astro.props;
+// Anything else (data-print, data-hero-item, …) lands on the root.
+const { title, class: className, size = "sm", ...attrs } = Astro.props;
 ---
 
-<div class:list={["window", size, className]}>
+<div class:list={["window", size, className]} {...attrs}>
 	<div class="window-bar">
 		<span class="dot"></span><span class="dot"></span><span class="dot"></span>
 		<span class="window-title">{title}</span>

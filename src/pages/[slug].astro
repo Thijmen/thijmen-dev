@@ -6,8 +6,9 @@
 import { decodeSlug, getEmDashEntry } from "emdash";
 import { Blocks } from "emdash/ui";
 import Base from "../layouts/Base.astro";
+import Kicker from "../components/Kicker.astro";
 import { MissingBlock, pageBody } from "../components/blocks";
-import { emphasize, hasImage, plainTitle } from "../lib/content";
+import { hasImage, plainTitle, riseWords } from "../lib/content";
 
 const slug = decodeSlug(Astro.params.slug);
 if (!slug) return Astro.redirect("/404");
@@ -27,9 +28,9 @@ const ogImage = hasImage(d.og_image) ? (d.og_image as { src?: string }).src : un
 	glow={d.glow === "right" ? "right" : "left"}
 >
 	<main class="page cms-page">
-		<div class="hero">
-			{d.kicker && <span class="kicker"><span class="sigil">$</span> {d.kicker}</span>}
-			<h1 class="display" set:html={emphasize(d.title)} />
+		<div class="hero" data-hero>
+			{d.kicker && <Kicker cmd={d.kicker} />}
+			<h1 class="display" data-words aria-label={plainTitle(d.title)} set:html={riseWords(d.title)} />
 			{d.lede && <p class="lede">{d.lede}</p>}
 		</div>
 

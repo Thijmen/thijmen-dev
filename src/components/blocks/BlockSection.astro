@@ -9,12 +9,14 @@ interface Props {
 	label?: string | null;
 	note?: string;
 	narrow?: boolean;
+	/** Fade up on scroll as one unit. Off for blocks whose grid staggers itself. */
+	reveal?: boolean;
 }
 
-const { label, note, narrow = false } = Astro.props;
+const { label, note, narrow = false, reveal = true } = Astro.props;
 ---
 
-<section class:list={["block", { narrow }]}>
+<section class:list={["block", { narrow }]} data-reveal={reveal ? "" : undefined}>
 	{label && <SectionLabel label={label} note={note} rule />}
 	<slot />
 </section>
