@@ -1,14 +1,16 @@
 ---
 import Base from "../layouts/Base.astro";
+import Kicker from "../components/Kicker.astro";
+import { riseWords } from "../lib/content";
 
 const path = Astro.url.pathname;
 ---
 
 <Base title="Not found" glow="left">
 	<main class="page">
-		<div class="hero">
-			<span class="kicker"><span class="sigil">$</span> cd {path}</span>
-			<h1 class="display">404<em>.</em></h1>
+		<div class="hero" data-hero>
+			<Kicker cmd={`cd ${path}`} />
+			<h1 class="display" data-words aria-label="404." set:html={riseWords("404*.*")} />
 			<p class="lede">
 				<span class="mono">cd: no such file or directory: {path}</span>
 			</p>

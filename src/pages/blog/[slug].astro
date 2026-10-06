@@ -5,12 +5,12 @@ import Base from "../../layouts/Base.astro";
 import { MissingBlock, postSections } from "../../components/blocks";
 import { ptComponents } from "../../components/pt/components";
 import {
-	emphasize,
 	extractHeadings,
 	formatDate,
 	hasImage,
 	plainTitle,
 	readingTime,
+	riseWords,
 	vtKey,
 } from "../../lib/content";
 
@@ -47,9 +47,9 @@ const vt = vtKey("post", post.id);
 <Base title={title} description={d.excerpt} image={coverSrc} type="article" glow="right">
 	<div class="progress" aria-hidden="true"></div>
 	<main class="page post">
-		<header class="post-head">
+		<header class="post-head" data-hero>
 			<a href="/blog" class="chip back">← cd ../blog</a>
-			<h1 class="title vt-title" style={`--vt-name:${vt}-title`} set:html={emphasize(d.title)} />
+			<h1 class="title vt-title" style={`--vt-name:${vt}-title`} data-words aria-label={title} set:html={riseWords(d.title)} />
 			<div class="meta">
 				<span class="pill">{formatDate(d.date)}</span>
 				<span class="pill">{readingTime(d.content)} min read</span>
@@ -63,7 +63,7 @@ const vt = vtKey("post", post.id);
 			</div>
 		</header>
 
-		<figure class="cover">
+		<figure class="cover" data-hero-item style="--hero-i:3">
 			<div class:list={["cover-frame", "vt-cover", { placeholder: !coverSrc }]} style={`--vt-name:${vt}-cover`}>
 				{coverSrc ? <Image image={d.featured_image as any} class="cover-img" priority /> : <span>cover.png · 2100×900</span>}
 			</div>
@@ -80,7 +80,7 @@ const vt = vtKey("post", post.id);
 
 				{
 					(older || newer) && (
-						<nav class="neighbours" aria-label="More posts">
+						<nav class="neighbours" aria-label="More posts" data-stagger>
 							{older ? (
 								<a href={`/blog/${older.id}`} class="card neighbour">
 									<span class="dir">← older</span>
@@ -100,7 +100,7 @@ const vt = vtKey("post", post.id);
 				}
 			</article>
 
-			<aside class="card toc">
+			<aside class="card toc" data-reveal>
 				{
 					headings.length > 0 && (
 						<>

@@ -2,8 +2,9 @@
 import { getEmDashCollection } from "emdash";
 import { Image } from "emdash/ui";
 import Base from "../layouts/Base.astro";
+import Kicker from "../components/Kicker.astro";
 import SectionLabel from "../components/SectionLabel.astro";
-import { emphasize, getProfile, hasImage } from "../lib/content";
+import { getProfile, hasImage, plainTitle, riseWords } from "../lib/content";
 import Soundtrack from "../components/Soundtrack.astro";
 
 const byPosition = { orderBy: { position: "asc" as const } };
@@ -21,13 +22,14 @@ if (Astro.cache?.enabled) {
 const tools = toolsRes.entries.map((e) => e.data);
 const categories = [...new Set(tools.map((t) => t.category).filter(Boolean))] as string[];
 const desk = deskRes.entries.map((e) => e.data);
+const usesTitle = profile?.uses_title || "Uses*.json*";
 ---
 
 <Base title="Uses" description={profile?.uses_intro} glow="right">
 	<main class="page uses">
-		<div class="hero">
-			<span class="kicker"><span class="sigil">$</span> jq . uses.json</span>
-			<h1 class="display" set:html={emphasize(profile?.uses_title || "Uses*.json*")} />
+		<div class="hero" data-hero>
+			<Kicker cmd="jq . uses.json" />
+			<h1 class="display" data-words aria-label={plainTitle(usesTitle)} set:html={riseWords(usesTitle)} />
 			{profile?.uses_intro && <p class="lede">{profile.uses_intro}</p>}
 		</div>
 
@@ -37,7 +39,7 @@ const desk = deskRes.entries.map((e) => e.data);
 			tools.length > 0 && (
 				<section class="section">
 					<SectionLabel label="TOOLS" note={`ls ~/.local/bin | wc -l → ${tools.length}`} rule />
-					<div class="chip-row" data-tool-filter>
+					<div class="chip-row" data-tool-filter data-stagger>
 						<button type="button" class="chip" data-cat="all" aria-pressed="true">
 							all <span class="count">{tools.length}</span>
 						</button>
@@ -47,7 +49,7 @@ const desk = deskRes.entries.map((e) => e.data);
 							</button>
 						))}
 					</div>
-					<div class="tools">
+					<div class="tools" data-stagger>
 						{tools.map((t) => (
 							<div class="card hoverable tool" data-tool-cat={t.category}>
 								<div class="tool-head">
@@ -69,7 +71,7 @@ const desk = deskRes.entries.map((e) => e.data);
 			desk.length > 0 && (
 				<section class="section">
 					<SectionLabel label="DESK" rule />
-					<div class="desk">
+					<div class="desk" data-stagger>
 						<div class:list={["desk-photo", { placeholder: !hasImage(profile?.desk_photo) }]}>
 							{hasImage(profile?.desk_photo) ? (
 								<Image image={profile!.desk_photo as any} class="cover-img" />

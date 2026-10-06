@@ -14,7 +14,8 @@ interface Props {
 	wide?: boolean;
 }
 
-const { post, variant = "grid", wide = false } = Astro.props;
+// Anything else (data-reveal, …) lands on the root link.
+const { post, variant = "grid", wide = false, ...attrs } = Astro.props;
 const meta = `${post.date} · ${post.readMin} min`;
 // Cover + title morph into the post page when this card is clicked (motion.ts).
 const vt = vtKey("post", post.slug);
@@ -22,7 +23,7 @@ const vt = vtKey("post", post.slug);
 
 {
 	variant === "row" ? (
-		<a href={post.url} class="card row" data-vt={vt}>
+		<a href={post.url} class="card row" data-vt={vt} {...attrs}>
 			<span class="thumb" data-vt-part="cover">{post.image && <Image image={post.image as any} class="cover-img" />}</span>
 			<span class="row-text">
 				<span class="row-title" data-vt-part="title">{post.title}</span>
@@ -38,7 +39,7 @@ const vt = vtKey("post", post.slug);
 			</span>
 		</a>
 	) : variant === "feature" ? (
-		<a href={post.url} class:list={["card", "feature", { wide }]} data-vt={vt}>
+		<a href={post.url} class:list={["card", "feature", { wide }]} data-vt={vt} {...attrs}>
 			<div class:list={["cover", { placeholder: !post.image }]} data-vt-part="cover">
 				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{wide ? placeholderName(post.slug) : "cover.png"}</span>}
 			</div>
@@ -63,7 +64,7 @@ const vt = vtKey("post", post.slug);
 			</div>
 		</a>
 	) : (
-		<a href={post.url} class="card grid" data-vt={vt}>
+		<a href={post.url} class="card grid" data-vt={vt} {...attrs}>
 			<div class:list={["cover", { placeholder: !post.image }]} data-vt-part="cover">
 				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{placeholderName(post.slug)}</span>}
 			</div>

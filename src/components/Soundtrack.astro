@@ -82,7 +82,11 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 	first && (
 		<section class="soundtrack">
 			<SectionLabel label={label} note={note || undefined} rule />
-			<div class:list={["music", { solo: !showQueue, paused: live && !nowPlaying.playing }]} data-player={playerData}>
+			<div
+				class:list={["music", { solo: !showQueue, paused: live && !nowPlaying.playing }]}
+				data-player={playerData}
+				data-stagger
+			>
 				<div class="player">
 					<div class="cover">
 						{live ? (
@@ -175,7 +179,7 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 			</div>
 
 			{playlists.length > 0 && (
-				<div class="playlists">
+				<div class="playlists" data-stagger>
 					{playlists.map((p, i) => (
 						<a href={p.url || "#"} class="card playlist">
 							<span class="pl-art" style={`background:${art(i + 1)}`}>
@@ -183,7 +187,20 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 							</span>
 							<span class="pl-text">
 								<span class="pl-name">{p.title}</span>
-								<span class="pl-meta">{p.meta}</span>
+								<span class="pl-meta">
+									{/* "142 tracks · 9h 31m": the count counts up. */}
+									{(() => {
+										const m = String(p.meta ?? "").match(/^(\d[\d,]*)(.*)$/s);
+										return m ? (
+											<>
+												<span data-count>{m[1]}</span>
+												{m[2]}
+											</>
+										) : (
+											p.meta
+										);
+									})()}
+								</span>
 							</span>
 						</a>
 					))}

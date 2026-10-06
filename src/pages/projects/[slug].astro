@@ -6,8 +6,9 @@
 import { decodeSlug, getEmDashEntry, sanitizeHref } from "emdash";
 import { Blocks, Image } from "emdash/ui";
 import Base from "../../layouts/Base.astro";
+import Kicker from "../../components/Kicker.astro";
 import { MissingBlock, projectBody } from "../../components/blocks";
-import { hasImage, vtKey } from "../../lib/content";
+import { hasImage, riseWords, vtKey } from "../../lib/content";
 
 const slug = decodeSlug(Astro.params.slug);
 if (!slug) return Astro.redirect("/404");
@@ -25,15 +26,21 @@ const vt = vtKey("project", project.id);
 
 <Base title={d.title} description={d.summary} image={coverSrc} glow="left">
 	<main class="page project">
-		<header class="hero">
+		<header class="hero" data-hero>
 			<a href="/projects" class="chip back">← cd ../projects</a>
-			<span class="kicker"><span class="sigil">$</span> cat {d.title}/README.md</span>
-			<h1 class="display name vt-title" style={`--vt-name:${vt}-title`}>{d.title}</h1>
+			<Kicker cmd={`cat ${d.title}/README.md`} />
+			<h1 class="display name vt-title" style={`--vt-name:${vt}-title`} data-words aria-label={d.title} set:html={riseWords(d.title)} />
 			{d.summary && <p class="lede">{d.summary}</p>}
 			<div class="meta">
 				<span class:list={["pill", "status", status]}>{status}</span>
 				{d.language && <span class="pill">● {d.language}</span>}
-				{d.stars && <span class="pill">★ {d.stars}</span>}
+				{
+					d.stars && (
+						<span class="pill">
+							★ <span data-count>{d.stars}</span>
+						</span>
+					)
+				}
 				{d.url && <a href={sanitizeHref(d.url)} class="pill repo">source ↗</a>}
 			</div>
 			{d.install && (
@@ -45,7 +52,7 @@ const vt = vtKey("project", project.id);
 
 		{
 			coverSrc && (
-				<div class="cover vt-cover" style={`--vt-name:${vt}-cover`}>
+				<div class="cover vt-cover" data-hero-item style={`--vt-name:${vt}-cover;--hero-i:6`}>
 					<Image image={d.featured_image as any} class="cover-img" priority />
 				</div>
 			)

@@ -219,6 +219,31 @@ const pageCtx = createPublicPageContext({
 				left: -160px;
 			}
 
+			/* Breathes: a slow drift, alternating so it never visibly loops. */
+			:global(:root[data-motion="full"]) .glow {
+				animation: glow-drift 24s ease-in-out infinite alternate;
+			}
+
+			:global(:root[data-motion="full"]) .glow.left {
+				animation-direction: alternate-reverse;
+			}
+
+			@keyframes glow-drift {
+				0% {
+					translate: 0 0;
+					scale: 1;
+				}
+				50% {
+					translate: -40px 24px;
+					scale: 1.08;
+					opacity: 0.85;
+				}
+				100% {
+					translate: 32px -16px;
+					scale: 0.95;
+				}
+			}
+
 			@media print {
 				.glow {
 					display: none;

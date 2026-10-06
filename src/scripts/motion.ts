@@ -26,6 +26,144 @@ export function applyMotionPref(pref?: "on" | "off") {
 }
 reduceQuery.addEventListener("change", () => applyMotionPref());
 
+const ms = (prop: string) => parseFloat(getComputedStyle(root).getPropertyValue(prop)) || 0;
+
+// Scroll reveals -------------------------------------------------------
+// [data-reveal] elements, children of [data-stagger] and [data-print]
+// windows get .is-in the first time they enter the viewport; the CSS in
+// motion.css does the rest. Each batch is staggered in document order.
+// Whatever is on screen at load waits for the hero to get going first.
+const REVEAL = "[data-reveal], [data-stagger] > *, [data-print], [data-count]:not(.type-out [data-count])";
+const pending = new Set<Element>();
+let firstBatch = true;
+
+function reveal(el: Element, delay: number) {
+	pending.delete(el);
+	io.unobserve(el);
+	(el as HTMLElement).style.setProperty("--reveal-delay", `${delay}ms`);
+	el.classList.add("is-in");
+	if (el.matches("[data-count]")) countUp(el as HTMLElement, delay);
+}
+
+const io = new IntersectionObserver(
+	(entries) => {
+		const base = firstBatch ? 280 : 0;
+		firstBatch = false;
+		const stagger = ms("--stagger");
+		entries
+			.filter((e) => e.isIntersecting)
+			.map((e) => e.target)
+			.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+			.forEach((el, i) => reveal(el, base + Math.min(i, 8) * stagger));
+	},
+	{ rootMargin: "0px 0px -10% 0px" },
+);
+document.querySelectorAll(REVEAL).forEach((el) => {
+	pending.add(el);
+	io.observe(el);
+});
+
+// At the very bottom nothing can scroll further into the -10% margin.
+const footer = document.querySelector(".site-footer");
+if (footer)
+	new IntersectionObserver((entries) => {
+		if (!entries.some((e) => e.isIntersecting)) return;
+		[...pending].forEach((el) => {
+			const r = el.getBoundingClientRect();
+			if (r.top < innerHeight && r.bottom > 0) reveal(el, 0);
+		});
+	}).observe(footer);
+
+/** Reveal everything at once (printing, or the tools filter showing cards). */
+export function revealAll() {
+	[...pending].forEach((el) => reveal(el, 0));
+	document.querySelectorAll<HTMLElement>("[data-count]").forEach((el) => counts.get(el)?.());
+}
+addEventListener("beforeprint", revealAll);
+
+// Count-ups ------------------------------------------------------------
+// "412", "1.2k", "48,213": counts from 0 to the server-rendered value and
+// always ends on that exact string (also what no-JS and screen readers get).
+const counts = new Map<HTMLElement, () => void>();
+
+export function countUp(el: HTMLElement, delay = 0) {
+	const final = el.textContent ?? "";
+	const m = final.trim().match(/^(\d[\d,]*(?:\.\d+)?)([kKmM]?)$/);
+	if (!m || !motionFull() || counts.has(el)) return;
+	const target = parseFloat(m[1].replace(/,/g, ""));
+	const decimals = m[1].split(".")[1]?.length ?? 0;
+	const fmt = (v: number) =>
+		(m[1].includes(",")
+			? Math.round(v).toLocaleString("en-US")
+			: v.toFixed(decimals)) + m[2];
+	// Pin the width so growing digits don't shove the text after them.
+	el.style.cssText += `display:inline-block;min-width:${el.getBoundingClientRect().width}px;text-align:right`;
+	let raf = 0;
+	const done = () => {
+		cancelAnimationFrame(raf);
+		el.textContent = final;
+		el.style.removeProperty("display");
+		el.style.removeProperty("min-width");
+		el.style.removeProperty("text-align");
+	};
+	counts.set(el, done);
+	el.textContent = fmt(0);
+	setTimeout(() => {
+		const start = performance.now();
+		const tick = (now: number) => {
+			const t = Math.min(1, (now - start) / 900);
+			if (t >= 1) return done();
+			el.textContent = fmt(target * (1 - Math.pow(2, -10 * t)));
+			raf = requestAnimationFrame(tick);
+		};
+		raf = requestAnimationFrame(tick);
+	}, delay);
+}
+
+// A typing kicker's output (`→ 8`) counts once it appears (Kicker.astro).
+document.addEventListener(
+	"animationstart",
+	(e) => {
+		const out = (e.target as Element).closest?.(".type-out");
+		out?.querySelectorAll<HTMLElement>("[data-count]").forEach((el) => countUp(el));
+	},
+	true,
+);
+
+// Images ---------------------------------------------------------------
+// Fade in once loaded (CSS in motion.css); broken images show too.
+document.querySelectorAll<HTMLImageElement>("img.cover-img, .frame img").forEach((img) => {
+	const done = () => img.setAttribute("data-loaded", "");
+	if (img.complete) done();
+	else {
+		img.addEventListener("load", done, { once: true });
+		img.addEventListener("error", done, { once: true });
+	}
+});
+
+// Card spotlight -------------------------------------------------------
+// Feeds --mx/--my to the hovered card's radial glow (motion.css).
+const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
+let spot: PointerEvent | null = null;
+document.addEventListener(
+	"pointermove",
+	(e) => {
+		if (e.pointerType !== "mouse" || !finePointer.matches || !motionFull()) return;
+		if (!spot)
+			requestAnimationFrame(() => {
+				const ev = spot!;
+				spot = null;
+				const card = (ev.target as Element).closest?.<HTMLElement>("a.card, .card.hoverable");
+				if (!card) return;
+				const r = card.getBoundingClientRect();
+				card.style.setProperty("--mx", `${ev.clientX - r.left}px`);
+				card.style.setProperty("--my", `${ev.clientY - r.top}px`);
+			});
+		spot = e;
+	},
+	{ passive: true },
+);
+
 // Card → page morphs ---------------------------------------------------
 // Post and project cards carry data-vt="post-<slug>" and data-vt-part on
 // their cover and title. Names go on the clicked card only, as the page

@@ -33,8 +33,13 @@ const posts = entries
 
 {
 	posts.length > 0 && (
-		<BlockSection label={value.label} note={tag ? `ls blog/ | grep #${tag}` : undefined} narrow={variant === "row"}>
-			<div class:list={["posts", variant]}>
+		<BlockSection
+			label={value.label}
+			note={tag ? `ls blog/ | grep #${tag}` : undefined}
+			narrow={variant === "row"}
+			reveal={false}
+		>
+			<div class:list={["posts", variant]} data-stagger>
 				{posts.map((p) => (
 					<PostCard post={p} variant={variant} />
 				))}

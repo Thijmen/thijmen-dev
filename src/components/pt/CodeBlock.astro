@@ -15,15 +15,16 @@ const html = code ? await highlight(code, node.language) : null;
 
 {
 	code && (
-		<Window title={node.filename || node.language || "snippet"} class="code-window">
+		<Window title={node.filename || node.language || "snippet"} class="code-window" data-print style={`--lines:${lines}`}>
 			<button type="button" class="copy" slot="aside" data-copy>copy</button>
 			<div class="code-body">
 				<div class="gutter" aria-hidden="true">
 					{Array.from({ length: lines }, (_, i) => (
-						<span>{i + 1}</span>
+						<span style={`--line:${i}`}>{i + 1}</span>
 					))}
 				</div>
-				{html ? <Fragment set:html={html} /> : <pre class="shiki"><code>{code}</code></pre>}
+				{/* Unhighlighted fallback: same .line spans, so it prints in too. Kept on one line: whitespace in <pre> is content. */}
+				{html ? <Fragment set:html={html} /> : <pre class="shiki"><code>{code.split("\n").map((l, i) => <><span class="line" style={`--line:${i}`}>{l}</span>{i < lines - 1 && "\n"}</>)}</code></pre>}
 			</div>
 		</Window>
 	)

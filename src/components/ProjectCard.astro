@@ -69,7 +69,11 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 				)}
 				<div class="foot">
 					{p.language && <span>● {p.language}</span>}
-					{p.stars && <span>★ {p.stars}</span>}
+					{p.stars && (
+						<span>
+							★ <span data-count>{p.stars}</span>
+						</span>
+					)}
 				</div>
 			</div>
 		</article>

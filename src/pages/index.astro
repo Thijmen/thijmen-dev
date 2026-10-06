@@ -1,12 +1,13 @@
 ---
 import { getEmDashCollection, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
+import Kicker from "../components/Kicker.astro";
 import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import SectionLabel from "../components/SectionLabel.astro";
 import Timeline from "../components/Timeline.astro";
 import Window from "../components/Window.astro";
-import { asArray, emphasize, getProfile, projectHref, toPostSummary } from "../lib/content";
+import { asArray, emphasize, getProfile, projectHref, riseWords, toPostSummary } from "../lib/content";
 
 const [settings, { profile, cacheHint: profileHint }, postsRes, rolesRes, projectsRes] = await Promise.all([
 	getSiteSettings(),
@@ -34,22 +35,33 @@ const email = profile?.email;
 <Base glow="right">
 	<main class="home">
 		<section class="hero-grid">
-			<div class="intro">
+			<div class="intro" data-hero>
 				{profile?.status_line && <span class="status-pill">{profile.status_line}</span>}
-				<h1 class="name">{first}<br />{restNames.join(" ")}<em>.</em></h1>
+				<h1
+					class="name"
+					data-words
+					aria-label={`${first} ${restNames.join(" ")}.`}
+					set:html={riseWords(`${first}\n${restNames.join(" ")}*.*`)}
+				/>
 				{profile?.hero_intro && <p class="tagline">{profile.hero_intro}</p>}
 				<div class="ctas">
 					<a href="/blog" class="btn btn-primary">Read the blog →</a>
 					<a href="/resume" class="btn">Resume</a>
-					<span class="kicker"><span class="sigil">$</span> man {first.toLowerCase()}<span class="cursor"></span></span>
+					<Kicker cmd={`man ${first.toLowerCase()}`} cursor />
 				</div>
 			</div>
 			{
 				lines.length > 0 && (
-					<Window title="~/.profile" class="profile">
+					<Window
+						title="~/.profile"
+						class="profile"
+						data-hero-item
+						data-print
+						style={`--hero-i:4;--lines:${lines.length}`}
+					>
 						<div class="profile-body">
-							{lines.map((l) => (
-								<div>
+							{lines.map((l, i) => (
+								<div data-line style={`--line:${i}`}>
 									<span class="k">{l.k}</span>=
 									{l.kind === "list" ? (
 										<>
@@ -72,9 +84,9 @@ const email = profile?.email;
 			feature && (
 				<section class="writing">
 					<SectionLabel label="WRITING" href="/blog" linkText="ls blog/ →" rule />
-					<div class="writing-grid">
+					<div class="writing-grid" data-stagger>
 						<PostCard post={feature} variant="feature" />
-						<div class="rows">
+						<div class="rows" data-stagger>
 							{others.map((p) => (
 								<PostCard post={p} variant="row" />
 							))}
@@ -87,16 +99,16 @@ const email = profile?.email;
 		<section class="split">
 			{
 				roles.length > 0 && (
-					<div class="card history">
+					<div class="card history" data-reveal>
 						<SectionLabel label="HISTORY" href="/resume" linkText="resume(7) →" />
 						<Timeline roles={roles as any} variant="compact" />
 					</div>
 				)
 			}
-			<div class="side">
+			<div class="side" data-stagger>
 				{
 					projects.length > 0 && (
-						<div class="projects">
+						<div class="projects" data-stagger>
 							{projects.map((p) => (
 								<ProjectCard project={p.data as any} variant="compact" href={p.href} />
 							))}
@@ -151,7 +163,7 @@ const email = profile?.email;
 		letter-spacing: -0.03em;
 	}
 
-	.name em {
+	.name :global(em) {
 		font-style: italic;
 		color: var(--color-brand);
 	}

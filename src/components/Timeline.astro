@@ -25,7 +25,7 @@ const { roles, variant = "compact" } = Astro.props;
 const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 ---
 
-<ol class:list={["timeline", variant]}>
+<ol class:list={["timeline", variant]} data-stagger>
 	{
 		roles.map((r) => (
 			<li class="commit">
@@ -59,8 +59,16 @@ const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 					)}
 					{variant === "full" && (
 						<div class="stats">
-							{r.additions && <span class="stat plus">+{r.additions}</span>}
-							{r.deletions && <span class="stat minus">-{r.deletions}</span>}
+							{r.additions && (
+								<span class="stat plus">
+									+<span data-count>{r.additions}</span>
+								</span>
+							)}
+							{r.deletions && (
+								<span class="stat minus">
+									-<span data-count>{r.deletions}</span>
+								</span>
+							)}
 							{list(r.stack).map((s) => (
 								<span class="tag-soft">{s}</span>
 							))}
@@ -115,6 +123,29 @@ const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 		flex: 1;
 		width: 2px;
 		background: var(--color-border);
+		transform-origin: top;
+	}
+
+	/* As each commit reveals, its node pops and the rail draws down. */
+	:global(:root[data-motion="full"]) .commit:global(.is-in) .node {
+		animation: tl-pop 480ms var(--ease-out) var(--reveal-delay, 0ms) backwards;
+	}
+
+	:global(:root[data-motion="full"]) .commit:global(.is-in) .line {
+		animation: tl-draw 800ms var(--ease-out) calc(var(--reveal-delay, 0ms) + 160ms) backwards;
+	}
+
+	@keyframes tl-pop {
+		from {
+			opacity: 0;
+			scale: 0.3;
+		}
+	}
+
+	@keyframes tl-draw {
+		from {
+			scale: 1 0;
+		}
 	}
 
 	.body {

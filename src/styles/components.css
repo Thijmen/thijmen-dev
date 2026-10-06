@@ -67,6 +67,7 @@
 
 	/* Status pill: "● Staff Engineer at …" */
 	.status-pill {
+		position: relative;
 		align-self: flex-start;
 		display: flex;
 		align-items: center;
