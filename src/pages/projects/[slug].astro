@@ -19,7 +19,9 @@ if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
 
 const d = project.data;
 const status = (d.project_status ?? "active").toLowerCase();
-const coverSrc = hasImage(d.featured_image) ? (d.featured_image as { src?: string }).src : undefined;
+// Admin uploads are stored without `src`: render on hasImage(); `src` only feeds og:image.
+const hasCover = hasImage(d.featured_image);
+const coverSrc = hasCover ? (d.featured_image as { src?: string }).src : undefined;
 // Morph targets for the card → case study view transition (styles/motion.css).
 const vt = vtKey("project", project.id);
 ---
@@ -51,7 +53,7 @@ const vt = vtKey("project", project.id);
 		</header>
 
 		{
-			coverSrc && (
+			hasCover && (
 				<div class="cover vt-cover" data-hero-item style={`--vt-name:${vt}-cover;--hero-i:6`}>
 					<Image image={d.featured_image as any} class="cover-img" priority />
 				</div>

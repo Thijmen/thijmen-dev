@@ -39,7 +39,10 @@ const index = all.findIndex((e) => e.id === post.id);
 const newer = index > 0 ? all[index - 1] : undefined;
 const older = index >= 0 && index < all.length - 1 ? all[index + 1] : undefined;
 
-const coverSrc = hasImage(d.featured_image) ? (d.featured_image as any).src : undefined;
+// Media uploaded through the admin is stored without `src` (the Image
+// component resolves it), so render on hasImage(); `src` only feeds og:image.
+const hasCover = hasImage(d.featured_image);
+const coverSrc = hasCover ? (d.featured_image as any).src : undefined;
 // Morph targets for the card → post view transition (styles/motion.css).
 const vt = vtKey("post", post.id);
 ---
@@ -64,8 +67,8 @@ const vt = vtKey("post", post.id);
 		</header>
 
 		<figure class="cover" data-hero-item style="--hero-i:3">
-			<div class:list={["cover-frame", "vt-cover", { placeholder: !coverSrc }]} style={`--vt-name:${vt}-cover`}>
-				{coverSrc ? <Image image={d.featured_image as any} class="cover-img" priority /> : <span>cover.png · 2100×900</span>}
+			<div class:list={["cover-frame", "vt-cover", { placeholder: !hasCover }]} style={`--vt-name:${vt}-cover`}>
+				{hasCover ? <Image image={d.featured_image as any} class="cover-img" priority /> : <span>cover.png · 2100×900</span>}
 			</div>
 			{d.cover_caption && <figcaption>{d.cover_caption}</figcaption>}
 		</figure>
