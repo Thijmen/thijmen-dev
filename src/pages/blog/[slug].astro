@@ -106,6 +106,7 @@ const vt = vtKey("post", post.id);
 						<>
 							<div class="toc-label">CONTENTS</div>
 							<nav class="toc-links">
+								<span class="toc-glide" aria-hidden="true" />
 								{headings.map((h) => (
 									<a href={`#${h.id}`}>{h.text}</a>
 								))}
@@ -122,13 +123,65 @@ const vt = vtKey("post", post.id);
 </Base>
 
 <script>
+	// Reading progress: a scroll-driven animation where supported (CSS
+	// below); otherwise this listener scales the bar.
 	const bar = document.querySelector<HTMLElement>(".progress");
-	const update = () => {
+	const scrollDriven = CSS.supports("animation-timeline: scroll()");
+	const progress = () => {
 		const h = document.documentElement.scrollHeight - innerHeight;
-		if (bar) bar.style.width = `${h > 0 ? Math.min(1, scrollY / h) * 100 : 0}%`;
+		if (bar) bar.style.transform = `scaleX(${h > 0 ? Math.min(1, scrollY / h) : 0})`;
 	};
-	addEventListener("scroll", update, { passive: true });
-	update();
+
+	// CONTENTS scrollspy: highlight the section being read; the highlight
+	// slides between entries.
+	const links = [...document.querySelectorAll<HTMLAnchorElement>(".toc-links a")];
+	const heads = links.map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))));
+	const glide = document.querySelector<HTMLElement>(".toc-glide");
+	let active = -2;
+	function spy() {
+		const line = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-offset")) || 0) + 80;
+		let i = -1;
+		heads.forEach((h, k) => h && h.getBoundingClientRect().top <= line && (i = k));
+		if (heads.length && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) i = heads.length - 1;
+		if (i === active) return;
+		const jump = active < 0;
+		active = i;
+		links.forEach((a, k) => {
+			a.classList.toggle("is-active", k === i);
+			if (k === i) a.setAttribute("aria-current", "true");
+			else a.removeAttribute("aria-current");
+		});
+		const a = links[i];
+		if (!glide) return;
+		if (!a) return glide.classList.remove("on");
+		if (jump) glide.style.transition = "none";
+		glide.style.setProperty("--x", `${a.offsetLeft}px`);
+		glide.style.setProperty("--y", `${a.offsetTop}px`);
+		glide.style.setProperty("--w", `${a.offsetWidth}px`);
+		glide.style.setProperty("--h", `${a.offsetHeight}px`);
+		if (jump) {
+			void glide.offsetWidth;
+			glide.style.transition = "";
+		}
+		glide.classList.add("on");
+	}
+
+	let ticking = false;
+	addEventListener(
+		"scroll",
+		() => {
+			if (ticking) return;
+			ticking = true;
+			requestAnimationFrame(() => {
+				ticking = false;
+				if (!scrollDriven) progress();
+				spy();
+			});
+		},
+		{ passive: true },
+	);
+	if (!scrollDriven) progress();
+	spy();
 
 	document.querySelector<HTMLButtonElement>("[data-copy-link]")?.addEventListener("click", (e) => {
 		const btn = e.currentTarget as HTMLButtonElement;
@@ -144,9 +197,33 @@ const vt = vtKey("post", post.id);
 		top: 0;
 		left: 0;
 		z-index: 25;
-		width: 0;
+		width: 100%;
 		height: 3px;
 		background: var(--color-brand);
+		transform: scaleX(0);
+		transform-origin: 0 50%;
+	}
+
+	@supports (animation-timeline: scroll()) {
+		.progress {
+			animation-name: progress-grow;
+			animation-duration: auto;
+			animation-timing-function: linear;
+			animation-fill-mode: both;
+			animation-timeline: scroll(root block);
+		}
+	}
+
+	@keyframes progress-grow {
+		to {
+			transform: scaleX(1);
+		}
+	}
+
+	@media print {
+		.progress {
+			display: none;
+		}
 	}
 
 	.post {
@@ -294,16 +371,43 @@ const vt = vtKey("post", post.id);
 	}
 
 	.toc-links {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
 	}
 
 	.toc-links a {
+		position: relative;
 		margin: 0 -10px;
 		padding: 6px 10px;
 		border-radius: var(--radius-sm);
 		color: var(--color-text);
+		transition: color var(--dur-fast);
+	}
+
+	.toc-links a.is-active {
+		color: var(--color-brand);
+	}
+
+	.toc-glide {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: var(--w, 0);
+		height: var(--h, 0);
+		translate: var(--x, 0) var(--y, 0);
+		border-radius: var(--radius-sm);
+		background: var(--color-brand-soft);
+		opacity: 0;
+		transition:
+			translate var(--dur-move) var(--ease-out),
+			height var(--dur-move) var(--ease-out),
+			opacity var(--dur-fast);
+	}
+
+	.toc-glide:global(.on) {
+		opacity: 1;
 	}
 
 	.toc-links a:hover {

@@ -68,8 +68,28 @@
 		transition: none !important;
 	}
 
-	:root.theme-vt :is(.vt-cover, .vt-title, [data-vt-part]) {
+	:root:is(.theme-vt, .reflow-vt) :is(.vt-cover, .vt-title, [data-vt-part]) {
 		view-transition-name: none !important;
+	}
+
+	/* /uses tools filter: cards glide to their new slots; the page itself
+	   swaps without a crossfade, so nothing below ghosts. */
+	:root.reflow-vt::view-transition-group(*) {
+		animation-duration: 380ms;
+		animation-timing-function: var(--ease-out);
+	}
+
+	:root.reflow-vt::view-transition-old(root),
+	:root.reflow-vt::view-transition-new(root) {
+		animation: none;
+	}
+
+	:root.reflow-vt::view-transition-old(*):only-child {
+		animation: m-pop-out 200ms var(--ease-out) both;
+	}
+
+	:root.reflow-vt::view-transition-new(*):only-child {
+		animation: m-pop-in 320ms var(--ease-out) 80ms both;
 	}
 
 	/* Hero entrance -------------------------------------------------------- */
@@ -237,6 +257,20 @@
 		from {
 			opacity: var(--word-from);
 			transform: translateY(var(--word-y));
+		}
+	}
+
+	@keyframes m-pop-out {
+		to {
+			opacity: 0;
+			scale: 0.94;
+		}
+	}
+
+	@keyframes m-pop-in {
+		from {
+			opacity: 0;
+			scale: 0.94;
 		}
 	}
 

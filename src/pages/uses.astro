@@ -98,16 +98,34 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 </Base>
 
 <script>
-	// Tool category filter.
+	import { motionFull, settle } from "../scripts/motion";
+
+	// Tool category filter. With full motion the grid reflows through a
+	// same-document View Transition: cards glide to their new slots, the
+	// rest pop out and in (styles/motion.css, .reflow-vt).
 	const filter = document.querySelector<HTMLElement>("[data-tool-filter]");
 	if (filter) {
+		const root = document.documentElement;
 		const chips = [...filter.querySelectorAll<HTMLButtonElement>("[data-cat]")];
 		const cards = [...document.querySelectorAll<HTMLElement>("[data-tool-cat]")];
+		const apply = (chip: HTMLButtonElement) => {
+			const cat = chip.dataset.cat;
+			chips.forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
+			cards.forEach((card) => (card.hidden = cat !== "all" && card.dataset.toolCat !== cat));
+		};
 		chips.forEach((chip) =>
 			chip.addEventListener("click", () => {
-				const cat = chip.dataset.cat;
-				chips.forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
-				cards.forEach((card) => (card.hidden = cat !== "all" && card.dataset.toolCat !== cat));
+				if (!document.startViewTransition || !motionFull()) return apply(chip);
+				// Cards appearing now shouldn't also play their scroll entrance.
+				cards.forEach((card, i) => {
+					settle(card);
+					card.style.setProperty("view-transition-name", `tool-${i}`);
+				});
+				root.classList.add("reflow-vt");
+				document.startViewTransition(() => apply(chip)).finished.finally(() => {
+					cards.forEach((card) => card.style.removeProperty("view-transition-name"));
+					root.classList.remove("reflow-vt");
+				});
 			}),
 		);
 	}

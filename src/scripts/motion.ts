@@ -74,7 +74,16 @@ if (footer)
 		});
 	}).observe(footer);
 
-/** Reveal everything at once (printing, or the tools filter showing cards). */
+/** Mark an element revealed without playing its entrance (e.g. a filter showing it). */
+export function settle(el: Element) {
+	if (!pending.has(el)) return;
+	pending.delete(el);
+	io.unobserve(el);
+	el.classList.add("is-in");
+	el.getAnimations().forEach((a) => a.finish());
+}
+
+/** Reveal everything at once (printing). */
 export function revealAll() {
 	[...pending].forEach((el) => reveal(el, 0));
 	document.querySelectorAll<HTMLElement>("[data-count]").forEach((el) => counts.get(el)?.());
