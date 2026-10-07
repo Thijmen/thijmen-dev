@@ -1,4 +1,5 @@
 import cloudflare from "@astrojs/cloudflare";
+import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import react from "@astrojs/react";
 import { access, d1, r2 } from "@emdash-cms/cloudflare";
 import { aiWriter } from "@thijmen/plugin-ai-writer";
@@ -12,6 +13,10 @@ export default defineConfig({
 	// boots anywhere; `pnpm dev:ai` opts in (Access login in the browser, or
 	// CLOUDFLARE_ACCESS_CLIENT_ID/SECRET for a service token).
 	adapter: cloudflare({ remoteBindings: process.env.DEV_REMOTE_AI === "1" }),
+	// Workers Cache in front of the Worker. Pages tag themselves through
+	// Astro.cache (src/middleware.ts sets the default TTL) and EmDash purges
+	// those tags whenever content, menus or settings change.
+	cache: { provider: cacheCloudflare() },
 	image: {
 		layout: "constrained",
 		responsiveStyles: true,
@@ -25,6 +30,10 @@ export default defineConfig({
 			// (`deploy:prod` / `deploy:preview`); the Worker only verifies them
 			// and returns 503 while any are pending. Dev still auto-migrates.
 			migrations: { runtime: "check", dev: "auto" },
+			// Public HTML is shared through Workers Cache, so it must not depend on
+			// who's asking. An "Edit" pill (logged-in browsers only) reloads the
+			// page with ?_edit, which renders fresh with the full toolbar.
+			toolbar: "client",
 			// Cloudflare Access (Zero Trust) is the exclusive auth method in
 			// production — passkeys, magic links and invites are disabled there.
 			// With Access configured, no passkey routes exist, so /admin/login

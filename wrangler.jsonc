@@ -16,6 +16,10 @@
 			"invocation_logs": true,
 		},
 	},
+	// Workers Cache in front of the Worker (see Caching in AGENTS.md). The
+	// Astro adapter would add this to the generated config by itself; it's
+	// spelled out here, and under `previews`, so both deploys get it.
+	"cache": { "enabled": true },
 	"d1_databases": [
 		{
 			"binding": "DB",
@@ -40,6 +44,7 @@
 		"vars": {
 			"ENVIRONMENT": "preview"
 		},
+		"cache": { "enabled": true },
 		"kv_namespaces": [
 			{
 				"binding": "SESSION", "id": "a2745f6cbd7248ba9c4770ce3e3ddd49"

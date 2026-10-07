@@ -22,6 +22,7 @@ The admin UI is at `http://localhost:4321/_emdash/admin`.
 | `src/lib/content.ts`     | Shared helpers: `getProfile()`, `toPostSummary()`, `emphasize()`, `riseWords()`, `vtKey()`, reading time |
 | `src/styles/motion.css`  | Shared motion: view transitions, hero entrance, reveals, cards (see Motion below)    |
 | `src/scripts/motion.ts`  | Motion runtime: reveal observer, count-ups, spotlight, image fade-in, card morph names |
+| `src/middleware.ts`      | Buffers HTML so every `Astro.cache.set()` counts; default page TTL (see Caching)   |
 | `src/pages/`             | Astro pages -- all server-rendered                                                 |
 
 ## Skills
@@ -60,6 +61,19 @@ Workers Builds deploys the site: build command `pnpm build`, production deploy c
 - Spotify secrets: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN` (`wrangler secret put`, plus `.dev.vars` locally). Get the refresh token with `node scripts/spotify-auth.mjs` (redirect URI `http://127.0.0.1:8888/callback`).
 - Schema changes don't ship with a deploy: the seed only applies to an empty DB. The blocks schema (block types, `pages`, `posts.sections`, `projects.body`) reaches preview/prod through `EMDASH_URL=… EMDASH_TOKEN=… pnpm schema:blocks [--dry-run]` (`scripts/apply-blocks-schema.mjs`). It reads the definitions from `seed/seed.json`, creates only what is missing, reports (never changes) anything that differs, and never touches content. The token needs `schema:write` (admin → Settings → API Tokens on that environment). Access guards the whole Worker, API included, so also set `CF_ACCESS_TOKEN` (the `CF_Authorization` cookie from a browser session on that hostname) or a service token via `CF_ACCESS_CLIENT_ID`/`CF_ACCESS_CLIENT_SECRET`. Order: deploy the renderer code first, then run it against preview, then prod.
 - All branches share the preview D1. If a branch with a newer EmDash migrated it, older branches fail their build on unknown migration records: rebase, or reset preview from a prod export.
+
+## Caching
+
+Public pages are served from [Workers Cache](https://developers.cloudflare.com/workers/cache/), a cache in front of the Worker: a hit doesn't run it. `"cache": { "enabled": true }` in `wrangler.jsonc` turns it on, at the top level and in `previews`. `cache: { provider: cacheCloudflare() }` in `astro.config.mjs` makes `Astro.cache` set the edge headers and purge through it.
+
+- **What's stored.** Only responses that opted in through `Astro.cache`. Pages get `Cloudflare-CDN-Cache-Control: public, max-age=3600, stale-while-revalidate=86400` at the edge and `Cache-Control: no-cache` + `Last-Modified` for browsers, which revalidate against the edge. The adapter marks everything else `Cloudflare-CDN-Cache-Control: no-store`: endpoints, redirects, 404s, previews, `?_edit`, the admin. `src/worker.ts` does the same for the AI writer's agent route, which never reaches Astro. Without any header, Workers Cache would keep a 200 for 2 hours.
+- **Purging.** Each `cacheHint` carries tags (collection, entry ids, `emdash:menu:primary`, `emdash:settings`, `emdash:taxonomy:tag`), sent as `Cache-Tag`. EmDash's write paths (admin, REST, MCP, the scheduled-publish cron) call `cache.invalidate({ tags })`, which runs `cache.purge()` from `cloudflare:workers`. `Base.astro` tags every page with the site settings, the menu, the profile and the posts collection, so changing any of them purges the whole site.
+- **`src/middleware.ts`.** Astro streams pages, so an `Astro.cache.set()` in `Base` or a component runs after the response headers exist and would be lost. The middleware buffers HTML first. It also applies the default TTL to pages that didn't set `maxAge`. A component showing non-CMS live data sets its own (Soundtrack: 30s while Spotify answers) or calls `Astro.cache.set(false)`.
+- **Deploys** start from a cold cache: the Worker version is part of the cache key. Each preview has its own cache.
+- **Toolbar.** `toolbar: "client"` keeps public HTML identical for everyone: logged-in browsers get an "Edit" pill that reloads with `?_edit` (always rendered fresh, with the full toolbar). With the server toolbar, an editor would get the cached anonymous page whenever a visitor primed it first.
+- **Limits.** Purges are rate-limited per account at the Free tier (5 a minute, bursts of 25). A rate-limited purge is dropped silently; the 1-hour `max-age` is the backstop.
+- **Debug** with the `cf-cache-status` response header (`HIT`, `MISS`, `BYPASS`, …). `Cache-Tag` and `Cloudflare-CDN-Cache-Control` are stripped before the browser; `pnpm build && pnpm preview` shows them.
+- **Locally** there is no Workers Cache: `pnpm dev` uses a no-op cache (no headers, no purges). Under `pnpm preview`, workerd has no `cache.purge`, so saving content there fails after the write.
 
 ## Dependency updates
 
