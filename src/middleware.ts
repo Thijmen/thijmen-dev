@@ -1,4 +1,7 @@
 import { defineMiddleware } from "astro:middleware";
+import { getDb } from "emdash/runtime";
+
+import { syncSeedSchema } from "./lib/seed-schema";
 
 /**
  * Edge TTL for HTML pages that don't set their own. Publishing purges a page
@@ -9,6 +12,10 @@ import { defineMiddleware } from "astro:middleware";
 const PAGE_CACHE = { maxAge: 3600, swr: 86400 };
 
 export const onRequest = defineMiddleware(async (context, next) => {
+	// EmDash sets collectPageMetadata once its runtime is up (core migrations
+	// applied); the image endpoint skips that, so it never syncs.
+	if ((context.locals.emdash as Partial<App.Locals["emdash"]> | undefined)?.collectPageMetadata) await syncSeedSchema(getDb);
+
 	const response = await next();
 	const { cache } = context;
 	if (!cache?.enabled || !response.headers.get("content-type")?.startsWith("text/html")) return response;

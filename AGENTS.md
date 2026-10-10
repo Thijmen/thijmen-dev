@@ -22,7 +22,7 @@ The admin UI is at `http://localhost:4321/_emdash/admin`.
 | `src/lib/content.ts`     | Shared helpers: `getProfile()`, `toPostSummary()`, `emphasize()`, `riseWords()`, `vtKey()`, reading time |
 | `src/styles/motion.css`  | Shared motion: view transitions, hero entrance, reveals, cards (see Motion below)    |
 | `src/scripts/motion.ts`  | Motion runtime: reveal observer, count-ups, spotlight, image fade-in, card morph names |
-| `src/middleware.ts`      | Buffers HTML so every `Astro.cache.set()` counts; default page TTL (see Caching)   |
+| `src/middleware.ts`      | Applies the seed's new schema after a deploy (`src/lib/seed-schema.ts`); buffers HTML so every `Astro.cache.set()` counts; default page TTL (see Caching) |
 | `src/pages/`             | Astro pages -- all server-rendered                                                 |
 
 ## Skills
@@ -51,17 +51,17 @@ This template ships with `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json`
 
 Workers Builds deploys the site: build command `pnpm build`, production deploy command `pnpm run deploy:prod`, non-production deploy command `pnpm run deploy:preview`. There is no local deploy script.
 
-- Each deploy script deploys, then syncs the content schema (below). `deploy:prod` first logs a D1 Time Travel bookmark.
+- Each deploy script just deploys. `deploy:prod` first logs a D1 Time Travel bookmark.
 - Preview must deploy with `wrangler preview`: the `previews` block in `wrangler.jsonc` (preview D1/R2/KV) only applies there. `wrangler versions upload` would bind the prod DB.
 - Prod sets `EMDASH_SITE_URL` in `wrangler.jsonc` `vars` (read through `nodejs_compat_populate_process_env`). EmDash 0.41's setup wizard refuses to run without a configured site URL. Previews have no fixed hostname: to rerun the wizard on a reset preview D1, add the branch's preview URL to `previews.vars` in a temporary commit and revert it afterwards.
-- Core migrations run in EmDash's default `auto` mode: the Worker applies pending migrations to its D1 on its first request after a deploy, under a lock in the database. The schema sync is usually that request, so a failing migration fails the build. The new code is live by then, though: the site errors until the migration is fixed or the D1 restored.
+- Core migrations run in EmDash's default `auto` mode: the Worker applies pending migrations to its D1 on its first request after a deploy, under a lock in the database. A failing migration doesn't fail the build: the site errors (see Workers Logs) until it's fixed or the D1 restored.
 - The Workers Builds API token has **D1 Edit** (the bookmark needs D1 access). Locally, `pnpm migrate:status:prod|preview` shows applied and pending migrations and the lock; it reads the manifest from `pnpm build` and needs `CLOUDFLARE_API_TOKEN` (the `wrangler login` session is not used).
 - Migrations are forward-only. After a failed one, check `migrate:status:*`; don't replay blindly. A Worker stopped mid-migration leaves the lock held and the site can't start: release it with `pnpm emdash migrate --release-lock <id> ...`. To roll back, restore the D1 from the logged Time Travel bookmark together with the matching build.
 - Spotify secrets: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN` (`wrangler secret put`, plus `.dev.vars` locally). Get the refresh token with `node scripts/spotify-auth.mjs` (redirect URI `http://127.0.0.1:8888/callback`).
-- Schema changes ship with the deploy: edit `seed/seed.json` in the PR. The seed itself only applies to an empty DB, so after `wrangler preview` / `wrangler deploy` each deploy script runs `scripts/schema-sync.mjs` against the site it just deployed. It walks every block type, collection and field in the seed, creates what is missing through the schema REST API, reports (never changes) anything that differs, and never touches content. A failed sync fails the build; on a branch that's the PR check. Code goes out first, so renderers must tolerate a field that doesn't exist yet.
-  - Not automated: renaming, retyping or removing a field, and adding or activating a block-type version. The sync reports those as `differs`; make the change in the admin on preview and prod, then match the seed.
-  - Auth: Access guards the whole Worker (every preview hostname too), API included. The deploys use an Access service token (`CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`, with a Service Auth policy on the Access application) plus an EmDash API token with `schema:write` per database (`EMDASH_TOKEN_PREVIEW`, `EMDASH_TOKEN_PROD`; admin → Settings → API Tokens on that environment). All four are Workers Builds build variables. The preview token lives in the preview D1: create it again after a reset.
-  - By hand: `cloudflared access login <url>`, then `CF_ACCESS_TOKEN=$(cloudflared access token -app=<url>) pnpm schema:sync --url <url> --dry-run`. Your Access JWT signs you in to EmDash as admin, so no API token is needed.
+- Schema changes ship with the deploy: edit `seed/seed.json` in the PR. EmDash applies the seed only to an empty DB, so `src/lib/seed-schema.ts` (called from `src/middleware.ts`) does the rest, like core migrations in `auto` mode: on the first request after a deploy it creates the block types, collections and fields the seed has and the database lacks. Block types and collections go through EmDash's own `applySeed`, new fields through `SchemaRegistry`. Content is never touched. The seed's schema hash is stored in the `site:seed_schema` option, so afterwards it costs one SELECT per isolate; one isolate claims the work through a compare-and-set on that row. It runs in dev too.
+  - Additive only. A field or block type whose live definition differs from the seed is logged (`[seed-schema]` in Workers Logs) and left alone: make renames, type changes, removals and new block-type versions in the admin, then match the seed. A field removed in the admin but kept in the seed comes back on the next seed change.
+  - Code and schema arrive together, but the first requests can run before the sync finishes: renderers must tolerate a field or collection that doesn't exist yet.
+  - `pnpm build` runs `emdash seed --validate` first, so an invalid seed fails the build. A sync that fails at runtime is logged and retried a minute later.
 - All branches share the preview D1. If a branch with a newer EmDash migrated it, older branches skip migrating (the database already has at least as many migrations as they know) and run against the newer schema. If that breaks one: rebase, or reset preview from a prod export.
 
 ## Caching
@@ -117,7 +117,7 @@ Old portfolio routes redirect: `/work` → `/projects`, `/work/<slug>` → that 
 - Single `primary` menu: Home, Blog, Resume, Projects, Uses (+ Now, Colophon in the seed). The header derives the `g` + first-letter shortcuts from the labels; `g g` scrolls to the top while no label starts with `g`.
 
 Gotchas found while building this:
-- `status` is a reserved field slug (hence `project_status`). `validateSeed` does not catch it; only apply does.
+- `status` is a reserved field slug (hence `project_status`). `emdash seed --validate` (part of `pnpm build`) catches it.
 - `where` on a collection only takes strings: filter booleans with `"1"`.
 - Collection entries carry taxonomy terms on `entry.data.terms.<taxonomy>`.
 - The runtime auto-seed applies schema only. Sample content comes from the setup wizard or `/_emdash/api/setup/dev-bypass` in dev.
