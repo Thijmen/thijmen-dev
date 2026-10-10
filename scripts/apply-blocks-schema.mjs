@@ -10,14 +10,17 @@
  * that exists with a different definition is reported, never changed. Content
  * is never touched. Stops on the first error.
  *
- *   EMDASH_URL=https://… EMDASH_TOKEN=… node scripts/apply-blocks-schema.mjs [--dry-run]
+ *   EMDASH_URL=https://… CF_ACCESS_TOKEN=… node scripts/apply-blocks-schema.mjs [--dry-run]
  *
- * EMDASH_TOKEN: an API token (Settings → API Tokens) with schema:write.
- * Access guards the whole Worker, /_emdash/api included, so also pass one of:
- * - CF_ACCESS_TOKEN: an Access JWT, e.g. the CF_Authorization cookie from a
- *   browser session on that hostname, or `cloudflared access token -app=<url>`.
+ * Access guards the whole Worker, /_emdash/api included, so pass one of:
+ * - CF_ACCESS_TOKEN: your Access JWT, e.g. `cloudflared access token -app=<url>`
+ *   after `cloudflared access login <url>`, or the CF_Authorization cookie
+ *   from a browser session on that hostname. EmDash signs you in from it, so
+ *   no EMDASH_TOKEN is needed.
  * - CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET: an Access service token
- *   (needs a Service Auth policy on the Access application).
+ *   (needs a Service Auth policy on the Access application). It carries no
+ *   user, so also set EMDASH_TOKEN: an API token (Settings → API Tokens on
+ *   that environment) with schema:write.
  */
 import { readFile } from "node:fs/promises";
 
@@ -33,16 +36,16 @@ const NEW_FIELDS = [
 const dryRun = process.argv.includes("--dry-run");
 const base = process.env.EMDASH_URL?.replace(/\/$/, "");
 const token = process.env.EMDASH_TOKEN;
-if (!base || !token) {
-	console.error("Set EMDASH_URL and EMDASH_TOKEN.");
+if (!base || !(token || process.env.CF_ACCESS_TOKEN)) {
+	console.error("Set EMDASH_URL, and CF_ACCESS_TOKEN or EMDASH_TOKEN.");
 	process.exit(1);
 }
 
 const headers = {
-	Authorization: `Bearer ${token}`,
 	"Content-Type": "application/json",
 	"X-EmDash-Request": "1",
 };
+if (token) headers.Authorization = `Bearer ${token}`;
 if (process.env.CF_ACCESS_TOKEN) headers["cf-access-token"] = process.env.CF_ACCESS_TOKEN;
 if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
 	headers["CF-Access-Client-Id"] = process.env.CF_ACCESS_CLIENT_ID;
