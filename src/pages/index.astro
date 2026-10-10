@@ -3,11 +3,12 @@ import { getEmDashCollection, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
 import Kicker from "../components/Kicker.astro";
 import PostCard from "../components/PostCard.astro";
+import Portrait from "../components/Portrait.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import SectionLabel from "../components/SectionLabel.astro";
 import Timeline from "../components/Timeline.astro";
 import Window from "../components/Window.astro";
-import { asArray, emphasize, getProfile, projectHref, riseWords, toPostSummary } from "../lib/content";
+import { asArray, emphasize, getProfile, hasImage, projectHref, riseWords, toPostSummary } from "../lib/content";
 
 const [settings, { profile, cacheHint: profileHint }, postsRes, rolesRes, projectsRes] = await Promise.all([
 	getSiteSettings(),
@@ -23,7 +24,9 @@ if (Astro.cache?.enabled) {
 	for (const r of [postsRes, rolesRes, projectsRes]) Astro.cache.set(r.cacheHint);
 }
 
-const [first, ...restNames] = (settings?.title || "Thijmen Stavenuiter").split(" ");
+const name = settings?.title || "Thijmen Stavenuiter";
+const [first, ...restNames] = name.split(" ");
+const portrait = hasImage(profile?.portrait) ? profile!.portrait! : undefined;
 const posts = postsRes.entries.map(toPostSummary);
 const [feature, ...others] = posts;
 const roles = rolesRes.entries.map((e) => e.data);
@@ -51,31 +54,36 @@ const email = profile?.email;
 				</div>
 			</div>
 			{
-				lines.length > 0 && (
-					<Window
-						title="~/.profile"
-						class="profile"
-						data-hero-item
-						data-print
-						style={`--hero-i:4;--lines:${lines.length}`}
-					>
-						<div class="profile-body">
-							{lines.map((l, i) => (
-								<div data-line style={`--line:${i}`}>
-									<span class="k">{l.k}</span>=
-									{l.kind === "list" ? (
-										<>
-											(<span class="s">{l.v}</span>)
-										</>
-									) : l.kind === "number" ? (
-										<span class="n">{l.v}</span>
-									) : (
-										<span class="s">"{l.v}"</span>
-									)}
+				(portrait || lines.length > 0) && (
+					<div class:list={["stack", { "has-portrait": portrait }]}>
+						{portrait && <Portrait image={portrait} alt={portrait.alt || name} data-hero-item style="--hero-i:3" />}
+						{lines.length > 0 && (
+							<Window
+								title="~/.profile"
+								class="profile"
+								data-hero-item
+								data-print
+								style={`--hero-i:4;--lines:${lines.length}`}
+							>
+								<div class="profile-body">
+									{lines.map((l, i) => (
+										<div data-line style={`--line:${i}`}>
+											<span class="k">{l.k}</span>=
+											{l.kind === "list" ? (
+												<>
+													(<span class="s">{l.v}</span>)
+												</>
+											) : l.kind === "number" ? (
+												<span class="n">{l.v}</span>
+											) : (
+												<span class="s">"{l.v}"</span>
+											)}
+										</div>
+									))}
 								</div>
-							))}
-						</div>
-					</Window>
+							</Window>
+						)}
+					</div>
 				)
 			}
 		</section>
@@ -187,6 +195,37 @@ const email = profile?.email;
 	.hero-grid :global(.profile) {
 		font-size: 13px;
 		line-height: 1.95;
+	}
+
+	/* The ~/.profile window overlaps the portrait's lower left, cut out of
+	   the photo by a ring of page background (an outline, not a shadow). */
+	.stack {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.has-portrait :global(.portrait) {
+		align-self: flex-end;
+		width: 76%;
+	}
+
+	.has-portrait :global(.profile) {
+		position: relative;
+		width: 88%;
+		margin-top: -92px;
+		outline: 6px solid var(--color-bg);
+	}
+
+	@media (max-width: 560px) {
+		.has-portrait :global(.portrait) {
+			width: 86%;
+		}
+
+		.has-portrait :global(.profile) {
+			width: 96%;
+			margin-top: -64px;
+		}
 	}
 
 	.profile-body {

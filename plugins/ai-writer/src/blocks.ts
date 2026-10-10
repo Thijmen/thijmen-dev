@@ -1,8 +1,8 @@
 /**
  * Blocks fields (`posts.sections`, `projects.body`, `pages.body`): describe the
  * allowed block types to the model, then validate what comes back against the
- * same definitions. The definitions come from the site's seed, the source
- * `pnpm schema:blocks` applies to preview/prod, so they match the live schema.
+ * same definitions. The definitions come from the site's seed, which the
+ * Worker applies to the live schema after each deploy (src/lib/seed-schema.ts).
  */
 import seed from "../../../seed/seed.json";
 import { LANGUAGE_ALIASES, makeKey, markdownToPortableText } from "./markdown-to-pt";

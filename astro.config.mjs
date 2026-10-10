@@ -26,10 +26,6 @@ export default defineConfig({
 		emdash({
 			database: d1({ binding: "DB", session: "auto" }),
 			storage: r2({ binding: "MEDIA" }),
-			// Workers Builds applies core migrations before deploying
-			// (`deploy:prod` / `deploy:preview`); the Worker only verifies them
-			// and returns 503 while any are pending. Dev still auto-migrates.
-			migrations: { runtime: "check", dev: "auto" },
 			// Public HTML is shared through Workers Cache, so it must not depend on
 			// who's asking. An "Edit" pill (logged-in browsers only) reloads the
 			// page with ?_edit, which renders fresh with the full toolbar.

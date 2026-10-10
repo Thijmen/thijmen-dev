@@ -1,0 +1,360 @@
+---
+/**
+ * The home hero's portrait: a window around the profile photo, plus an
+ * ASCII rendering of it that the script below draws from the loaded image
+ * in the site's mono face. A jpg/ascii switch in the title bar swaps the two
+ * with a scanline wipe; on fine pointers a lens shows the other layer under
+ * the cursor. On load (full motion) one scan passes over the photo.
+ * No JS, or an image the canvas can't read: just the photo.
+ */
+import { Image } from "emdash/ui";
+import Window from "./Window.astro";
+
+interface Props {
+	image: { filename?: string; alt?: string };
+	alt?: string;
+	class?: string;
+	style?: string;
+}
+
+const { image, alt, class: className, ...attrs } = Astro.props;
+---
+
+<Window title={image.filename || "portrait.jpg"} class:list={["portrait", className]} data-portrait {...attrs}>
+	<div slot="aside" class="modes" role="group" aria-label="Render as" data-modes hidden>
+		<button type="button" data-mode="jpg" aria-pressed="true">jpg</button>
+		<button type="button" data-mode="ascii" aria-pressed="false">ascii</button>
+	</div>
+	<div class="shot" data-mode="jpg">
+		<Image image={image as any} alt={alt ?? image.alt} class="cover-img" sizes="(min-width: 1000px) 420px, 90vw" priority />
+		<pre class="ascii" aria-hidden="true"></pre>
+	</div>
+</Window>
+
+<script>
+	import { motionFull } from "../scripts/motion";
+
+	const RAMP = " .:-=+*#%@";
+	const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
+
+	/** Mean luminance per character cell, stretched to 0–1. Null if the canvas can't read the image. */
+	function sample(img: HTMLImageElement, cols: number, rows: number, w: number, h: number): Float32Array | null {
+		const S = 4; // supersample: average S×S pixels per cell instead of trusting the browser's downscale
+		const canvas = document.createElement("canvas");
+		canvas.width = cols * S;
+		canvas.height = rows * S;
+		const ctx = canvas.getContext("2d", { willReadFrequently: true });
+		if (!ctx) return null;
+		// Lay the whole image out as object-fit: cover does in the w×h frame,
+		// then scale that to the canvas. Only the image's aspect ratio is used:
+		// with a srcset, naturalWidth is density-corrected, not the bitmap's.
+		const [px, py = px] = getComputedStyle(img)
+			.objectPosition.split(" ")
+			.map((v) => (v.endsWith("%") ? parseFloat(v) / 100 : 0.5));
+		const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+		const dw = img.naturalWidth * scale;
+		const dh = img.naturalHeight * scale;
+		const kx = canvas.width / w;
+		const ky = canvas.height / h;
+		ctx.drawImage(img, (w - dw) * px * kx, (h - dh) * py * ky, dw * kx, dh * ky);
+		let data: Uint8ClampedArray;
+		try {
+			data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+		} catch {
+			return null; // cross-origin media without CORS
+		}
+		const lum = new Float32Array(cols * rows);
+		for (let y = 0; y < canvas.height; y++) {
+			for (let x = 0; x < canvas.width; x++) {
+				const i = (y * canvas.width + x) * 4;
+				lum[((y / S) | 0) * cols + ((x / S) | 0)] += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+			}
+		}
+		// Map the 2nd–98th percentile onto the whole ramp.
+		const sorted = lum.slice().sort();
+		const lo = sorted[Math.floor(sorted.length * 0.02)];
+		const span = sorted[Math.floor(sorted.length * 0.98)] - lo || 1;
+		return lum.map((v) => Math.min(1, Math.max(0, (v - lo) / span)));
+	}
+
+	const smoothstep = (a: number, b: number, v: number) => {
+		const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
+		return t * t * (3 - 2 * t);
+	};
+
+	/**
+	 * Dense characters for bright cells (the layer is a dark screen in both
+	 * themes), with contrast pushed and fading towards the edges, so the face
+	 * carries the picture and the background goes quiet.
+	 */
+	function render(tones: Float32Array, cols: number): string {
+		const rows = tones.length / cols;
+		const last = RAMP.length - 1;
+		let out = "";
+		tones.forEach((t, i) => {
+			const d = Math.hypot((i % cols) / (cols - 1) - 0.5, Math.floor(i / cols) / (rows - 1) - 0.42);
+			const ink = smoothstep(0, 1, t) * (1 - smoothstep(0.3, 0.66, d));
+			out += RAMP[Math.round(ink * last)];
+			if (i % cols === cols - 1 && i < tones.length - 1) out += "\n";
+		});
+		return out;
+	}
+
+	async function setup(win: HTMLElement) {
+		const shot = win.querySelector<HTMLElement>(".shot");
+		const img = shot?.querySelector("img");
+		const pre = shot?.querySelector("pre");
+		const modes = win.querySelector<HTMLElement>("[data-modes]");
+		if (!shot || !img || !pre || !modes || !CSS.supports("mask-composite", "intersect")) return;
+		try {
+			await img.decode();
+		} catch {
+			return;
+		}
+
+		const { clientWidth: w, clientHeight: h } = shot;
+		const cols = Math.max(48, Math.min(96, Math.round(w / 5.5)));
+		const rows = Math.round(cols * 0.6 * (h / w)); // JetBrains Mono cells are 0.6em × 1em
+		const tones = sample(img, cols, rows, w, h);
+		if (!tones) return;
+		pre.textContent = render(tones, cols);
+		pre.style.setProperty("--cols", String(cols));
+		shot.dataset.ready = "";
+		modes.hidden = false;
+
+		// jpg ⇄ ascii
+		const buttons = [...modes.querySelectorAll<HTMLButtonElement>("[data-mode]")];
+		let wipe = 0;
+		const setMode = (mode: string) => {
+			if (shot.dataset.mode === mode) return;
+			shot.classList.remove("is-scanning");
+			shot.dataset.mode = mode;
+			buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+			if (!motionFull()) return;
+			shot.classList.add("is-wiping");
+			clearTimeout(wipe);
+			wipe = window.setTimeout(() => shot.classList.remove("is-wiping"), 800);
+		};
+		buttons.forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode!)));
+
+		// Lens: the other layer, under the cursor.
+		let last: PointerEvent | null = null;
+		shot.addEventListener("pointermove", (e) => {
+			if (e.pointerType !== "mouse" || !finePointer.matches || !motionFull()) return;
+			if (!last)
+				requestAnimationFrame(() => {
+					if (!last) return;
+					const r = shot.getBoundingClientRect();
+					shot.style.setProperty("--mx", `${last.clientX - r.left}px`);
+					shot.style.setProperty("--my", `${last.clientY - r.top}px`);
+					shot.dataset.lens = "";
+					last = null;
+				});
+			last = e;
+		});
+		shot.addEventListener("pointerleave", () => {
+			last = null;
+			delete shot.dataset.lens;
+		});
+
+		// One scan over the photo once it's in view.
+		if (!motionFull()) return;
+		shot.addEventListener("animationend", (e) => {
+			if (e.target === shot) shot.classList.remove("is-scanning");
+		});
+		const io = new IntersectionObserver(
+			([entry]) => {
+				if (!entry.isIntersecting) return;
+				io.disconnect();
+				setTimeout(() => shot.dataset.mode === "jpg" && shot.classList.add("is-scanning"), 450);
+			},
+			{ threshold: 0.6 },
+		);
+		io.observe(shot);
+	}
+
+	document.querySelectorAll<HTMLElement>("[data-portrait]").forEach(setup);
+</script>
+
+<style>
+	@property --fill {
+		syntax: "<percentage>";
+		inherits: true;
+		initial-value: 0%;
+	}
+
+	@property --scan {
+		syntax: "<percentage>";
+		inherits: true;
+		initial-value: 0%;
+	}
+
+	@property --lens {
+		syntax: "<length>";
+		inherits: true;
+		initial-value: 0px;
+	}
+
+	.modes {
+		display: flex;
+		gap: 2px;
+		padding: 2px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-pill);
+	}
+
+	.modes button {
+		padding: 2px 9px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: transparent;
+		color: var(--color-muted);
+		font: inherit;
+		font-size: 11px;
+		line-height: 1.5;
+		cursor: pointer;
+		transition:
+			color var(--transition-fast),
+			background-color var(--transition-fast);
+	}
+
+	.modes button:hover {
+		color: var(--color-text);
+	}
+
+	.modes button[aria-pressed="true"] {
+		background: var(--color-brand-soft);
+		color: var(--color-brand);
+	}
+
+	.shot {
+		--mx: 50%;
+		--my: 42%;
+		position: relative;
+		aspect-ratio: 1;
+		overflow: hidden;
+		container-type: inline-size;
+		background: var(--color-surface);
+	}
+
+	.shot[data-mode="ascii"] {
+		--fill: 100%;
+	}
+
+	.shot[data-lens] {
+		--lens: 84px;
+	}
+
+	/*
+	 * The ASCII layer sits on top of the photo: a dark screen in both themes,
+	 * like the /uses player. What shows of it is the union of the wipe
+	 * (--fill, from the top) and the lens; in ascii mode it's the wipe minus
+	 * the lens, so the lens shows the photo instead.
+	 */
+	.ascii {
+		position: absolute;
+		inset: 0;
+		margin: 0;
+		display: grid;
+		place-content: center;
+		overflow: hidden;
+		background: var(--player-bg);
+		color: var(--player-accent);
+		font-family: var(--font-mono);
+		font-size: calc(100cqi / (var(--cols, 72) * 0.6));
+		line-height: 1;
+		letter-spacing: 0;
+		/* JetBrains Mono's ligatures would merge "===" and "--" into bars. */
+		font-variant-ligatures: none;
+		font-feature-settings: "calt" 0;
+		white-space: pre;
+		user-select: none;
+		pointer-events: none;
+		visibility: hidden;
+		mask-image:
+			linear-gradient(#000 var(--fill), transparent var(--fill)),
+			radial-gradient(circle var(--lens) at var(--mx) var(--my), #000 calc(100% - 1px), transparent);
+		mask-composite: add;
+	}
+
+	.shot[data-ready] .ascii {
+		visibility: visible;
+	}
+
+	.shot[data-mode="ascii"] .ascii {
+		mask-image:
+			linear-gradient(#000 var(--fill), transparent var(--fill)),
+			radial-gradient(circle var(--lens) at var(--mx) var(--my), transparent calc(100% - 1px), #000);
+		mask-composite: intersect;
+	}
+
+	/* The intro scan: a band of ASCII trails a line down the photo. */
+	.shot.is-scanning .ascii {
+		mask-image: linear-gradient(transparent calc(var(--scan) - 26%), #000 var(--scan), transparent var(--scan));
+	}
+
+	/* The scanline itself, riding the wipe or the intro scan. */
+	.shot::after {
+		content: "";
+		position: absolute;
+		inset: var(--line, 0%) 0 auto;
+		height: 1.5px;
+		margin-top: -1px;
+		background: var(--color-brand);
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.shot.is-wiping::after {
+		--line: var(--fill);
+		opacity: 1;
+	}
+
+	.shot.is-scanning::after {
+		--line: var(--scan);
+		opacity: 1;
+	}
+
+	/* The lens rim. */
+	.shot::before {
+		content: "";
+		position: absolute;
+		z-index: 1;
+		left: var(--mx);
+		top: var(--my);
+		width: calc(var(--lens) * 2);
+		aspect-ratio: 1;
+		translate: -50% -50%;
+		border: 1px solid var(--color-brand);
+		border-radius: 50%;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.shot[data-lens]::before {
+		opacity: 0.7;
+	}
+
+	:global(:root[data-motion="full"]) .shot {
+		transition:
+			--fill 720ms var(--ease-in-out),
+			--lens 320ms var(--ease-out);
+	}
+
+	:global(:root[data-motion="full"]) .shot::before {
+		transition: opacity var(--dur-ui) var(--ease-out);
+	}
+
+	:global(:root[data-motion="full"]) .shot.is-scanning {
+		animation: pr-scan 1100ms var(--ease-in-out) both;
+	}
+
+	@keyframes pr-scan {
+		from {
+			--scan: 0%;
+		}
+		to {
+			--scan: 126%;
+		}
+	}
+</style>
