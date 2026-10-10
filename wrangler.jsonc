@@ -8,7 +8,7 @@
 	// EmDash reads its canonical origin from process.env (hence the flag above).
 	// The setup wizard refuses to run without it. Previews set their own `vars`.
 	"vars": {
-		"EMDASH_SITE_URL": "https://thijmen-dev.thijmenstavenuiter.workers.dev",
+		"EMDASH_SITE_URL": "https://www.thijmen.cloud",
 	},
 	"observability": {
 		"logs": {
