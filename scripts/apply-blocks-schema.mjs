@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Push the seed's block types, the `pages` collection and the blocks fields
- * on posts/projects to a live EmDash site. The seed only applies to an empty
- * database, and `emdash schema` has no block-type commands, so preview and
- * prod get these through the schema REST API.
+ * Push the seed's block types, the `pages` collection, the blocks fields
+ * on posts/projects and later field additions (profile.portrait) to a live
+ * EmDash site. The seed only applies to an empty database, and `emdash
+ * schema` has no block-type commands, so preview and prod get these through
+ * the schema REST API.
  *
  * Idempotent: anything that already exists is skipped. A block type or field
  * that exists with a different definition is reported, never changed. Content
@@ -26,6 +27,7 @@ const NEW_COLLECTIONS = ["pages"];
 const NEW_FIELDS = [
 	["posts", "sections"],
 	["projects", "body"],
+	["profile", "portrait"],
 ];
 
 const dryRun = process.argv.includes("--dry-run");

@@ -1028,6 +1028,11 @@
 					"slug": "desk_photo",
 					"label": "Desk photo",
 					"type": "image"
+				},
+				{
+					"slug": "portrait",
+					"label": "Portrait (home hero)",
+					"type": "image"
 				}
 			]
 		}
