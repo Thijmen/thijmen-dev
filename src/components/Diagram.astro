@@ -1,0 +1,62 @@
+---
+/**
+ * A rendered Mermaid diagram (inline SVG from src/lib/diagram.ts) in
+ * terminal-window chrome. CodeBlock.astro renders it for `mermaid` code and
+ * falls back to the code window when the source can't be drawn.
+ */
+import Window from "./Window.astro";
+
+interface Props {
+	svg: string;
+	title?: string;
+	caption?: string;
+}
+
+const { svg, title, caption } = Astro.props;
+---
+
+<figure class="diagram">
+	<Window title={title || "diagram.mmd"}>
+		<div class="diagram-body">
+			<Fragment set:html={svg} />
+		</div>
+	</Window>
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+	.diagram {
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.diagram-body {
+		display: flex;
+		justify-content: center;
+		padding: 8px;
+		overflow-x: auto;
+	}
+
+	/* Scale down to the column; never up past the drawn size. */
+	.diagram-body :global(svg.mermaid-svg) {
+		display: block;
+		max-width: 100%;
+		height: auto;
+	}
+
+	.diagram-body :global(svg.mermaid-svg text) {
+		font-family: var(--font-body);
+	}
+
+	.diagram-body :global(svg.mermaid-svg .mono) {
+		font-family: var(--font-mono);
+	}
+
+	figcaption {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+</style>

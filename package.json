@@ -23,6 +23,7 @@
     "@emdash-cms/cloudflare": "^1.1.0",
     "@thijmen/plugin-ai-writer": "workspace:*",
     "astro": "^7.3.2",
+    "beautiful-mermaid": "^1.1.3",
     "emdash": "^1.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

@@ -6,9 +6,11 @@
  *
  * Additive only. Block types and collections the database lacks are created by
  * EmDash's own `applySeed` (which skips anything that exists); fields the seed
- * adds to existing collections are created one by one. A block type or field
- * whose live definition differs from the seed is logged and left alone: make
- * renames, type changes and removals in the admin. Content is never touched.
+ * adds to existing collections are created one by one, and block types the
+ * seed adds to a blocks field's `allowedTypes` are allowed there. A block type
+ * or field whose live definition differs otherwise is logged and left alone:
+ * make renames, type changes and removals in the admin. Content is never
+ * touched.
  *
  * The seed's schema hash is stored in the options table once applied, so
  * after that the check costs one SELECT per isolate. One isolate claims the
@@ -86,9 +88,18 @@ async function apply(db: Db, seed: Seed, schema: SeedSchema) {
 		for (const field of collection.fields) {
 			const existing = live.fields.find((f) => f.slug === field.slug);
 			if (existing) {
-				if (canon(fieldShape(existing)) !== canon(fieldShape(field))) {
-					console.warn(`${LOG} field ${collection.slug}.${field.slug} differs from the seed; not changed`);
+				if (canon(fieldShape(existing)) === canon(fieldShape(field))) continue;
+				const widened = widenedAllowedTypes(existing, field);
+				if (widened) {
+					await registry.updateField(collection.slug, field.slug, {
+						validation: { ...(existing.validation as object), allowedTypes: widened },
+					});
+					invalidateCollectionCache(collection.slug);
+					invalidateSchemaObjectCache();
+					console.log(`${LOG} allowed ${widened.filter((t) => !allowedOf(existing).includes(t)).join(", ")} in ${collection.slug}.${field.slug}`);
+					continue;
 				}
+				console.warn(`${LOG} field ${collection.slug}.${field.slug} differs from the seed; not changed`);
 				continue;
 			}
 			// Reference fields need a relation, which only the seed's first apply sets up.
@@ -128,6 +139,31 @@ async function apply(db: Db, seed: Seed, schema: SeedSchema) {
 			console.warn(`${LOG} block type ${bt.slug} is at v${live.currentVersion}, the seed at v${bt.currentVersion}; change it in the admin`);
 		}
 	}
+}
+
+/**
+ * A blocks field whose only difference from the seed is block types the seed
+ * adds to `allowedTypes`: the widened list (seed order, then any types allowed
+ * only in the admin, which stay). Null when nothing is added or anything else
+ * differs.
+ */
+function widenedAllowedTypes(live: Parameters<typeof fieldShape>[0], seed: Parameters<typeof fieldShape>[0]): string[] | null {
+	if (live.type !== "blocks" || seed.type !== "blocks") return null;
+	const was = allowedOf(live);
+	const want = allowedOf(seed);
+	const next = [...want, ...was.filter((t) => !want.includes(t))];
+	if (next.length === was.length) return null;
+	const shape = (f: Parameters<typeof fieldShape>[0], allowedTypes: string[]) => {
+		const s = fieldShape(f);
+		return canon({ ...s, validation: { ...(s.validation as object), allowedTypes } });
+	};
+	// Same definition apart from the list itself.
+	return shape(live, next) === shape(seed, next) ? next : null;
+}
+
+function allowedOf(f: { validation?: unknown }): string[] {
+	const list = (f.validation as { allowedTypes?: unknown } | undefined)?.allowedTypes;
+	return Array.isArray(list) ? list.filter((t): t is string => typeof t === "string") : [];
 }
 
 /** The parts of a field definition the seed controls. */

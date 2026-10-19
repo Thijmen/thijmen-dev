@@ -51,11 +51,22 @@ export interface PageBodyTerminalV1Block {
 
 export type PageBodyTerminalBlock = PageBodyTerminalV1Block;
 
+export interface PageBodyDiagramV1Block {
+  _type: "diagram";
+  _version: 1;
+  _key: string;
+  "title"?: string | null;
+  "code": string;
+  "caption"?: string | null;
+}
+
+export type PageBodyDiagramBlock = PageBodyDiagramV1Block;
+
 export interface PageBodyFigureV1Block {
   _type: "figure";
   _version: 1;
   _key: string;
-  "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  "image": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   "caption"?: string | null;
   "width"?: "normal" | "wide" | null;
 }
@@ -67,7 +78,7 @@ export interface PageBodyGalleryV1Block {
   _version: 1;
   _key: string;
   "label"?: string | null;
-  "items"?: { "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
+  "items"?: { "image": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
 }
 
 export type PageBodyGalleryBlock = PageBodyGalleryV1Block;
@@ -150,7 +161,7 @@ export interface PageBodyNowPlayingV1Block {
 
 export type PageBodyNowPlayingBlock = PageBodyNowPlayingV1Block;
 
-export type PageBodyBlock = PageBodyProseBlock | PageBodyNoteBlock | PageBodyTerminalBlock | PageBodyFigureBlock | PageBodyGalleryBlock | PageBodyCtaBlock | PageBodyLinksBlock | PageBodyFaqBlock | PageBodyPostListBlock | PageBodyProjectGridBlock | PageBodyHistoryBlock | PageBodyNowPlayingBlock;
+export type PageBodyBlock = PageBodyProseBlock | PageBodyNoteBlock | PageBodyTerminalBlock | PageBodyDiagramBlock | PageBodyFigureBlock | PageBodyGalleryBlock | PageBodyCtaBlock | PageBodyLinksBlock | PageBodyFaqBlock | PageBodyPostListBlock | PageBodyProjectGridBlock | PageBodyHistoryBlock | PageBodyNowPlayingBlock;
 
 export interface Page {
   id: string;
@@ -161,7 +172,7 @@ export interface Page {
   lede?: string;
   glow?: "left" | "right";
   description?: string;
-  og_image?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  og_image?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   body?: PageBodyBlock[];
   createdAt: Date;
   updatedAt: Date;
@@ -196,11 +207,22 @@ export interface PostSectionsNoteV1Block {
 
 export type PostSectionsNoteBlock = PostSectionsNoteV1Block;
 
+export interface PostSectionsDiagramV1Block {
+  _type: "diagram";
+  _version: 1;
+  _key: string;
+  "title"?: string | null;
+  "code": string;
+  "caption"?: string | null;
+}
+
+export type PostSectionsDiagramBlock = PostSectionsDiagramV1Block;
+
 export interface PostSectionsFigureV1Block {
   _type: "figure";
   _version: 1;
   _key: string;
-  "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  "image": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   "caption"?: string | null;
   "width"?: "normal" | "wide" | null;
 }
@@ -212,7 +234,7 @@ export interface PostSectionsGalleryV1Block {
   _version: 1;
   _key: string;
   "label"?: string | null;
-  "items"?: { "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
+  "items"?: { "image": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
 }
 
 export type PostSectionsGalleryBlock = PostSectionsGalleryV1Block;
@@ -260,7 +282,7 @@ export interface PostSectionsPostListV1Block {
 
 export type PostSectionsPostListBlock = PostSectionsPostListV1Block;
 
-export type PostSectionsBlock = PostSectionsNoteBlock | PostSectionsFigureBlock | PostSectionsGalleryBlock | PostSectionsCtaBlock | PostSectionsLinksBlock | PostSectionsFaqBlock | PostSectionsPostListBlock;
+export type PostSectionsBlock = PostSectionsNoteBlock | PostSectionsDiagramBlock | PostSectionsFigureBlock | PostSectionsGalleryBlock | PostSectionsCtaBlock | PostSectionsLinksBlock | PostSectionsFaqBlock | PostSectionsPostListBlock;
 
 export interface Post {
   id: string;
@@ -269,7 +291,7 @@ export interface Post {
   title: string;
   date: string;
   excerpt?: string;
-  featured_image?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  featured_image?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   cover_caption?: string;
   content?: PortableTextBlock[];
   sections?: PostSectionsBlock[];
@@ -304,8 +326,8 @@ export interface Profile {
   uses_title?: string;
   uses_intro?: string;
   soundtrack_note?: string;
-  desk_photo?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
-  portrait?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  desk_photo?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  portrait?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
@@ -344,11 +366,22 @@ export interface ProjectBodyTerminalV1Block {
 
 export type ProjectBodyTerminalBlock = ProjectBodyTerminalV1Block;
 
+export interface ProjectBodyDiagramV1Block {
+  _type: "diagram";
+  _version: 1;
+  _key: string;
+  "title"?: string | null;
+  "code": string;
+  "caption"?: string | null;
+}
+
+export type ProjectBodyDiagramBlock = ProjectBodyDiagramV1Block;
+
 export interface ProjectBodyFigureV1Block {
   _type: "figure";
   _version: 1;
   _key: string;
-  "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  "image": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   "caption"?: string | null;
   "width"?: "normal" | "wide" | null;
 }
@@ -360,7 +393,7 @@ export interface ProjectBodyGalleryV1Block {
   _version: 1;
   _key: string;
   "label"?: string | null;
-  "items"?: { "image": { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
+  "items"?: { "image": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "caption"?: string | null }[] | null;
 }
 
 export type ProjectBodyGalleryBlock = ProjectBodyGalleryV1Block;
@@ -385,7 +418,7 @@ export interface ProjectBodyFaqV1Block {
 
 export type ProjectBodyFaqBlock = ProjectBodyFaqV1Block;
 
-export type ProjectBodyBlock = ProjectBodyProseBlock | ProjectBodyNoteBlock | ProjectBodyTerminalBlock | ProjectBodyFigureBlock | ProjectBodyGalleryBlock | ProjectBodyLinksBlock | ProjectBodyFaqBlock;
+export type ProjectBodyBlock = ProjectBodyProseBlock | ProjectBodyNoteBlock | ProjectBodyTerminalBlock | ProjectBodyDiagramBlock | ProjectBodyFigureBlock | ProjectBodyGalleryBlock | ProjectBodyLinksBlock | ProjectBodyFaqBlock;
 
 export interface Project {
   id: string;
@@ -393,7 +426,7 @@ export interface Project {
   status: string;
   title: string;
   summary?: string;
-  featured_image?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  featured_image?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   language?: string;
   project_status?: "active" | "maintained" | "archived";
   stars?: string;
@@ -458,7 +491,7 @@ export interface Track {
   artist?: string;
   album?: string;
   duration_seconds?: number;
-  cover?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  cover?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   position?: number;
   createdAt: Date;
   updatedAt: Date;
