@@ -6,6 +6,7 @@
 import { defineBlockComponents } from "emdash/ui";
 import type { PageBodyBlock, PostSectionsBlock, ProjectBodyBlock } from "../../../emdash-env";
 import CtaBlock from "./CtaBlock.astro";
+import DiagramBlock from "./DiagramBlock.astro";
 import FaqBlock from "./FaqBlock.astro";
 import FigureBlock from "./FigureBlock.astro";
 import GalleryBlock from "./GalleryBlock.astro";
@@ -22,6 +23,7 @@ export { default as MissingBlock } from "./Missing.astro";
 
 export const postSections = defineBlockComponents<PostSectionsBlock>({
 	note: NoteBlock,
+	diagram: DiagramBlock,
 	figure: FigureBlock,
 	gallery: GalleryBlock,
 	cta: CtaBlock,
@@ -34,6 +36,7 @@ export const projectBody = defineBlockComponents<ProjectBodyBlock>({
 	prose: ProseBlock,
 	note: NoteBlock,
 	terminal: TerminalBlock,
+	diagram: DiagramBlock,
 	figure: FigureBlock,
 	gallery: GalleryBlock,
 	links: LinksBlock,
@@ -44,6 +47,7 @@ export const pageBody = defineBlockComponents<PageBodyBlock>({
 	prose: ProseBlock,
 	note: NoteBlock,
 	terminal: TerminalBlock,
+	diagram: DiagramBlock,
 	figure: FigureBlock,
 	gallery: GalleryBlock,
 	cta: CtaBlock,

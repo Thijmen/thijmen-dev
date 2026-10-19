@@ -105,6 +105,36 @@
 			]
 		},
 		{
+			"slug": "diagram",
+			"label": "Diagram",
+			"description": "A Mermaid diagram (flowchart, sequence, state, class, ER or xychart), drawn on the server in a terminal window.",
+			"category": "Content",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "title",
+							"label": "Window title",
+							"type": "string"
+						},
+						{
+							"slug": "code",
+							"label": "Mermaid source",
+							"type": "text",
+							"required": true
+						},
+						{
+							"slug": "caption",
+							"label": "Caption",
+							"type": "string"
+						}
+					]
+				}
+			]
+		},
+		{
 			"slug": "figure",
 			"label": "Figure",
 			"description": "One image with a caption.",
@@ -526,6 +556,7 @@
 					"validation": {
 						"allowedTypes": [
 							"note",
+							"diagram",
 							"figure",
 							"gallery",
 							"cta",
@@ -615,6 +646,7 @@
 							"prose",
 							"note",
 							"terminal",
+							"diagram",
 							"figure",
 							"gallery",
 							"links",
@@ -904,6 +936,7 @@
 							"prose",
 							"note",
 							"terminal",
+							"diagram",
 							"figure",
 							"gallery",
 							"cta",

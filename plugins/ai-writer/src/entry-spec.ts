@@ -34,9 +34,9 @@ const PURPOSE: Record<string, { purpose: string; max?: number }> = {
 	lede: { purpose: "Lede under the page title: one or two sentences.", max: 300 },
 	description: { purpose: "SEO meta description, at most 155 characters.", max: 160 },
 	cover_caption: { purpose: "Caption under the cover image, mono, short. Only if the brief implies what the image shows; otherwise leave it out.", max: 140 },
-	content: { purpose: "The post body. The core of the entry: the argument, with ## sections, examples and code where they help." },
+	content: { purpose: "The post body. The core of the entry: the argument, with ## sections, examples and code where they help. A ```mermaid fence renders as a diagram (flowchart, sequenceDiagram, stateDiagram-v2, classDiagram, erDiagram or xychart-beta only); use one when a flow or architecture is easier to see than to read." },
 	sections: { purpose: "Blocks shown after the body: related posts, FAQ, call to action. Two or three at most, only ones that earn their place." },
-	body: { purpose: "The entry's main content as a sequence of blocks. Prose blocks carry the text; use terminal, note, links, faq where they fit." },
+	body: { purpose: "The entry's main content as a sequence of blocks. Prose blocks carry the text; use terminal, diagram, note, links, faq where they fit." },
 };
 
 const KIND: Record<string, TargetKind> = { string: "string", text: "text", portableText: "portableText", blocks: "blocks" };
