@@ -50,7 +50,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: ^4.0.65
-        version: 4.0.78(zod@4.6.5)
+        version: 4.0.82(zod@4.6.5)
       '@ai-sdk/openai':
         specifier: ^4.0.78
         version: 4.0.96(zod@4.6.5)
@@ -80,7 +80,7 @@ importers:
         version: 19.3.0
       workers-ai-provider:
         specifier: ^4.0.0
-        version: 4.0.0(@ai-sdk/anthropic@4.0.78(zod@4.6.5))(@ai-sdk/openai@4.0.96(zod@4.6.5))(@ai-sdk/provider@4.0.26)(ai@7.0.116(zod@4.6.5))
+        version: 4.0.0(@ai-sdk/anthropic@4.0.82(zod@4.6.5))(@ai-sdk/openai@4.0.96(zod@4.6.5))(@ai-sdk/provider@4.0.29)(ai@7.0.116(zod@4.6.5))
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -91,8 +91,8 @@ importers:
 
 packages:
 
-  '@ai-sdk/anthropic@4.0.78':
-    resolution: {integrity: sha512-lVMxa9tLM5WoB72bqxjzWEWQlCwtBTo1L3yIKxAefowWATd+1YKohrINey6wTn8gtGEqyYm79z4DUGJBYauUFw==}
+  '@ai-sdk/anthropic@4.0.82':
+    resolution: {integrity: sha512-1HvCBHdBsfG/OTDOmo3R+rwKtVofnPCWKyMKqOa75yieQEC8V7leB40EaG6uQ1wKnqeXdc31s7tNyq+OnKV/mg==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -121,12 +121,6 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider-utils@5.0.58':
-    resolution: {integrity: sha512-iXSwKR/7LpHzAlyrUl+bTinwzmZ3Nmup1viwPisM5Gn5cogRdIG4rV9w1ZDuKFcrXyu/AeVs42E1CX/0aNwrfQ==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
   '@ai-sdk/provider-utils@5.0.62':
     resolution: {integrity: sha512-//6sHa6QNQdM2KHOg5pxp1UMFQB4U8cqdw/kSm9BMr0DLeaFgG3TXZfxhpwRZmxgBpOrzMVZ/gwLXH309+Ortw==}
     engines: {node: '>=22'}
@@ -135,10 +129,6 @@ packages:
 
   '@ai-sdk/provider@4.0.18':
     resolution: {integrity: sha512-+GZJIgz1jk86pwEbb3f1BD2bdoSKyWE4Jg4YUc7NMnMozbWemSKYZcw2F4nMaO5qwsL5A8RmioAKW81YktRpIQ==}
-    engines: {node: '>=22'}
-
-  '@ai-sdk/provider@4.0.26':
-    resolution: {integrity: sha512-BZ443uBEq6HuMA+Z4b7Hpm65GpZSo7pWqnYqpf/7tAO3C48JbtvAhOE2JnODFj+jodsZzfRHkAyQb64xuD2tZQ==}
     engines: {node: '>=22'}
 
   '@ai-sdk/provider@4.0.29':
@@ -4333,10 +4323,10 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/anthropic@4.0.78(zod@4.6.5)':
+  '@ai-sdk/anthropic@4.0.82(zod@4.6.5)':
     dependencies:
-      '@ai-sdk/provider': 4.0.26
-      '@ai-sdk/provider-utils': 5.0.58(zod@4.6.5)
+      '@ai-sdk/provider': 4.0.29
+      '@ai-sdk/provider-utils': 5.0.62(zod@4.6.5)
       zod: 4.6.5
 
   '@ai-sdk/gateway@4.0.94(zod@4.6.5)':
@@ -4369,15 +4359,6 @@ snapshots:
       undici: 7.29.0
       zod: 4.6.5
 
-  '@ai-sdk/provider-utils@5.0.58(zod@4.6.5)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.26
-      '@standard-schema/spec': 1.1.0
-      '@workflow/serde': 4.1.0
-      eventsource-parser: 3.1.1
-      undici: 7.29.1
-      zod: 4.6.5
-
   '@ai-sdk/provider-utils@5.0.62(zod@4.6.5)':
     dependencies:
       '@ai-sdk/provider': 4.0.29
@@ -4388,10 +4369,6 @@ snapshots:
       zod: 4.6.5
 
   '@ai-sdk/provider@4.0.18':
-    dependencies:
-      json-schema: 0.4.0
-
-  '@ai-sdk/provider@4.0.26':
     dependencies:
       json-schema: 0.4.0
 
@@ -8739,12 +8716,12 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20261012.1
       '@cloudflare/workerd-windows-64': 1.20261012.1
 
-  workers-ai-provider@4.0.0(@ai-sdk/anthropic@4.0.78(zod@4.6.5))(@ai-sdk/openai@4.0.96(zod@4.6.5))(@ai-sdk/provider@4.0.26)(ai@7.0.116(zod@4.6.5)):
+  workers-ai-provider@4.0.0(@ai-sdk/anthropic@4.0.82(zod@4.6.5))(@ai-sdk/openai@4.0.96(zod@4.6.5))(@ai-sdk/provider@4.0.29)(ai@7.0.116(zod@4.6.5)):
     dependencies:
-      '@ai-sdk/provider': 4.0.26
+      '@ai-sdk/provider': 4.0.29
       ai: 7.0.116(zod@4.6.5)
     optionalDependencies:
-      '@ai-sdk/anthropic': 4.0.78(zod@4.6.5)
+      '@ai-sdk/anthropic': 4.0.82(zod@4.6.5)
       '@ai-sdk/openai': 4.0.96(zod@4.6.5)
 
   wrangler@4.151.0(@cloudflare/workers-types@5.20261015.1)(@types/node@26.6.2):
