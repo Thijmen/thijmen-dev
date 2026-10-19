@@ -217,6 +217,15 @@ Config and ops:
   - `AI_WRITER_MOCK=1` in `.dev.vars`: a scripted mock model (`src/agent/mock-model.ts`). It walks the whole flow (tools, a question, every field, tags, validate) under plain `pnpm dev`, for UI work without costs.
 - The admin page ships its own CSS (`src/admin/styles.ts`, on Kumo theme variables), because the admin's Tailwind doesn't scan plugin sources.
 
+### Registry edition (`plugins/ai-writer-lite`)
+
+A separate, generic **sandboxed** plugin for the EmDash plugin registry, so other sites can install it from the admin. This site doesn't register it; it ships on its own. Its `README.md` has the design, `docs/setup.md` the setup text shown in the registry.
+- Block Kit only: a "New with AI" page (brief in, draft out), an "AI writer" editor panel on every collection (fills empty fields or rewrites one, saves draft changes, reloads), "AI runs", and a settings page.
+- No `AI` binding in the sandbox: model calls go over HTTPS to `api.cloudflare.com/.../ai/v1/chat/completions` with the site's own Cloudflare API token (Workers AI → Read). The token is a `secret` setting, which needs `EMDASH_ENCRYPTION_KEY` on the site.
+- One model call per click, inside the sandbox's 30 s: a 24 s `cf-aig-request-timeout`, fast models by default. At most 10 calls out per request, so settings are one stored object plus the token.
+- Fields come from the live schema (`src/fields.ts`), not this site's slugs. No SEO, blocks or tag assignment (reasons in its README).
+- `pnpm --filter @thijmen/plugin-ai-writer-lite test` runs it end to end through EmDash's real sandbox (Worker Loader + PluginBridge) with the Cloudflare API mocked; CI runs it as its own job. `publisher` in `emdash-plugin.jsonc` is a placeholder until the first publish.
+
 ## What not to do
 
 - Don't add a second accent colour or coloured section backgrounds. The purple accent, its soft tint and the fixed-dark player card are the whole palette.
