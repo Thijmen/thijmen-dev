@@ -219,7 +219,10 @@ Config and ops:
 
 ### Registry edition (`plugins/ai-writer-lite`)
 
-A separate, generic **sandboxed** plugin for the EmDash plugin registry, so other sites can install it from the admin. This site doesn't register it; it ships on its own. Its `README.md` has the design, `docs/setup.md` the setup text shown in the registry.
+A separate, generic **sandboxed** plugin for the EmDash plugin registry, so other sites can install it from the admin. Not published yet. Its `README.md` has the design, `docs/setup.md` the setup text shown in the registry.
+- **Preview deploys only** load it, in EmDash's real sandbox: `scripts/preview-plugins.mjs` builds it and returns it when `WORKERS_CI_BRANCH` is set and isn't `main` (production and local builds get nothing). `astro.config.mjs` then sets `sandboxed` and `sandboxRunner: "@emdash-cms/cloudflare/sandbox"` (the module path, because `sandbox()` only checks top-level wrangler config), and `previews.worker_loaders` has the `LOADER` binding (Workers paid plan). `PluginBridge` is already exported from `src/worker.ts`.
+- On a preview it shows under **AI writer** in the sidebar next to the native writer's pages, and both add an "AI writer" editor panel. Saving its API token needs `EMDASH_ENCRYPTION_KEY` as a preview secret (`npx emdash secrets generate`, then `pnpm wrangler preview base-config secret put EMDASH_ENCRYPTION_KEY`, or `wrangler preview secret put … --name <preview>` for an existing preview).
+- A sandboxed plugin can't use the `AI` binding: EmDash starts its isolate with only `PLUGIN_ID`, `PLUGIN_VERSION` and the `BRIDGE`, and no outbound network except `ctx.http`.
 - Block Kit only: a "New with AI" page (brief in, draft out), an "AI writer" editor panel on every collection (fills empty fields or rewrites one, saves draft changes, reloads), "AI runs", and a settings page.
 - No `AI` binding in the sandbox: model calls go over HTTPS to `api.cloudflare.com/.../ai/v1/chat/completions` with the site's own Cloudflare API token (Workers AI → Read). The token is a `secret` setting, which needs `EMDASH_ENCRYPTION_KEY` on the site.
 - One model call per click, inside the sandbox's 30 s: a 24 s `cf-aig-request-timeout`, fast models by default. At most 10 calls out per request, so settings are one stored object plus the token.

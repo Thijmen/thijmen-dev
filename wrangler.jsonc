@@ -64,13 +64,16 @@
 		"ai": { "binding": "AI", "remote": true },
 		"durable_objects": {
 			"bindings": [{ "name": "WriterAgent", "class_name": "WriterAgent" }]
-		}
+		},
+		// Worker Loader for EmDash's plugin sandbox: previews load plugins/ai-writer-lite
+		// sandboxed (scripts/preview-plugins.mjs). Workers paid plan only.
+		"worker_loaders": [{ "binding": "LOADER" }]
 	},
 
 
 	
-	// Sandboxed plugins require Worker Loader, available on Workers paid plans. Uncomment to enable:
-	// "worker_loaders": [{ "binding": "LOADER" }],
+	// Sandboxed plugins require Worker Loader, available on Workers paid plans.
+	// Previews have it (see `previews`); production doesn't load sandboxed plugins.
 	// General maintenance cron trigger
 	"triggers": {
 		"crons": ["* * * * *"],
