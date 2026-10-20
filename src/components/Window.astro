@@ -1,7 +1,8 @@
 ---
 /**
- * Terminal window chrome: three dots, a filename, optional right-hand
- * slot ("aside"), then the body. Used for ~/.profile, skills.yml and code.
+ * Code / terminal tile: a fixed-dark surface (dark in both themes) with a
+ * filename tab, an optional right-hand slot ("aside") and the body. Used
+ * for terminal blocks, code blocks and skills.yml.
  */
 interface Props {
 	title: string;
@@ -16,7 +17,6 @@ const { title, class: className, size = "sm", ...attrs } = Astro.props;
 
 <div class:list={["window", size, className]} {...attrs}>
 	<div class="window-bar">
-		<span class="dot"></span><span class="dot"></span><span class="dot"></span>
 		<span class="window-title">{title}</span>
 		<slot name="aside" />
 	</div>
@@ -27,37 +27,39 @@ const { title, class: className, size = "sm", ...attrs } = Astro.props;
 	.window {
 		min-width: 0;
 		overflow: hidden;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-lg);
+		background: var(--dark-tile);
+		color: var(--dark-ink);
+		border-radius: var(--radius-md);
 		font-family: var(--font-mono);
+		/* Dark surface in both themes: use the dark-mode syntax colours. */
+		--syntax-keyword: oklch(0.77 0.14 295);
+		--syntax-string: oklch(0.8 0.13 150);
+		--syntax-fn: oklch(0.78 0.11 230);
+		--syntax-comment: oklch(0.62 0.03 295);
+		--syntax-number: oklch(0.8 0.12 60);
+		--color-text: var(--dark-ink);
+		--color-muted: var(--dark-ink-2);
 	}
 
 	.window.md {
-		border-radius: var(--radius-xl);
+		border-radius: var(--radius-lg);
 	}
 
 	.window-bar {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 10px 16px;
-		border-bottom: 1px solid var(--color-border);
+		gap: 8px;
+		padding: 12px 18px;
+		background: var(--dark-tile-2);
 		font-size: 12px;
-		color: var(--color-muted);
-	}
-
-	.dot {
-		width: 9px;
-		height: 9px;
-		border-radius: 50%;
-		background: var(--color-border);
+		color: var(--dark-ink-2);
 	}
 
 	.window-title {
 		flex: 1;
-		margin-left: 8px;
-		font-size: 11px;
+		font-size: 11.5px;
+		font-weight: 600;
+		color: var(--dark-ink);
 	}
 
 	.md .window-title {

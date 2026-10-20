@@ -1,10 +1,14 @@
 ---
 /**
- * Open-source project card. `full` (projects page) shows the screenshot,
- * status, install command and stars; `compact` (home) is name + blurb + lang.
+ * Open-source project card. `tile` (home) is a bento tile with status,
+ * blurb, a teaser from the case study (the first diagram or terminal block)
+ * and the install command; `full` (projects page) adds the screenshot and
+ * stars; `compact` is name + blurb + language.
  */
 import { Image } from "emdash/ui";
+import Go from "./home/Go.astro";
 import { hasImage, vtKey } from "../lib/content";
+import { renderDiagram } from "../lib/diagram";
 
 export interface Project {
 	title: string;
@@ -15,29 +19,105 @@ export interface Project {
 	stars?: string;
 	install?: string;
 	url?: string;
+	body?: unknown;
 }
 
 interface Props {
 	project: Project;
-	variant?: "full" | "compact";
+	variant?: "full" | "compact" | "tile";
 	showImage?: boolean;
 	/** Case-study page; the title links here instead of the repo. */
 	href?: string;
+	class?: string;
 }
 
-const { project: p, variant = "full", showImage = true, href } = Astro.props;
+const { project: p, variant = "full", showImage = true, href, class: className } = Astro.props;
 const titleHref = href ?? p.url;
 const status = (p.project_status ?? "active").toLowerCase();
 // Screenshot + name morph into the case study when it exists (motion.ts).
 const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
+
+// A language's dot colour: a hue per language, kept inside the cover palette.
+const LANG_HUES: Record<string, string> = {
+	rust: "var(--hue-orange)",
+	go: "var(--hue-blue)",
+	kotlin: "var(--hue-purple)",
+	typescript: "var(--hue-blue)",
+	python: "var(--hue-green)",
+	java: "var(--hue-orange)",
+};
+const langHue = LANG_HUES[(p.language ?? "").toLowerCase()] ?? "var(--color-faint)";
+
+// Tile teaser: the case study's first block, when it is a diagram or a
+// short terminal block (a diff reads best). Nothing else is invented.
+type Teaser = { kind: "svg"; svg: string } | { kind: "code"; lines: Array<{ text: string; mark: "add" | "del" | "" }> } | undefined;
+let teaser: Teaser;
+if (variant === "tile" && Array.isArray(p.body)) {
+	const b = p.body[0] as { _type?: string; code?: string; language?: string } | undefined;
+	if (b?._type === "diagram" && b.code) {
+		const svg = renderDiagram(b.code);
+		if (svg) teaser = { kind: "svg", svg };
+	} else if (b?._type === "terminal" && b.code) {
+		const lines = b.code.replace(/\n+$/, "").split("\n");
+		if (lines.length <= 8)
+			teaser = {
+				kind: "code",
+				lines: lines.map((text) => ({
+					text: b.language === "diff" ? text.replace(/^[+-]\s?/, "") : text,
+					mark: b.language === "diff" ? (text.startsWith("+") ? "add" : text.startsWith("-") ? "del" : "") : "",
+				})),
+			};
+	}
+}
+// A repo-style name is set heavy; a sentence is set in the serif.
+const sentence = /\s/.test(p.title);
 ---
 
 {
-	variant === "compact" ? (
+	variant === "tile" ? (
+		<a href={href ?? p.url ?? "/projects"} class:list={["tile", "ptile", className]} data-vt={vt} data-reveal>
+			<div class="tile-label">
+				<span>Projects</span>
+				<span class="state">
+					<i class:list={["dot", status]} />
+					{status}
+					<Go />
+				</span>
+			</div>
+			<h3 class:list={["ptitle", { sentence }]} data-vt-part={vt && "title"}>
+				{p.title}
+			</h3>
+			{p.summary && <p class="pdesc">{p.summary}</p>}
+			{teaser?.kind === "svg" && <div class="teaser svg" set:html={teaser.svg} />}
+			{
+				teaser?.kind === "code" && (
+					<pre class="teaser diff">
+						{teaser.lines.map((l) => (
+							<div class:list={[l.mark]}>
+								<span class="g">{l.mark === "add" ? "+" : l.mark === "del" ? "-" : " "}</span>
+								{l.text}
+							</div>
+						))}
+					</pre>
+				)
+			}
+			<div class="pfoot">
+				{
+					p.language && (
+						<span class="lang" style={`--lc:${langHue}`}>
+							<i />
+							{p.language}
+						</span>
+					)
+				}
+				{p.install && <code class="install">{p.install}</code>}
+			</div>
+		</a>
+	) : variant === "compact" ? (
 		<a href={href ?? "/projects"} class="card compact" data-vt={vt}>
 			<span class="name" data-vt-part={vt && "title"}>{p.title}</span>
 			{p.summary && <span class="desc">{p.summary}</span>}
-			{p.language && <span class="lang">● {p.language}</span>}
+			{p.language && <span class="lang-text">● {p.language}</span>}
 		</a>
 	) : (
 		<article class="card hoverable full" data-vt={vt}>
@@ -63,12 +143,16 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 				</div>
 				{p.summary && <div class="blurb">{p.summary}</div>}
 				{p.install && (
-					<div class="install">
+					<div class="install-line">
 						<span class="sigil">$</span> {p.install}
 					</div>
 				)}
 				<div class="foot">
-					{p.language && <span>● {p.language}</span>}
+					{p.language && (
+						<span class="lang-text">
+							<i class="dotl" style={`--lc:${langHue}`} /> {p.language}
+						</span>
+					)}
 					{p.stars && (
 						<span>
 							★ <span data-count>{p.stars}</span>
@@ -81,13 +165,162 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 }
 
 <style>
-	.name {
-		font-family: var(--font-mono);
-		font-weight: 700;
-		color: var(--color-brand);
+	/* Tile (home) --------------------------------------------------------- */
+	.ptile {
+		gap: 0;
 	}
 
-	/* Compact ------------------------------------------------------------- */
+	.state {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		color: var(--color-muted);
+		text-transform: lowercase;
+	}
+
+	.dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--syntax-string);
+	}
+
+	.dot.archived {
+		background: var(--color-faint);
+	}
+
+	.ptitle {
+		margin: 16px 0 0;
+		font-family: var(--font-body);
+		font-weight: 800;
+		font-size: 32px;
+		line-height: 1;
+		letter-spacing: -0.045em;
+		overflow-wrap: anywhere;
+	}
+
+	.ptitle.sentence {
+		font-family: var(--font-heading);
+		font-weight: 450;
+		font-size: 25px;
+		line-height: 1.12;
+		letter-spacing: -0.015em;
+		text-wrap: balance;
+	}
+
+	/* An accent phrase would arrive as *em* via emphasize(); plain titles don't need it. */
+	.pdesc {
+		margin: 10px 0 0;
+		font-size: 15px;
+		line-height: 1.5;
+		color: var(--color-muted);
+		text-wrap: pretty;
+	}
+
+	.teaser {
+		margin: 18px 0 0;
+		border-radius: var(--radius-md);
+		background: var(--color-surface);
+		overflow: hidden;
+	}
+
+	.teaser.svg {
+		display: grid;
+		place-items: center;
+		padding: 10px;
+		max-height: 170px;
+	}
+
+	.teaser.svg :global(svg) {
+		width: 100%;
+		height: auto;
+		max-height: 150px;
+	}
+
+	.diff {
+		padding: 8px 0;
+		font: 500 11.5px/1.75 var(--font-mono);
+		color: var(--color-muted);
+	}
+
+	.diff div {
+		padding: 0 14px;
+		white-space: pre;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.diff .del {
+		background: oklch(0.63 0.17 25 / 0.12);
+	}
+
+	.diff .add {
+		background: oklch(0.65 0.15 150 / 0.16);
+		color: var(--color-text);
+	}
+
+	.diff .g {
+		display: inline-block;
+		width: 1.4ch;
+		color: oklch(0.6 0.17 25);
+	}
+
+	.diff .add .g {
+		color: oklch(0.6 0.15 150);
+	}
+
+	.pfoot {
+		margin-top: auto;
+		padding-top: 18px;
+		display: flex;
+		gap: 8px;
+		min-width: 0;
+	}
+
+	.lang {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 30px;
+		padding: 0 12px;
+		border-radius: var(--radius-pill);
+		background: var(--color-surface);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.lang i,
+	.dotl {
+		display: inline-block;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--lc);
+	}
+
+	.install {
+		min-width: 0;
+		height: 30px;
+		padding: 0 12px;
+		border-radius: var(--radius-pill);
+		display: inline-flex;
+		align-items: center;
+		background: var(--color-surface);
+		font: 500 12px/1 var(--font-mono);
+		color: var(--color-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Compact -------------------------------------------------------------- */
+	.name {
+		font-family: var(--font-body);
+		font-weight: 700;
+		color: var(--color-text);
+	}
+
 	.compact {
 		display: flex;
 		flex-direction: column;
@@ -96,7 +329,7 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 	}
 
 	.compact .name {
-		font-size: 13px;
+		font-size: 15px;
 	}
 
 	.desc {
@@ -105,18 +338,17 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 		color: var(--color-muted);
 	}
 
-	.lang {
+	.lang-text {
 		font-family: var(--font-mono);
 		font-size: 11px;
 		color: var(--color-muted);
 	}
 
-	/* Full ---------------------------------------------------------------- */
+	/* Full ----------------------------------------------------------------- */
 	.full {
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		border-radius: var(--radius-lg);
 	}
 
 	.shot {
@@ -124,7 +356,6 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 		aspect-ratio: 16 / 9;
 		overflow: hidden;
 		background: var(--color-surface);
-		border-bottom: 1px solid var(--color-border);
 	}
 
 	.shot-empty {
@@ -134,7 +365,7 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 		place-items: center;
 		font-family: var(--font-mono);
 		font-size: 12px;
-		color: var(--color-muted);
+		color: var(--color-faint);
 	}
 
 	.body {
@@ -153,7 +384,9 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 	}
 
 	.full .name {
-		font-size: 16px;
+		font-size: 20px;
+		letter-spacing: -0.03em;
+		font-weight: 800;
 	}
 
 	.status {
@@ -182,11 +415,10 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 		text-wrap: pretty;
 	}
 
-	.install {
+	.install-line {
 		overflow-x: auto;
 		white-space: nowrap;
 		padding: 10px 12px;
-		border: 1px solid var(--color-border);
 		border-radius: var(--radius-sm);
 		background: var(--color-surface);
 		font-family: var(--font-mono);
@@ -200,6 +432,7 @@ const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 
 	.foot {
 		display: flex;
+		align-items: center;
 		gap: 14px;
 		font-family: var(--font-mono);
 		font-size: 12px;

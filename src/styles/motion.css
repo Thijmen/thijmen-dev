@@ -204,13 +204,13 @@
 	/* Cards: a 3px lift and a brand-soft spotlight that follows the cursor
 	   (--mx/--my from motion.ts). A glow, never a shadow. */
 	@media (hover: hover) and (pointer: fine) {
-		:root[data-motion="full"] :is(a.card, .card.hoverable, a.accent-card) {
+		:root[data-motion="full"] :is(a.card, .card.hoverable, a.accent-card, a.tile) {
 			transition:
 				border-color var(--dur-fast) ease,
 				transform var(--dur-ui) var(--ease-out);
 		}
 
-		:root[data-motion="full"] :is(a.card, .card.hoverable, a.accent-card):hover {
+		:root[data-motion="full"] :is(a.card, .card.hoverable, a.accent-card, a.tile):hover {
 			transform: translateY(var(--lift));
 		}
 

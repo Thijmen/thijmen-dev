@@ -1,0 +1,114 @@
+---
+/** Open-source tile: the stars total across repos, and bars for the top four. */
+import Go from "./Go.astro";
+import { formatStars, parseStars } from "../../lib/content";
+
+interface Props {
+	projects: Array<{ title: string; stars?: string; project_status?: string }>;
+}
+
+const withStars = Astro.props.projects
+	.map((p) => ({ name: p.title, label: String(p.stars ?? ""), n: parseStars(p.stars), archived: (p.project_status ?? "") === "archived" }))
+	.filter((p) => p.n > 0)
+	.sort((a, b) => b.n - a.n);
+const total = withStars.reduce((sum, p) => sum + p.n, 0);
+const top = withStars.slice(0, 4);
+const max = top[0]?.n || 1;
+---
+
+{
+	withStars.length > 0 && (
+		<a href="/projects" class="tile stars" data-reveal>
+			<div class="tile-label">
+				<span>Open source</span>
+				<Go />
+			</div>
+			<div class="big-num total">
+				<span data-count>{formatStars(total)}</span>
+				<small>★</small>
+			</div>
+			<div class="sub">stars across {withStars.length} repos</div>
+			<ul class="bars">
+				{top.map((p) => (
+					<li class:list={{ arch: p.archived }}>
+						<span>{p.name}</span>
+						<span class="c">{p.label}</span>
+						<span class="b">
+							<i style={`--w:${Math.max(6, Math.round((p.n / max) * 100))}%`} />
+						</span>
+					</li>
+				))}
+			</ul>
+		</a>
+	)
+}
+
+<style>
+	.total {
+		margin-top: 6px;
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+	}
+
+	.total small {
+		font-size: 28px;
+		letter-spacing: 0;
+		color: var(--color-brand);
+	}
+
+	.sub {
+		margin-top: 8px;
+		font-size: 14px;
+		color: var(--color-muted);
+	}
+
+	.bars {
+		margin: auto 0 0;
+		padding: 16px 0 0;
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+	}
+
+	.bars li {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		row-gap: 5px;
+		font-size: 13px;
+		color: var(--color-muted);
+	}
+
+	.bars span:first-child {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.c {
+		font-weight: 600;
+		color: var(--color-text);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.b {
+		grid-column: 1 / -1;
+		height: 6px;
+		border-radius: 3px;
+		background: var(--color-surface);
+	}
+
+	.b i {
+		display: block;
+		height: 100%;
+		width: var(--w);
+		border-radius: 3px;
+		background: var(--color-brand);
+	}
+
+	.arch {
+		opacity: 0.55;
+	}
+</style>

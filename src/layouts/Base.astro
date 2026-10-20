@@ -16,7 +16,7 @@ interface Props {
 	description?: string;
 	image?: string;
 	type?: "website" | "article";
-	/** Side of the soft accent glow behind the page top. */
+	/** Unused since the tile redesign (no glow any more); kept so callers and the `pages.glow` field still fit. */
 	glow?: "left" | "right";
 }
 
@@ -75,8 +75,8 @@ const pageCtx = createPublicPageContext({
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>{fullTitle}</title>
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-		<meta name="theme-color" content="#faf9fc" media="(prefers-color-scheme: light)" />
-		<meta name="theme-color" content="#100e17" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#f1f0f4" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#26222e" media="(prefers-color-scheme: dark)" />
 		<script is:inline>
 			(function () {
 				var r = document.documentElement;
@@ -113,7 +113,6 @@ const pageCtx = createPublicPageContext({
 	</head>
 	<body>
 		<div class="shell">
-			<div class:list={["glow", glow]} aria-hidden="true"></div>
 			<SiteHeader nav={nav} latestPost={latestPost} {...contact} />
 			<slot />
 			<SiteFooter name={siteTitle} {...contact} />
@@ -210,53 +209,6 @@ const pageCtx = createPublicPageContext({
 				overflow-x: clip;
 			}
 
-			.glow {
-				position: absolute;
-				top: -260px;
-				width: 760px;
-				height: 560px;
-				background: radial-gradient(closest-side, var(--color-brand-soft), transparent);
-				pointer-events: none;
-			}
-
-			.glow.right {
-				right: -120px;
-			}
-
-			.glow.left {
-				left: -160px;
-			}
-
-			/* Breathes: a slow drift, alternating so it never visibly loops. */
-			:global(:root[data-motion="full"]) .glow {
-				animation: glow-drift 24s ease-in-out infinite alternate;
-			}
-
-			:global(:root[data-motion="full"]) .glow.left {
-				animation-direction: alternate-reverse;
-			}
-
-			@keyframes glow-drift {
-				0% {
-					translate: 0 0;
-					scale: 1;
-				}
-				50% {
-					translate: -40px 24px;
-					scale: 1.08;
-					opacity: 0.85;
-				}
-				100% {
-					translate: 32px -16px;
-					scale: 0.95;
-				}
-			}
-
-			@media print {
-				.glow {
-					display: none;
-				}
-			}
 		</style>
 	</body>
 </html>

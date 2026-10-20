@@ -19,20 +19,39 @@
 	:root {
 		color-scheme: light dark;
 
-		/* Colors */
-		--color-bg: light-dark(oklch(0.985 0.004 300), oklch(0.17 0.018 295));
-		--color-surface: light-dark(oklch(0.962 0.008 300), oklch(0.205 0.022 295));
-		--color-text: light-dark(oklch(0.23 0.03 295), oklch(0.94 0.01 300));
-		--color-muted: light-dark(oklch(0.47 0.03 295), oklch(0.73 0.03 295));
-		--color-border: light-dark(oklch(0.9 0.012 300), oklch(0.3 0.03 295));
+		/* Colors. Neutral surfaces with one purple accent: the page is a soft
+		   lilac grey, tiles sit on it as plain fills (no outlines, no shadows),
+		   and colour comes from the art (covers, photo) rather than the UI. */
+		--color-bg: light-dark(oklch(0.952 0.007 295), oklch(0.25 0.018 292)); /* the page */
+		--color-tile: light-dark(oklch(0.995 0.002 295), oklch(0.3 0.02 292)); /* cards and tiles */
+		--color-surface: light-dark(oklch(0.962 0.006 295), oklch(0.265 0.019 292)); /* inset: chips, thumbs, code spans */
+		--color-text: light-dark(oklch(0.22 0.03 292), oklch(0.96 0.008 300));
+		--color-muted: light-dark(oklch(0.42 0.025 292), oklch(0.83 0.016 295));
+		--color-faint: light-dark(oklch(0.52 0.02 292), oklch(0.72 0.02 295)); /* labels, meta */
+		--color-border: light-dark(oklch(0.915 0.009 295), oklch(0.37 0.02 292)); /* hairlines inside tiles */
 		/* Zebra rows in EmDash's Portable Text tables (emdash/ui Table falls back to a light grey). */
-		--color-bg-subtle: light-dark(oklch(0.975 0.006 300), oklch(0.19 0.02 295));
-		--color-brand: light-dark(oklch(0.52 0.2 295), oklch(0.77 0.14 295));
-		--color-brand-soft: light-dark(oklch(0.94 0.035 300), oklch(0.27 0.06 295));
-		--color-on-brand: light-dark(#fff, oklch(0.17 0.02 295));
+		--color-bg-subtle: light-dark(oklch(0.962 0.006 295), oklch(0.275 0.019 292));
+		--color-brand: light-dark(oklch(0.52 0.2 295), oklch(0.8 0.12 297));
+		--color-brand-soft: light-dark(oklch(0.95 0.025 300), oklch(0.35 0.05 295));
+		--color-on-brand: light-dark(#fff, oklch(0.2 0.02 295));
+		/* The one solid purple tile per page (same in both themes) */
+		--color-field: oklch(0.53 0.2 293);
+		--color-on-field: oklch(0.99 0.006 300);
 		--color-shadow: oklch(0.2 0.05 295 / 0.45);
 
-		/* Syntax (code blocks, terminal windows) */
+		/* Fixed-dark surfaces: code tiles and the player, dark in both themes */
+		--dark-tile: oklch(0.21 0.025 292);
+		--dark-tile-2: oklch(0.27 0.03 292);
+		--dark-ink: oklch(0.95 0.01 300);
+		--dark-ink-2: oklch(0.74 0.03 295);
+
+		/* Cover hues: colour lives in the art. A post's rarest tag picks one. */
+		--hue-purple: light-dark(oklch(0.55 0.2 295), oklch(0.78 0.12 297));
+		--hue-green: light-dark(oklch(0.56 0.13 150), oklch(0.8 0.12 150));
+		--hue-blue: light-dark(oklch(0.56 0.14 245), oklch(0.78 0.1 240));
+		--hue-orange: light-dark(oklch(0.63 0.15 50), oklch(0.8 0.11 55));
+
+		/* Syntax (code blocks) */
 		--syntax-keyword: light-dark(oklch(0.52 0.2 295), oklch(0.77 0.14 295));
 		--syntax-string: light-dark(oklch(0.5 0.13 150), oklch(0.8 0.13 150));
 		--syntax-fn: light-dark(oklch(0.52 0.14 240), oklch(0.78 0.11 230));
@@ -49,12 +68,14 @@
 		--wide-width: 1200px;
 		--gutter: clamp(20px, 5vw, 64px);
 		--radius-pill: 999px;
-		/* xl: wide feature cards, big windows, floating panels. lg: every card
-		   and window. md: tiles nested in a card. sm: thumbs and small marks. */
-		--radius-xl: 22px;
-		--radius-lg: 18px;
-		--radius-md: 12px;
-		--radius-sm: 8px;
+		/* xl: floating panels and big windows. lg: every tile and window.
+		   md: things nested in a tile. sm: thumbs and small marks. */
+		--radius-xl: 28px;
+		--radius-lg: 24px;
+		--radius-md: 14px;
+		--radius-sm: 10px;
+		--gap: 16px; /* between tiles */
+		--pad: 28px; /* inside tiles */
 
 		/* Motion. Timings always apply (fades survive reduced motion);
 		   distances are zero unless motion is "full" (see below and

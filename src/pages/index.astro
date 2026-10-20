@@ -5,18 +5,21 @@ import Kicker from "../components/Kicker.astro";
 import PostCard from "../components/PostCard.astro";
 import Portrait from "../components/Portrait.astro";
 import ProjectCard from "../components/ProjectCard.astro";
-import SectionLabel from "../components/SectionLabel.astro";
+import Soundtrack from "../components/Soundtrack.astro";
 import Timeline from "../components/Timeline.astro";
-import Window from "../components/Window.astro";
+import Go from "../components/home/Go.astro";
+import LocalTime from "../components/home/LocalTime.astro";
+import StarsTile from "../components/home/StarsTile.astro";
+import UsesTile from "../components/home/UsesTile.astro";
 import { asArray, emphasize, getProfile, hasImage, projectHref, riseWords, toPostSummary } from "../lib/content";
 
 const [settings, { profile, cacheHint: profileHint }, postsRes, rolesRes, projectsRes] = await Promise.all([
 	getSiteSettings(),
 	getProfile(),
-	getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 4 }),
+	// The whole (small) blog: the count comes from it, the tiles take the first four.
+	getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 200 }),
 	getEmDashCollection("roles", { orderBy: { position: "asc" }, limit: 3 }),
-	// Booleans are stored as 0/1; `where` takes strings and SQLite coerces "1".
-	getEmDashCollection("projects", { where: { featured: "1" }, orderBy: { position: "asc" }, limit: 2 }),
+	getEmDashCollection("projects", { orderBy: { position: "asc" }, limit: 50 }),
 ]);
 
 if (Astro.cache?.enabled) {
@@ -27,18 +30,25 @@ if (Astro.cache?.enabled) {
 const name = settings?.title || "Thijmen Stavenuiter";
 const [first, ...restNames] = name.split(" ");
 const portrait = hasImage(profile?.portrait) ? profile!.portrait! : undefined;
-const posts = postsRes.entries.map(toPostSummary);
-const [feature, ...others] = posts;
+const allPosts = postsRes.entries.map(toPostSummary);
+const [latest, ...more] = allPosts;
+const moreWriting = more.slice(0, 3);
 const roles = rolesRes.entries.map((e) => e.data);
-const projects = projectsRes.entries.map((e) => ({ data: e.data, href: projectHref(e) }));
-const lines = asArray<{ k: string; v: string; kind?: string }>(profile?.profile_lines);
+// Featured projects get a tile each; every project with stars feeds the stars tile.
+const featured = projectsRes.entries
+	.filter((e) => e.data.featured)
+	.slice(0, 2)
+	.map((e) => ({ data: e.data, href: projectHref(e) }));
+const allProjects = projectsRes.entries.map((e) => e.data);
 const email = profile?.email;
+// "status" is one of the hero's ~/.profile lines in the CMS; it captions the photo.
+const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l) => l.k === "status")?.v;
 ---
 
 <Base glow="right">
 	<main class="home">
-		<section class="hero-grid">
-			<div class="intro" data-hero>
+		<div class="bento">
+			<section class:list={["tile", "intro", { solo: !portrait }]} data-hero>
 				{profile?.status_line && <span class="status-pill">{profile.status_line}</span>}
 				<h1
 					class="name"
@@ -46,93 +56,89 @@ const email = profile?.email;
 					aria-label={`${first} ${restNames.join(" ")}.`}
 					set:html={riseWords(`${first}\n${restNames.join(" ")}*.*`)}
 				/>
-				{profile?.hero_intro && <p class="tagline">{profile.hero_intro}</p>}
+				{profile?.hero_intro && <p class="lede">{profile.hero_intro}</p>}
 				<div class="ctas">
-					<a href="/blog" class="btn btn-primary">Read the blog →</a>
+					<a href="/blog" class="btn btn-primary">Read the blog <span aria-hidden="true">→</span></a>
 					<a href="/resume" class="btn">Resume</a>
 					<Kicker cmd={`man ${first.toLowerCase()}`} cursor />
 				</div>
-			</div>
+			</section>
+
 			{
-				(portrait || lines.length > 0) && (
-					<div class:list={["stack", { "has-portrait": portrait }]}>
-						{portrait && <Portrait image={portrait} alt={portrait.alt || name} data-hero-item style="--hero-i:3" />}
-						{lines.length > 0 && (
-							<Window
-								title="~/.profile"
-								class="profile"
-								data-hero-item
-								data-print
-								style={`--hero-i:4;--lines:${lines.length}`}
-							>
-								<div class="profile-body">
-									{lines.map((l, i) => (
-										<div data-line style={`--line:${i}`}>
-											<span class="k">{l.k}</span>=
-											{l.kind === "list" ? (
-												<>
-													(<span class="s">{l.v}</span>)
-												</>
-											) : l.kind === "number" ? (
-												<span class="n">{l.v}</span>
-											) : (
-												<span class="s">"{l.v}"</span>
-											)}
-										</div>
-									))}
-								</div>
-							</Window>
+				portrait && (
+					<Portrait image={portrait} alt={portrait.alt || name} class="area-portrait" data-hero-item style="--hero-i:3">
+						{status && (
+							<>
+								Status: <b>{status}</b>
+							</>
 						)}
+					</Portrait>
+				)
+			}
+
+			{
+				latest && (
+					<div class="area-latest" data-reveal>
+						<PostCard post={latest} variant="latest" />
 					</div>
 				)
 			}
-		</section>
 
-		{
-			feature && (
-				<section class="writing">
-					<SectionLabel label="WRITING" href="/blog" linkText="ls blog/ →" rule />
-					<div class="writing-grid" data-stagger>
-						<PostCard post={feature} variant="feature" />
-						<div class="rows" data-stagger>
-							{others.map((p) => (
+			<Soundtrack variant="tile" />
+
+			<LocalTime />
+
+			{
+				moreWriting.length > 0 && (
+					<section class="tile writing" data-reveal>
+						<div class="tile-label">
+							<span>More writing</span>
+							<a href="/blog" class="count">
+								<span class="big-num n">{allPosts.length}</span>posts <Go />
+							</a>
+						</div>
+						<div class="rows">
+							{moreWriting.map((p) => (
 								<PostCard post={p} variant="row" />
 							))}
 						</div>
-					</div>
-				</section>
-			)
-		}
-
-		<section class="split">
-			{
-				roles.length > 0 && (
-					<div class="card history" data-reveal>
-						<SectionLabel label="HISTORY" href="/resume" linkText="resume(7) →" />
-						<Timeline roles={roles as any} variant="compact" />
-					</div>
+					</section>
 				)
 			}
-			<div class="side" data-stagger>
-				{
-					projects.length > 0 && (
-						<div class="projects" data-stagger>
-							{projects.map((p) => (
-								<ProjectCard project={p.data as any} variant="compact" href={p.href} />
-							))}
+
+			{featured.map((p, i) => <ProjectCard project={p.data as any} variant="tile" href={p.href} class={`area-project-${i}`} />)}
+
+			<StarsTile projects={allProjects as any} />
+
+			{
+				roles.length > 0 && (
+					<a href="/resume" class="tile career" data-reveal>
+						<div class="tile-label cmd">
+							<span>
+								<b>$</b> git log --oneline
+							</span>
+							<Go />
 						</div>
-					)
-				}
-				{
-					email && (
-						<a href={`mailto:${email}`} class="accent-card cta">
-							{profile?.cta_home && <span class="cta-text" set:html={emphasize(profile.cta_home)} />}
-							<span class="cta-mail">$ mail {email} →</span>
-						</a>
-					)
-				}
-			</div>
-		</section>
+						<Timeline roles={roles as any} variant="compact" />
+					</a>
+				)
+			}
+
+			<UsesTile />
+
+			{
+				email && (
+					<a href={`mailto:${email}`} class="tile field contact" data-reveal>
+						<div class="tile-label">
+							<span>Say hello</span>
+							<Go />
+						</div>
+						{profile?.cta_home && <p class="cta" set:html={emphasize(profile.cta_home)} />}
+						<span class="mail">{email} →</span>
+					</a>
+				)
+			}
+		</div>
 	</main>
 </Base>
 
@@ -142,175 +148,214 @@ const email = profile?.email;
 		width: 100%;
 		max-width: var(--wide-width);
 		margin: 0 auto;
-		padding: 0 var(--gutter);
-		display: flex;
-		flex-direction: column;
+		padding: 0 var(--gutter) 24px;
 	}
 
-	.hero-grid {
-		padding: clamp(48px, 8vw, 88px) 0 80px;
+	/* The bento: 12 columns, rows that grow with their content. Each tile has
+	   a fixed place on desktop; below 1024px it is 6 columns, below 640px a
+	   single column in reading order. */
+	.bento {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
-		gap: 48px 64px;
-		align-items: end;
+		grid-template-columns: repeat(12, minmax(0, 1fr));
+		grid-template-rows: minmax(500px, auto) minmax(244px, auto) minmax(296px, auto) minmax(330px, auto) minmax(316px, auto);
+		gap: var(--gap);
 	}
 
 	.intro {
+		grid-area: 1 / 1 / 2 / 8;
+	}
+	.bento > :global(.area-portrait) {
+		grid-area: 1 / 8 / 2 / 13;
+	}
+	/* Without a portrait the intro takes the whole top row. */
+	.intro.solo {
+		grid-column: 1 / -1;
+	}
+	.area-latest {
+		grid-area: 2 / 1 / 4 / 6;
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
 		min-width: 0;
+	}
+	.area-latest > :global(.tile) {
+		flex: 1;
+	}
+	.bento > :global(.nowplaying) {
+		grid-area: 2 / 6 / 3 / 10;
+	}
+	.bento > :global([data-local-time]) {
+		grid-area: 2 / 10 / 3 / 13;
+	}
+	.writing {
+		grid-area: 3 / 6 / 4 / 13;
+	}
+	.bento > :global(.area-project-0) {
+		grid-area: 4 / 1 / 5 / 6;
+	}
+	.bento > :global(.area-project-1) {
+		grid-area: 4 / 6 / 5 / 10;
+	}
+	.bento > :global(.stars) {
+		grid-area: 4 / 10 / 5 / 13;
+	}
+	.career {
+		grid-area: 5 / 1 / 6 / 6;
+	}
+	.bento > :global(.uses) {
+		grid-area: 5 / 6 / 6 / 10;
+	}
+	.contact {
+		grid-area: 5 / 10 / 6 / 13;
+	}
+
+	@media (max-width: 1023px) {
+		.bento {
+			grid-template-columns: repeat(6, minmax(0, 1fr));
+			grid-template-rows: none;
+			grid-auto-rows: auto;
+		}
+
+		.bento > :global(*) {
+			grid-area: auto !important;
+			grid-column: span 3 !important;
+		}
+
+		.intro,
+		.area-latest,
+		.writing {
+			grid-column: span 6 !important;
+		}
+
+		.intro {
+			order: -2;
+		}
+		.bento > :global(.area-portrait) {
+			order: -1;
+			min-height: 420px;
+		}
+	}
+
+	@media (max-width: 639px) {
+		.bento > :global(*) {
+			grid-column: 1 / -1 !important;
+		}
+		.bento > :global(.area-portrait) {
+			min-height: 360px;
+		}
+	}
+
+	/* Intro ------------------------------------------------------------- */
+	.intro {
+		container-type: inline-size;
+		padding: 36px 44px 40px;
+	}
+
+	.intro .status-pill {
+		padding-left: 12px;
 	}
 
 	.name {
-		margin: 0;
-		font-family: var(--font-heading);
-		font-size: clamp(60px, 8.5vw, 96px);
-		line-height: 0.96;
-		font-weight: 400;
-		letter-spacing: -0.03em;
+		margin: 34px 0 0 -5px;
+		font-family: var(--font-body);
+		font-weight: 800;
+		font-size: clamp(46px, 15.4cqi, 106px);
+		line-height: 0.86;
+		letter-spacing: -0.058em;
 	}
 
 	.name :global(em) {
-		font-style: italic;
+		font-style: normal;
 		color: var(--color-brand);
 	}
 
-	.tagline {
-		margin: 0;
-		max-width: 560px;
-		font-size: 20px;
-		line-height: 1.55;
+	.lede {
+		margin: 26px 0 0;
+		max-width: 26em;
+		font-family: var(--font-heading);
+		font-size: 22px;
+		line-height: 1.4;
+		letter-spacing: -0.005em;
 		color: var(--color-muted);
 		text-wrap: pretty;
 	}
 
 	.ctas {
+		margin-top: auto;
+		padding-top: 28px;
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 14px 18px;
+		gap: 10px;
 	}
 
-	.hero-grid :global(.profile) {
-		font-size: 13px;
-		line-height: 1.95;
+	.ctas :global(.kicker) {
+		margin-left: 14px;
 	}
 
-	/* The ~/.profile window overlaps the portrait's lower left, cut out of
-	   the photo by a ring of page background (an outline, not a shadow). */
-	.stack {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-
-	.has-portrait :global(.portrait) {
-		align-self: flex-end;
-		width: 76%;
-	}
-
-	.has-portrait :global(.profile) {
-		position: relative;
-		width: 88%;
-		margin-top: -92px;
-		outline: 6px solid var(--color-bg);
-	}
-
-	@media (max-width: 560px) {
-		.has-portrait :global(.portrait) {
-			width: 86%;
-		}
-
-		.has-portrait :global(.profile) {
-			width: 96%;
-			margin-top: -64px;
+	@media (max-width: 639px) {
+		.intro {
+			padding: 28px 24px 28px;
 		}
 	}
 
-	.profile-body {
-		padding: 16px 22px 20px;
-		overflow-wrap: anywhere;
-	}
-
-	.k {
-		color: var(--syntax-keyword);
-	}
-
-	.s {
-		color: var(--syntax-string);
-	}
-
-	.n {
-		color: var(--syntax-number);
-	}
-
+	/* More writing --------------------------------------------------------- */
 	.writing {
-		padding-bottom: 80px;
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
+		padding-bottom: 16px;
 	}
 
-	.writing-grid,
-	.split {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-		gap: 20px;
+	.count {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		color: var(--color-muted);
+		text-decoration: none;
+	}
+
+	.count:hover {
+		text-decoration: none;
+	}
+
+	.count .n {
+		font-size: 30px;
+		color: var(--color-text);
 	}
 
 	.rows {
+		margin-top: 8px;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
 	}
 
-	.split {
-		padding-bottom: 96px;
+	/* Career ------------------------------------------------------------- */
+	.career :global(.timeline) {
+		margin-top: 14px;
 	}
 
-	.history {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-		padding: 26px 28px;
-	}
-
-	.side {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-	}
-
-	.projects {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-		gap: 20px;
-	}
-
+	/* Contact ------------------------------------------------------------ */
 	.cta {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		gap: 18px;
-		padding: 26px 28px;
-		text-decoration: none;
-	}
-
-	.cta:hover {
-		text-decoration: none;
-	}
-
-	.cta-text {
+		margin: 16px 0 0;
 		font-family: var(--font-heading);
-		font-size: 30px;
-		line-height: 1.2;
-		text-wrap: balance;
+		font-size: 27px;
+		line-height: 1.12;
+		letter-spacing: -0.015em;
+		text-wrap: pretty;
 	}
 
-	.cta-mail {
-		font-family: var(--font-mono);
-		font-size: 13px;
+	.cta :global(em) {
+		font-style: italic;
+		color: oklch(0.9 0.06 300);
+	}
+
+	.mail {
+		margin-top: auto;
+		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		height: 38px;
+		padding: 0 15px;
+		border-radius: var(--radius-pill);
+		background: var(--color-on-field);
+		color: var(--color-field);
+		font: 600 13.5px/1 var(--font-body);
 	}
 </style>

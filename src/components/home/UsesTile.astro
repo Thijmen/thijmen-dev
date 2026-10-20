@@ -1,0 +1,98 @@
+---
+/** Uses tile: one featured tool and the rest as chips. Reads the same `tools` collection as /uses. */
+import { getEmDashCollection } from "emdash";
+import Go from "./Go.astro";
+
+const res = await getEmDashCollection("tools", { orderBy: { position: "asc" }, limit: 40 });
+if (Astro.cache?.enabled) Astro.cache.set(res.cacheHint);
+
+const tools = res.entries.map((e) => e.data);
+const [lead, ...rest] = tools;
+const chips = rest.slice(0, 9);
+---
+
+{
+	lead && (
+		<a href="/uses" class="tile uses" data-reveal>
+			<div class="tile-label">
+				<span>Uses</span>
+				<Go />
+			</div>
+			<div class="spec">
+				<span class="glyph" aria-hidden="true">
+					{lead.glyph}
+				</span>
+				<div class="txt">
+					<b>{lead.title}</b>
+					{lead.why && <span>{lead.why}</span>}
+				</div>
+			</div>
+			<ul class="chips">
+				{chips.map((t) => (
+					<li>{t.title}</li>
+				))}
+			</ul>
+		</a>
+	)
+}
+
+<style>
+	.spec {
+		margin-top: 16px;
+		display: flex;
+		align-items: center;
+		gap: 18px;
+	}
+
+	.glyph {
+		flex: none;
+		display: grid;
+		place-items: center;
+		width: 92px;
+		height: 92px;
+		border-radius: 18px;
+		background: var(--color-surface);
+		font: 500 38px/1 var(--font-mono);
+		letter-spacing: -0.04em;
+		color: var(--color-brand);
+	}
+
+	.txt {
+		min-width: 0;
+	}
+
+	.txt b {
+		display: block;
+		font-size: 16px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+	}
+
+	.txt span {
+		display: block;
+		margin-top: 4px;
+		font: italic 400 16px/1.35 var(--font-heading);
+		color: var(--color-muted);
+	}
+
+	.chips {
+		margin: auto 0 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.chips li {
+		height: 28px;
+		padding: 0 11px;
+		border-radius: var(--radius-pill);
+		display: inline-flex;
+		align-items: center;
+		background: var(--color-surface);
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--color-muted);
+	}
+</style>

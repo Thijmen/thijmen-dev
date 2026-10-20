@@ -61,7 +61,7 @@ const blogTitle = profile?.blog_title || "Writing *from production.*";
 			}
 		</nav>
 
-		{feature ? <PostCard post={feature} variant="feature" wide data-reveal /> : <p class="lede">No posts yet.</p>}
+		{feature ? <PostCard post={feature} variant="feature" data-reveal /> : <p class="lede">No posts yet.</p>}
 
 		{
 			rest.length > 0 && (
@@ -77,7 +77,7 @@ const blogTitle = profile?.blog_title || "Writing *from production.*";
 
 <style>
 	.blog {
-		gap: 40px;
+		gap: 32px;
 	}
 
 	.head {
@@ -95,6 +95,6 @@ const blogTitle = profile?.blog_title || "Writing *from production.*";
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-		gap: 20px;
+		gap: var(--gap);
 	}
 </style>
