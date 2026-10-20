@@ -20,6 +20,7 @@ interface Props {
 const { nav, email, github, linkedin, latestPost } = Astro.props;
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 
+const crumb = path === "/" ? "" : path;
 const isCurrent = (url: string) =>
 	url === "/" ? path === "/" : path === url || path.startsWith(`${url}/`);
 const navPath = (url: string) => (url === "/" ? "~/" : `~${url}`);
@@ -48,7 +49,12 @@ const commands: Command[] = [
 	<div class="bar">
 		<a href="/" class="brand">
 			<span class="badge">ts</span>
-			<span class="brand-path">thijmen<span class="tld">.dev</span></span>
+			<span class="brand-path">
+				<span class="roll">
+					<span class="roll-a">~/thijmen<span class="crumb">{crumb}</span></span>
+					<span class="roll-b" aria-hidden="true">cd ~</span>
+				</span>
+			</span>
 		</a>
 
 		<nav class="nav-pill" aria-label="Primary">
@@ -520,9 +526,44 @@ const commands: Command[] = [
 		text-overflow: ellipsis;
 	}
 
-	.tld {
-		color: var(--color-faint);
-		font-weight: 450;
+	/* Logo roll: hovering `~/thijmen/…` rolls it up to `cd ~`. */
+	.brand-path {
+		font-family: var(--font-mono);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.roll {
+		display: grid;
+	}
+
+	.roll > * {
+		grid-area: 1 / 1;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.roll-b {
+		translate: 0 110%;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		:global(:root[data-motion="full"]) .roll > * {
+			transition: translate 300ms var(--ease-in-out);
+		}
+
+		:global(:root[data-motion="full"]) .brand:is(:hover, :focus-visible) .roll-a {
+			translate: 0 -110%;
+		}
+
+		:global(:root[data-motion="full"]) .brand:is(:hover, :focus-visible) .roll-b {
+			translate: 0 0;
+		}
+	}
+
+	.crumb {
+		color: var(--color-brand);
 	}
 
 	.nav-pill {
@@ -968,7 +1009,8 @@ const commands: Command[] = [
 			padding-inline: 14px 4px;
 		}
 
-		.nav-pill {
+		.nav-pill,
+		.crumb {
 			display: none;
 		}
 
