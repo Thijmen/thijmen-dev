@@ -11,29 +11,27 @@ const { name, email, github, linkedin } = Astro.props;
 
 <footer class="site-footer">
 	<div class="inner">
-		<span>© {new Date().getFullYear()} {name.toLowerCase()}</span>
+		<span>© {new Date().getFullYear()} {name}</span>
 		<div class="links">
-			{github && <a href={github}>github(1)</a>}
-			{linkedin && <a href={linkedin}>linkedin(1)</a>}
-			{email && <a href={`mailto:${email}`}>mailto(2)</a>}
+			{github && <a href={github}>GitHub</a>}
+			{linkedin && <a href={linkedin}>LinkedIn</a>}
+			{email && <a href={`mailto:${email}`}>Email</a>}
 		</div>
-		<span>press <kbd>t</kbd> for theme · <kbd>⌘K</kbd> for everything</span>
+		<span class="keys">press <kbd>t</kbd> for theme · <kbd>⌘K</kbd> for everything</span>
 	</div>
 </footer>
 
 <style>
 	.site-footer {
 		margin-top: auto;
-		border-top: 1px solid var(--color-border);
-		font-family: var(--font-mono);
-		font-size: 12px;
-		color: var(--color-muted);
+		font-size: 13.5px;
+		color: var(--color-faint);
 	}
 
 	.inner {
 		max-width: var(--wide-width);
 		margin: 0 auto;
-		padding: 22px var(--gutter);
+		padding: 32px var(--gutter);
 		display: flex;
 		flex-wrap: wrap;
 		gap: 12px 28px;
@@ -44,7 +42,16 @@ const { name, email, github, linkedin } = Astro.props;
 	.links {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px 20px;
+		gap: 8px 22px;
+	}
+
+	.links a {
+		color: var(--color-muted);
+	}
+
+	.keys {
+		font-family: var(--font-mono);
+		font-size: 12px;
 	}
 
 	kbd {

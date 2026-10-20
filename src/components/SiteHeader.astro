@@ -19,7 +19,6 @@ interface Props {
 
 const { nav, email, github, linkedin, latestPost } = Astro.props;
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
-const crumb = path === "/" ? "" : path;
 
 const isCurrent = (url: string) =>
 	url === "/" ? path === "/" : path === url || path.startsWith(`${url}/`);
@@ -48,13 +47,8 @@ const commands: Command[] = [
 <header class="site-header" data-email={email} data-gg={ggFree ? "" : undefined}>
 	<div class="bar">
 		<a href="/" class="brand">
-			<span class="badge">TS</span>
-			<span class="brand-path">
-				<span class="roll">
-					<span class="roll-a">~/thijmen<span class="crumb">{crumb}</span></span>
-					<span class="roll-b" aria-hidden="true">cd ~</span>
-				</span>
-			</span>
+			<span class="badge">ts</span>
+			<span class="brand-path">thijmen<span class="tld">.dev</span></span>
 		</a>
 
 		<nav class="nav-pill" aria-label="Primary">
@@ -75,7 +69,7 @@ const commands: Command[] = [
 
 		<div class="actions">
 			<button type="button" class="btn-search" data-open-palette aria-label="Search">
-				<span class="wide-only">search </span>⌘K
+				<span class="wide-only">Search </span><kbd>⌘K</kbd>
 			</button>
 			<button type="button" class="btn-theme" data-toggle-theme aria-label="Toggle theme" title="Toggle theme (t)">
 				◐<span class="wide-only theme-label"> light</span>
@@ -242,6 +236,7 @@ const commands: Command[] = [
 	let target: HTMLElement | undefined;
 	function glideTo(link: HTMLElement | undefined, jump = false) {
 		target = link;
+		navKeys.forEach((a) => a.classList.toggle("lit", a === link));
 		if (!link || !link.offsetWidth) return glide.classList.remove("on");
 		// Appearing from nothing (or re-measuring): place it, don't slide.
 		jump ||= !glide.classList.contains("on");
@@ -410,7 +405,7 @@ const commands: Command[] = [
 		position: relative;
 		max-width: var(--wide-width);
 		margin: 0 auto;
-		padding: 20px var(--gutter);
+		padding: 24px var(--gutter);
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		gap: 14px 20px;
@@ -423,9 +418,8 @@ const commands: Command[] = [
 		position: absolute;
 		inset: 12px 0;
 		z-index: -1;
-		border: 1px solid var(--color-border);
 		border-radius: var(--radius-pill);
-		background: color-mix(in oklch, var(--color-bg) 76%, transparent);
+		background: color-mix(in oklch, var(--color-tile) 80%, transparent);
 		-webkit-backdrop-filter: blur(14px) saturate(1.4);
 		backdrop-filter: blur(14px) saturate(1.4);
 		opacity: 0;
@@ -490,12 +484,13 @@ const commands: Command[] = [
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 11px;
 		min-width: 0;
 		justify-self: start;
 		color: var(--color-text);
-		font-family: var(--font-mono);
-		font-size: 13px;
+		font-size: 15px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
 		text-decoration: none;
 	}
 
@@ -507,76 +502,53 @@ const commands: Command[] = [
 		flex: none;
 		display: grid;
 		place-items: center;
-		width: 30px;
-		height: 30px;
-		border-radius: var(--radius-sm);
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		font-size: 11px;
-		font-weight: 700;
+		width: 36px;
+		height: 36px;
+		border-radius: 11px;
+		background: var(--color-field);
+		color: var(--color-on-field);
+		font-size: 15px;
+		font-weight: 800;
+		letter-spacing: -0.04em;
 	}
 
 	.brand-path {
 		min-width: 0;
 		max-width: 100%;
 		overflow: hidden;
-	}
-
-	/* Logo roll: hovering `~/thijmen/…` rolls it up to `cd ~`. */
-	.roll {
-		display: grid;
-	}
-
-	.roll > * {
-		grid-area: 1 / 1;
 		white-space: nowrap;
-		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 
-	.roll-b {
-		translate: 0 110%;
-	}
-
-	@media (hover: hover) and (pointer: fine) {
-		:global(:root[data-motion="full"]) .roll > * {
-			transition: translate 300ms var(--ease-in-out);
-		}
-
-		:global(:root[data-motion="full"]) .brand:is(:hover, :focus-visible) .roll-a {
-			translate: 0 -110%;
-		}
-
-		:global(:root[data-motion="full"]) .brand:is(:hover, :focus-visible) .roll-b {
-			translate: 0 0;
-		}
-	}
-
-	.crumb {
-		color: var(--color-brand);
+	.tld {
+		color: var(--color-faint);
+		font-weight: 450;
 	}
 
 	.nav-pill {
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		padding: 5px;
-		border: 1px solid var(--color-border);
+		gap: 2px;
+		padding: 4px;
 		border-radius: var(--radius-pill);
-		background: var(--color-bg);
+		background: var(--color-tile);
 	}
 
 	.nav-link {
 		position: relative;
-		padding: 7px 14px;
+		padding: 8px 14px;
 		border-radius: var(--radius-pill);
-		color: var(--color-text);
+		color: var(--color-muted);
+		font-size: 14px;
+		font-weight: 450;
 		text-decoration: none;
 		white-space: nowrap;
+		transition: color var(--dur-fast);
 	}
 
-	/* Sliding highlight, positioned by the script. */
+	/* Sliding ink highlight, positioned by the script; the link under it is
+	   `.lit` (white on ink). Without the script, `.current` is ink itself. */
 	.nav-glide {
 		position: absolute;
 		top: 0;
@@ -585,7 +557,7 @@ const commands: Command[] = [
 		height: var(--h, 0);
 		translate: var(--x, 0) var(--y, 0);
 		border-radius: var(--radius-pill);
-		background: var(--color-brand-soft);
+		background: var(--color-text);
 		opacity: 0;
 		transition:
 			translate var(--dur-move) var(--ease-out),
@@ -597,19 +569,24 @@ const commands: Command[] = [
 		opacity: 1;
 	}
 
-	.has-glide .nav-link:hover,
-	.has-glide .nav-link.current {
-		background: transparent;
-	}
-
 	.nav-link:hover {
-		background: var(--color-brand-soft);
+		color: var(--color-text);
 		text-decoration: none;
 	}
 
 	.nav-link.current {
-		background: var(--color-brand-soft);
-		color: var(--color-brand);
+		background: var(--color-text);
+		color: var(--color-tile);
+	}
+
+	.has-glide .nav-link.current {
+		background: transparent;
+		color: var(--color-muted);
+	}
+
+	.has-glide .nav-link.lit,
+	.has-glide .nav-link.lit:hover {
+		color: var(--color-tile);
 	}
 
 	.actions {
@@ -618,34 +595,38 @@ const commands: Command[] = [
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		font-family: var(--font-mono);
-		font-size: 12px;
+		font-size: 14px;
 	}
 
 	.actions button {
 		font: inherit;
-		min-height: 34px;
-		padding: 7px 12px;
+		min-height: 42px;
+		padding: 0 16px;
 		border-radius: var(--radius-pill);
-		border: 1px solid var(--color-border);
+		border: 0;
+		background: var(--color-tile);
+		color: var(--color-muted);
+		font-weight: 450;
 		cursor: pointer;
 		white-space: nowrap;
-		transition: border-color var(--transition-fast);
+		transition: color var(--transition-fast);
 	}
 
 	.actions button:hover {
-		border-color: var(--color-brand);
+		color: var(--color-text);
 	}
 
-	.btn-search {
-		background: var(--color-bg);
-		color: var(--color-muted);
+	.actions kbd {
+		margin-left: 6px;
+		padding: 4px 6px;
+		border-radius: 6px;
+		background: var(--color-surface);
+		font: 500 11.5px/1 var(--font-mono);
+		color: var(--color-faint);
 	}
 
 	.btn-theme {
-		min-width: 34px;
-		background: var(--color-surface);
-		color: var(--color-text);
+		min-width: 42px;
 	}
 
 	.actions .btn-menu {
@@ -654,7 +635,7 @@ const commands: Command[] = [
 		width: 44px;
 		height: 44px;
 		padding: 0;
-		background: var(--color-bg);
+		background: var(--color-tile);
 		color: var(--color-text);
 		font-size: 16px;
 	}
@@ -728,7 +709,7 @@ const commands: Command[] = [
 		padding: 10px;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-xl);
-		background: var(--color-bg);
+		background: var(--color-tile);
 		box-shadow: 0 24px 60px -24px var(--color-shadow);
 	}
 
@@ -831,7 +812,7 @@ const commands: Command[] = [
 		width: 100%;
 		max-width: 600px;
 		overflow: hidden;
-		background: var(--color-bg);
+		background: var(--color-tile);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-xl);
 		box-shadow: 0 30px 80px -20px oklch(0.2 0.05 295 / 0.55);
@@ -920,9 +901,8 @@ const commands: Command[] = [
 		bottom: max(16px, env(safe-area-inset-bottom));
 		min-height: 40px;
 		padding: 8px 15px;
-		border: 1px solid var(--color-border);
 		border-radius: var(--radius-pill);
-		background: color-mix(in oklch, var(--color-bg) 76%, transparent);
+		background: color-mix(in oklch, var(--color-tile) 80%, transparent);
 		-webkit-backdrop-filter: blur(14px) saturate(1.4);
 		backdrop-filter: blur(14px) saturate(1.4);
 		color: var(--color-text);
@@ -988,8 +968,7 @@ const commands: Command[] = [
 			padding-inline: 14px 4px;
 		}
 
-		.nav-pill,
-		.crumb {
+		.nav-pill {
 			display: none;
 		}
 

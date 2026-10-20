@@ -27,7 +27,7 @@
 	.kicker {
 		font-family: var(--font-mono);
 		font-size: 13px;
-		color: var(--color-muted);
+		color: var(--color-faint);
 	}
 
 	.kicker .sigil {
@@ -73,9 +73,8 @@
 		align-items: center;
 		gap: 8px;
 		padding: 6px 14px;
-		border: 1px solid var(--color-border);
 		border-radius: var(--radius-pill);
-		background: var(--color-bg);
+		background: var(--color-surface);
 		font-size: 13px;
 		color: var(--color-muted);
 	}
@@ -91,11 +90,14 @@
 
 	/* Buttons ------------------------------------------------------------ */
 	.btn {
-		display: inline-block;
-		padding: 12px 20px;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 46px;
+		padding: 0 22px;
 		border-radius: var(--radius-pill);
-		border: 1px solid var(--color-border);
-		background: var(--color-bg);
+		border: 0;
+		background: var(--color-surface);
 		color: var(--color-text);
 		font: inherit;
 		font-size: 15px;
@@ -103,22 +105,22 @@
 		white-space: nowrap;
 		text-decoration: none;
 		cursor: pointer;
-		transition: border-color var(--transition-fast);
+		transition: background-color var(--transition-fast);
 	}
 
 	.btn:hover {
-		border-color: var(--color-brand);
+		background: var(--color-brand-soft);
 		text-decoration: none;
 	}
 
 	.btn-primary {
-		border-color: transparent;
 		background: var(--color-text);
-		color: var(--color-bg);
+		color: var(--color-tile);
 	}
 
 	.btn-primary:hover {
-		border-color: transparent;
+		background: var(--color-brand);
+		color: var(--color-on-brand);
 	}
 
 	/* Chips -------------------------------------------------------------- */
@@ -126,28 +128,27 @@
 		display: inline-block;
 		padding: 8px 14px;
 		border-radius: var(--radius-pill);
-		border: 1px solid var(--color-border);
-		background: var(--color-bg);
+		border: 0;
+		background: var(--color-tile);
 		color: var(--color-text);
 		font-family: var(--font-mono);
 		font-size: 12px;
 		white-space: nowrap;
 		text-decoration: none;
 		cursor: pointer;
-		transition: border-color var(--transition-fast);
+		transition: background-color var(--transition-fast);
 	}
 
 	.chip:hover {
-		border-color: var(--color-brand);
+		background: var(--color-brand-soft);
 		text-decoration: none;
 	}
 
 	.chip.active,
 	.chip[aria-pressed="true"],
 	.chip[aria-current="page"] {
-		background: var(--color-brand);
-		border-color: var(--color-brand);
-		color: var(--color-on-brand);
+		background: var(--color-text);
+		color: var(--color-tile);
 	}
 
 	.chip .count {
@@ -168,30 +169,114 @@
 		color: var(--color-brand);
 	}
 
-	/* Cards -------------------------------------------------------------- */
+	/* Tiles -------------------------------------------------------------- */
+	/* A plain filled surface on the page: no outline, no shadow. `.card` is
+	   the same thing under its old name, so older markup keeps working. */
+	.tile,
 	.card {
-		border: 1px solid var(--color-border);
+		position: relative;
+		min-width: 0;
 		border-radius: var(--radius-lg);
-		background: var(--color-bg);
+		background: var(--color-tile);
 		color: var(--color-text);
 		text-decoration: none;
-		transition: border-color var(--transition-fast);
 	}
 
-	a.card:hover,
-	.card.hoverable:hover {
-		border-color: var(--color-brand);
-		text-decoration: none;
+	.tile {
+		display: flex;
+		flex-direction: column;
+		padding: var(--pad);
+		overflow: hidden;
 	}
 
-	.accent-card {
+	.tile-label {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		min-height: 30px;
+		font-size: 13px;
+		font-weight: 500;
+		line-height: 1;
+		color: var(--color-faint);
+	}
+
+	/* The terminal wink: a mono command as a tile label */
+	.tile-label.cmd {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+	}
+
+	.tile-label.cmd b {
+		font-weight: 500;
+		color: var(--color-brand);
+	}
+
+	/* Round ↗ on linked tiles; it fills with ink on hover */
+	.go {
+		flex: none;
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		background: var(--color-surface);
+		color: var(--color-text);
+		transition:
+			background-color var(--dur-fast),
+			color var(--dur-fast),
+			rotate var(--dur-ui) var(--ease-out);
+	}
+
+	.go svg {
+		width: 13px;
+		height: 13px;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		a.tile:hover .go,
+		a.card:hover .go,
+		a:hover > .go {
+			background: var(--color-text);
+			color: var(--color-tile);
+		}
+
+		:root[data-motion="full"] a.tile:hover .go,
+		:root[data-motion="full"] a.card:hover .go {
+			rotate: 45deg;
+		}
+	}
+
+	/* Big tabular numerals: counts, clock, stars */
+	.big-num {
+		font-family: var(--font-body);
+		font-weight: 600;
+		font-size: 64px;
+		line-height: 0.9;
+		letter-spacing: -0.055em;
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* The one solid purple tile */
+	.accent-card,
+	.tile.field {
 		border-radius: var(--radius-lg);
-		background: var(--color-brand);
-		color: var(--color-on-brand);
+		background: var(--color-field);
+		color: var(--color-on-field);
 	}
 
-	.accent-card a {
+	.accent-card a,
+	.tile.field a {
 		color: inherit;
+	}
+
+	.tile.field .tile-label {
+		color: oklch(1 0 0 / 0.75);
+	}
+
+	.tile.field .go {
+		background: oklch(1 0 0 / 0.16);
+		color: #fff;
 	}
 
 	/* Prose: Portable Text bodies (posts, the `prose` block) ------------ */
@@ -260,7 +345,7 @@
 	.placeholder {
 		display: grid;
 		place-items: center;
-		background: linear-gradient(135deg, var(--color-brand-soft), var(--color-surface));
+		background: var(--color-surface);
 		font-family: var(--font-mono);
 		font-size: 12px;
 		color: var(--color-muted);
