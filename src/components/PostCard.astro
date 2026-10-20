@@ -1,98 +1,122 @@
 ---
 /**
- * Post card in three shapes:
- *  - feature: big cover card (home: stacked; blog: `wide` = side by side)
- *  - row:     compact row with a square thumb (home sidebar list)
- *  - grid:    blog index grid card
+ * Post tile in four shapes (all plain fills, no outlines):
+ *  - latest:  tile-sized block, big cover on top, then meta, title, excerpt (home)
+ *  - row:     a plain row for lists inside a tile: thumb, title, meta, read time
+ *  - feature: wide tile, cover beside the text (blog index, latest post)
+ *  - grid:    blog index grid tile
+ * Posts without an uploaded image get a generated halftone cover.
  */
 import { Image } from "emdash/ui";
-import { placeholderName, vtKey, type PostSummary } from "../lib/content";
+import Cover from "./Cover.astro";
+import { vtKey, type PostSummary } from "../lib/content";
 
 interface Props {
 	post: PostSummary;
-	variant?: "feature" | "row" | "grid";
+	variant?: "latest" | "row" | "feature" | "grid";
+	/** Legacy: `feature` used to be stacked unless `wide`. It is now always wide. */
 	wide?: boolean;
 }
 
 // Anything else (data-reveal, …) lands on the root link.
-const { post, variant = "grid", wide = false, ...attrs } = Astro.props;
-const meta = `${post.date} · ${post.readMin} min`;
+const { post, variant = "grid", wide: _wide, ...attrs } = Astro.props;
+const tags = post.tags.map((t) => t.slug);
 // Cover + title morph into the post page when this card is clicked (motion.ts).
 const vt = vtKey("post", post.slug);
+const coverVariant = variant === "row" ? "thumb" : variant === "grid" ? "card" : "hero";
 ---
 
-{
-	variant === "row" ? (
-		<a href={post.url} class="card row" data-vt={vt} {...attrs}>
-			<span class="thumb" data-vt-part="cover">{post.image && <Image image={post.image as any} class="cover-img" />}</span>
-			<span class="row-text">
-				<span class="row-title" data-vt-part="title">{post.title}</span>
-				<span class="meta">
-					{post.date}
-					{post.tag && (
-						<>
-							{" · "}
-							<span class="tag">#{post.tag}</span>
-						</>
+<Fragment>
+	{
+		variant === "row" ? (
+			<a href={post.url} class="post-row" data-vt={vt} {...attrs}>
+				<span class="thumb" data-vt-part="cover">
+					{post.image ? (
+						<Image image={post.image as any} class="cover-img" />
+					) : (
+						<Cover slug={post.slug} tags={tags} variant="thumb" />
 					)}
 				</span>
-			</span>
-		</a>
-	) : variant === "feature" ? (
-		<a href={post.url} class:list={["card", "feature", { wide }]} data-vt={vt} {...attrs}>
-			<div class:list={["cover", { placeholder: !post.image }]} data-vt-part="cover">
-				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{wide ? placeholderName(post.slug) : "cover.png"}</span>}
-			</div>
-			<div class="feature-body">
-				{wide ? (
-					<span class="latest">latest{post.tag && ` · #${post.tag}`}</span>
-				) : (
+				<span class="row-text">
+					<span class="row-title" data-vt-part="title" set:html={post.titleHtml} />
 					<span class="meta">
 						{post.date}
+						{tags.map((t) => (
+							<>
+								<span class="sep">·</span>
+								<span class="tag">#{t}</span>
+							</>
+						))}
+					</span>
+				</span>
+				<span class="row-min">{post.readMin} min</span>
+			</a>
+		) : (
+			<a href={post.url} class:list={["tile", `v-${variant}`]} data-vt={vt} {...attrs}>
+				<div class="cover" data-vt-part="cover">
+					{post.image ? (
+						<Image image={post.image as any} class="cover-img" />
+					) : (
+						<Cover slug={post.slug} tags={tags} variant={coverVariant} />
+					)}
+					{(variant === "latest" || variant === "feature") && <span class="badge">Latest post</span>}
+					{variant !== "grid" && (
+						<span class="go" aria-hidden="true">
+							<svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M3.5 9.5l6-6M4.5 3.5h5v5" />
+							</svg>
+						</span>
+					)}
+				</div>
+				<div class="body">
+					<span class="meta">
+						{post.date}
+						<span class="sep">·</span>
+						{post.readMin} min
 						{post.tag && (
 							<>
-								{" · "}
+								<span class="sep">·</span>
 								<span class="tag">#{post.tag}</span>
 							</>
 						)}
-						{` · ${post.readMin} min`}
 					</span>
-				)}
-				<span class="feature-title" data-vt-part="title">{post.title}</span>
-				{post.excerpt && <span class="excerpt">{post.excerpt}</span>}
-				{wide && <span class="meta">{meta}</span>}
-			</div>
-		</a>
-	) : (
-		<a href={post.url} class="card grid" data-vt={vt} {...attrs}>
-			<div class:list={["cover", { placeholder: !post.image }]} data-vt-part="cover">
-				{post.image ? <Image image={post.image as any} class="cover-img" /> : <span>{placeholderName(post.slug)}</span>}
-			</div>
-			<div class="grid-body">
-				{post.tag && <span class="tag mono-sm">#{post.tag}</span>}
-				<span class="grid-title" data-vt-part="title">{post.title}</span>
-				{post.excerpt && <span class="excerpt">{post.excerpt}</span>}
-				<span class="meta">{meta}</span>
-			</div>
-		</a>
-	)
-}
+					<span class="title" data-vt-part="title" set:html={post.titleHtml} />
+					{post.excerpt && <span class="excerpt">{post.excerpt}</span>}
+				</div>
+			</a>
+		)
+	}
+</Fragment>
 
 <style>
-	.card {
+	.meta {
 		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
-
-	.meta,
-	.mono-sm {
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 8px;
 		font-family: var(--font-mono);
 		font-size: 12px;
-		color: var(--color-muted);
+		color: var(--color-faint);
+	}
+
+	.sep {
+		opacity: 0.5;
 	}
 
 	.tag {
+		color: var(--color-brand);
+	}
+
+	.title,
+	.row-title {
+		font-family: var(--font-heading);
+		font-weight: 400;
+		text-wrap: pretty;
+	}
+
+	.title :global(em),
+	.row-title :global(em) {
+		font-style: italic;
 		color: var(--color-brand);
 	}
 
@@ -103,127 +127,182 @@ const vt = vtKey("post", post.slug);
 		text-wrap: pretty;
 	}
 
-	.cover {
-		position: relative;
-		aspect-ratio: 16 / 9;
-		overflow: hidden;
-		border-bottom: 1px solid var(--color-border);
-		background-color: var(--color-surface);
+	/* Tiles: latest, feature, grid -------------------------------------- */
+	.tile {
+		padding: 0;
 	}
 
-	/* Row ----------------------------------------------------------------- */
-	.row {
+	.cover {
+		position: relative;
+		overflow: hidden;
+		background: var(--color-surface);
+	}
+
+	.cover :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.badge {
+		position: absolute;
+		top: 14px;
+		left: 14px;
+		z-index: 1;
+		padding: 7px 12px;
+		border-radius: var(--radius-pill);
+		background: var(--color-tile);
+		color: var(--color-text);
+		font-size: 13px;
+		font-weight: 500;
+		line-height: 1;
+	}
+
+	.cover .go {
+		position: absolute;
+		top: 14px;
+		right: 14px;
+		z-index: 1;
+		background: var(--color-tile);
+	}
+
+	.body {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 26px 28px 30px;
+	}
+
+	/* latest: fills the grid cell; the cover takes what the text leaves */
+	.v-latest {
+		height: 100%;
+	}
+
+	.v-latest .cover {
 		flex: 1;
+		min-height: 260px;
+	}
+
+	.v-latest .title {
+		font-size: 34px;
+		line-height: 1.1;
+		letter-spacing: -0.01em;
+		text-wrap: balance;
+	}
+
+	/* feature: cover beside the text */
+	.v-feature {
 		display: grid;
-		grid-template-columns: 96px minmax(0, 1fr);
-		gap: 18px;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+		border-radius: var(--radius-xl);
+	}
+
+	.v-feature .cover {
+		min-height: 320px;
+	}
+
+	.v-feature .body {
+		justify-content: center;
+		gap: 14px;
+		padding: clamp(28px, 4vw, 48px);
+	}
+
+	.v-feature .title {
+		font-size: clamp(32px, 3.6vw, 44px);
+		line-height: 1.06;
+		letter-spacing: -0.015em;
+	}
+
+	.v-feature .excerpt {
+		font-size: 17px;
+	}
+
+	/* grid */
+	.v-grid .cover {
+		aspect-ratio: 16 / 9;
+	}
+
+	.v-grid .body {
+		flex: 1;
+		padding: 22px 24px 26px;
+	}
+
+	.v-grid .title {
+		font-size: 24px;
+		line-height: 1.18;
+	}
+
+	.v-grid .excerpt {
+		flex: 1;
+		font-size: 15px;
+		line-height: 1.5;
+	}
+
+	/* Row: no chrome, so it sits inside any tile ------------------------ */
+	.post-row {
+		display: grid;
+		grid-template-columns: 56px minmax(0, 1fr) auto;
+		gap: 16px;
 		align-items: center;
-		padding: 14px;
-		border-radius: var(--radius-lg);
+		padding: 12px 0;
+		color: var(--color-text);
+		text-decoration: none;
+	}
+
+	.post-row + .post-row {
+		border-top: 1px solid var(--color-border);
+	}
+
+	.post-row:hover {
+		text-decoration: none;
 	}
 
 	.thumb {
+		position: relative;
 		aspect-ratio: 1;
 		overflow: hidden;
 		border-radius: var(--radius-sm);
 		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+	}
+
+	.thumb :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	.row-text {
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
+		min-width: 0;
 	}
 
 	.row-title {
-		font-family: var(--font-heading);
 		font-size: 21px;
 		line-height: 1.2;
-		text-wrap: pretty;
 	}
 
-	.row .meta {
-		font-size: 11px;
-	}
-
-	/* Feature ------------------------------------------------------------- */
-	.feature-body {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		padding: 26px 28px 28px;
-	}
-
-	.feature-title {
-		font-family: var(--font-heading);
-		font-size: 34px;
-		line-height: 1.12;
-		text-wrap: balance;
-	}
-
-	.feature.wide {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-		border-radius: var(--radius-xl);
-		background: var(--color-surface);
-	}
-
-	.wide .cover {
-		aspect-ratio: auto;
-		min-height: 280px;
-		border-bottom: 0;
-	}
-
-	.wide .feature-body {
-		justify-content: flex-end;
-		gap: 14px;
-		padding: clamp(28px, 4vw, 44px);
-	}
-
-	.wide .feature-title {
-		font-size: clamp(32px, 3.6vw, 42px);
-		line-height: 1.08;
-	}
-
-	.wide .excerpt {
-		font-size: 17px;
-	}
-
-	.latest {
-		align-self: flex-start;
-		padding: 4px 10px;
-		border-radius: var(--radius-pill);
-		background: var(--color-brand-soft);
-		color: var(--color-brand);
+	.row-min {
 		font-family: var(--font-mono);
 		font-size: 12px;
+		color: var(--color-faint);
+		white-space: nowrap;
 	}
 
-	/* Grid ---------------------------------------------------------------- */
-	.grid .cover.placeholder {
-		background: var(--color-surface);
-		font-size: 11px;
+	@media (hover: hover) and (pointer: fine) {
+		.post-row:hover .row-title {
+			color: var(--color-brand);
+		}
 	}
 
-	.grid-body {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		padding: 20px 22px 24px;
-	}
+	@media (max-width: 520px) {
+		.post-row {
+			grid-template-columns: 48px minmax(0, 1fr);
+		}
 
-	.grid-title {
-		font-family: var(--font-heading);
-		font-size: 24px;
-		line-height: 1.18;
-		text-wrap: pretty;
-	}
-
-	.grid .excerpt {
-		flex: 1;
-		font-size: 15px;
-		line-height: 1.5;
+		.row-min {
+			display: none;
+		}
 	}
 </style>

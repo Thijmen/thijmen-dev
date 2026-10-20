@@ -1,5 +1,5 @@
 ---
-/** Mono uppercase section label ("WRITING") with an optional right-hand link or note. */
+/** Small plain section label ("Writing") with an optional right-hand link or note. */
 interface Props {
 	label: string;
 	href?: string;
@@ -23,8 +23,18 @@ const { label, href, linkText, note, rule = false } = Astro.props;
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 12px;
-		font-family: var(--font-mono);
 		font-size: 13px;
+		color: var(--color-faint);
+	}
+
+	.section-label a {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+		color: var(--color-muted);
+	}
+
+	.section-label a:hover {
+		color: var(--color-brand);
 	}
 
 	/* The rule is a background so it can draw in when the label reveals. */
@@ -44,9 +54,8 @@ const { label, href, linkText, note, rule = false } = Astro.props;
 	}
 
 	.label {
-		font-weight: 700;
-		color: var(--color-brand);
-		letter-spacing: 0.06em;
+		font-weight: 500;
+		color: var(--color-faint);
 	}
 
 	.note {

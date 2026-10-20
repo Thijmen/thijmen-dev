@@ -17,7 +17,7 @@ const { label, note, narrow = false, reveal = true } = Astro.props;
 ---
 
 <section class:list={["block", { narrow }]} data-reveal={reveal ? "" : undefined}>
-	{label && <SectionLabel label={label} note={note} rule />}
+	{label && <SectionLabel label={label} note={note} />}
 	<slot />
 </section>
 

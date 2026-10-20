@@ -28,11 +28,11 @@ const items = value.items ?? [];
 	.faq {
 		display: flex;
 		flex-direction: column;
-		padding: 6px 24px;
+		padding: 6px var(--pad);
 	}
 
 	details {
-		border-bottom: 1px dashed var(--color-border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	details:last-child {
@@ -43,8 +43,8 @@ const items = value.items ?? [];
 		display: flex;
 		gap: 12px;
 		padding: 16px 0;
-		font-family: var(--font-mono);
-		font-size: 14px;
+		font-size: 16px;
+		font-weight: 500;
 		cursor: pointer;
 		list-style: none;
 	}

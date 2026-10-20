@@ -49,57 +49,63 @@ const html = code && !svg ? await highlight(code, node.language) : null;
 
 <style>
 	:global(.code-window) {
-		font-size: 14px;
+		margin: 6px 0;
+		font-size: 13.5px;
 		line-height: 1.75;
-		border-radius: var(--radius-lg);
+		border-radius: var(--radius-md);
 	}
 
 	:global(.code-window .window-bar) {
-		padding: 10px 14px;
+		padding: 12px 18px;
+		background: transparent;
+		border-bottom: 1px solid var(--dark-tile-2);
 	}
 
 	:global(.code-window .window-title) {
-		font-size: 12px;
+		font-size: 12.5px;
+		font-weight: 500;
 	}
 
 	.copy {
 		font: inherit;
-		font-size: 11px;
-		padding: 3px 10px;
-		border: 1px solid var(--color-border);
+		font-size: 12px;
+		padding: 3px 8px;
+		margin: -3px -8px;
+		border: 0;
 		border-radius: var(--radius-pill);
-		background: var(--color-bg);
-		color: var(--color-text);
+		background: transparent;
+		color: var(--dark-ink-2);
 		cursor: pointer;
+		transition: color var(--dur-fast);
 	}
 
 	.copy:hover {
-		border-color: var(--color-brand);
+		color: var(--dark-ink);
 	}
 
 	.code-body {
 		display: grid;
-		grid-template-columns: 40px minmax(0, 1fr);
+		grid-template-columns: 52px minmax(0, 1fr);
 		padding: 14px 0;
 	}
 
 	.gutter {
 		display: flex;
 		flex-direction: column;
-		padding-right: 14px;
+		padding-right: 18px;
 		text-align: right;
-		color: var(--syntax-comment);
+		color: oklch(0.5 0.03 292);
 		user-select: none;
 	}
 
 	.code-body :global(pre.shiki) {
 		margin: 0;
-		padding: 0 16px 0 6px;
+		padding: 0 18px 0 0;
 		overflow-x: auto;
 		background: transparent !important;
-		color: var(--color-text);
+		color: var(--dark-ink);
 		font: inherit;
-		--shiki-foreground: var(--color-text);
+		--shiki-foreground: var(--dark-ink);
 		--shiki-background: transparent;
 		--shiki-token-keyword: var(--syntax-keyword);
 		--shiki-token-string: var(--syntax-string);
@@ -107,9 +113,9 @@ const html = code && !svg ? await highlight(code, node.language) : null;
 		--shiki-token-function: var(--syntax-fn);
 		--shiki-token-constant: var(--syntax-number);
 		--shiki-token-comment: var(--syntax-comment);
-		--shiki-token-parameter: var(--color-text);
-		--shiki-token-punctuation: var(--color-text);
-		--shiki-token-link: var(--color-brand);
+		--shiki-token-parameter: var(--dark-ink);
+		--shiki-token-punctuation: var(--dark-ink);
+		--shiki-token-link: var(--syntax-keyword);
 	}
 
 	.code-body :global(code) {

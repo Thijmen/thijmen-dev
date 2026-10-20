@@ -7,7 +7,7 @@
 import { getEmDashCollection } from "emdash";
 import { Image } from "emdash/ui";
 import SectionLabel from "./SectionLabel.astro";
-import { hasImage } from "../lib/content";
+import { ARROW_SVG, hasImage } from "../lib/content";
 import { getNowPlaying, getPlaylist, getTopTracks } from "../lib/spotify";
 
 interface Props {
@@ -15,9 +15,13 @@ interface Props {
 	note?: string;
 	showQueue?: boolean;
 	showPlaylists?: boolean;
+	/** `tile`: the compact dark now-playing tile on the home page. */
+	variant?: "page" | "tile";
 }
 
-const { label = "SOUNDTRACK", note, showQueue = true, showPlaylists = true } = Astro.props;
+const { label = "SOUNDTRACK", note, showQueue = true, variant = "page" } = Astro.props;
+const tile = variant === "tile";
+const showPlaylists = Astro.props.showPlaylists ?? !tile;
 
 const byPosition = { orderBy: { position: "asc" as const } };
 const [tracksRes, playlistsRes, nowPlaying, topTracks] = await Promise.all([
@@ -69,7 +73,9 @@ const playerData = JSON.stringify(
 	live ? { live: nowPlaying } : { tracks: tracks.map(({ title, artist, album, s, len }) => ({ title, artist, album, s, len })) },
 );
 const first = live ? { ...nowPlaying, len: fmt(nowPlaying.s) } : tracks[0];
-const firstStatus = !live || nowPlaying.playing ? "NOW PLAYING" : nowPlaying.playedAt ? `LAST PLAYED · ${ago(nowPlaying.playedAt)}` : "PAUSED";
+const firstStatusRaw = !live || nowPlaying.playing ? "NOW PLAYING" : nowPlaying.playedAt ? `LAST PLAYED · ${ago(nowPlaying.playedAt)}` : "PAUSED";
+// The tile reads in sentence case ("Now playing"); the script does the same on updates.
+const firstStatus = tile ? firstStatusRaw[0] + firstStatusRaw.slice(1).toLowerCase() : firstStatusRaw;
 const firstElapsed = live ? Math.min(nowPlaying.progress, nowPlaying.s) : 0;
 
 const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
@@ -79,7 +85,64 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 ---
 
 {
-	first && (
+	first && tile && (
+		<div
+			class:list={["tile", "music", "nowplaying", "tile-mode", { paused: live && !nowPlaying.playing }]}
+			data-player={playerData}
+			data-reveal
+		>
+			<div class="tile-label">
+				<span class="status">
+					<span class="eq" aria-hidden="true">
+						<span />
+						<span />
+						<span />
+						<span />
+					</span>
+					<span data-status>{firstStatus}</span>
+				</span>
+				{live && (
+					<a class="go" href={nowPlaying.url ?? "#"} data-open hidden={!nowPlaying.url} target="_blank" rel="noopener" aria-label="Open in Spotify" set:html={ARROW_SVG} />
+				)}
+			</div>
+			<div class="np">
+				<div class="cover">
+					{live ? (
+						<div class="cover-art" style={`background:${art(0)}`}>
+							<img class="cover-img" src={nowPlaying.cover ?? undefined} alt="" width="80" height="80" data-cover-img hidden={!nowPlaying.cover} />
+						</div>
+					) : (
+						tracks.map((t, i) => (
+							<div class="cover-art" style={`background:${art(i)}`} data-cover={i} hidden={i !== 0}>
+								{hasImage(t.image) && <Image image={t.image as any} class="cover-img" />}
+							</div>
+						))
+					)}
+				</div>
+				<div class="now">
+					<span class="now-title" data-title>{first.title}</span>
+					<span class="now-sub" data-sub>{[first.artist, first.album].filter(Boolean).join(" · ")}</span>
+				</div>
+			</div>
+			<div class="scrub">
+				<div class="bar">
+					<div class="bar-fill" data-fill style={first.s ? `width:${(firstElapsed / first.s) * 100}%` : undefined} />
+				</div>
+				<div class="times"><span data-elapsed>{fmt(firstElapsed)}</span><span data-len>{first.len}</span></div>
+			</div>
+			{!live && (
+				<div class="controls">
+					<button type="button" class="ctl" data-prev aria-label="Previous track">⏮</button>
+					<button type="button" class="ctl play" data-play aria-label="Play or pause">❚❚</button>
+					<button type="button" class="ctl" data-next aria-label="Next track">⏭</button>
+				</div>
+			)}
+		</div>
+	)
+}
+
+{
+	first && !tile && (
 		<section class="soundtrack">
 			<SectionLabel label={label} note={note || undefined} rule />
 			<div
@@ -261,6 +324,8 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 			playedAt: string | null;
 		};
 		const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+		/** The tile shows "Now playing"; the page player keeps its caps. */
+		const statusText = (s: string) => (root.classList.contains("tile-mode") ? s[0] + s.slice(1).toLowerCase() : s);
 		const data: { live?: Live; tracks?: Array<{ title: string; artist: string; album: string; s: number; len: string }> } =
 			JSON.parse(root.dataset.player || "{}");
 
@@ -287,11 +352,9 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 				$("[data-len]").textContent = fmtTime(np.s);
 				$("[data-elapsed]").textContent = fmtTime(t);
 				setFill(np.s ? (t / np.s) * 100 : 0);
-				$("[data-status]").textContent = np.playing
-					? "NOW PLAYING"
-					: np.playedAt
-						? `LAST PLAYED · ${ago(np.playedAt)}`
-						: "PAUSED";
+				$("[data-status]").textContent = statusText(
+					np.playing ? "NOW PLAYING" : np.playedAt ? `LAST PLAYED · ${ago(np.playedAt)}` : "PAUSED",
+				);
 				root.classList.toggle("paused", !np.playing);
 				if (np.cover && img.src !== np.cover) {
 					img.src = np.cover;
@@ -377,7 +440,7 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 				$("[data-len]").textContent = tr.len;
 				$("[data-elapsed]").textContent = fmt(t);
 				setFill(tr.s ? (t / tr.s) * 100 : 0);
-				$("[data-status]").textContent = playing ? "NOW PLAYING" : "PAUSED";
+				$("[data-status]").textContent = statusText(playing ? "NOW PLAYING" : "PAUSED");
 				$("[data-play]").textContent = playing ? "❚❚" : "▶";
 				root.classList.toggle("paused", !playing);
 				covers.forEach((c, k) => c.classList.toggle("is-current", k === i));
@@ -443,6 +506,84 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 		border-radius: var(--radius-xl);
 		background: var(--player-bg);
 		color: var(--player-text);
+	}
+
+	/* Tile (home): a compact, fixed-dark tile with the same player inside. */
+	.tile-mode {
+		background: var(--dark-tile);
+		color: var(--dark-ink);
+		gap: 0;
+	}
+
+	.tile-mode .tile-label {
+		color: var(--dark-ink-2);
+	}
+
+	.tile-mode .go {
+		background: var(--dark-tile-2);
+		color: var(--dark-ink);
+	}
+
+	.tile-mode .status {
+		font-family: var(--font-body);
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--dark-ink-2);
+	}
+
+	.tile-mode .eq {
+		height: 12px;
+	}
+
+	.tile-mode .eq span {
+		height: 12px;
+		background: var(--player-accent);
+	}
+
+	.np {
+		margin-top: auto;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		min-width: 0;
+	}
+
+	.np .cover {
+		flex: none;
+		width: 80px;
+		height: 80px;
+	}
+
+	.np .now {
+		min-width: 0;
+	}
+
+	.tile-mode .now-title {
+		font-family: var(--font-body);
+		font-size: 21px;
+		font-weight: 650;
+		letter-spacing: -0.02em;
+		line-height: 1.2;
+		overflow-wrap: anywhere;
+	}
+
+	.tile-mode .now-sub {
+		font-size: 14.5px;
+		color: var(--dark-ink-2);
+		opacity: 1;
+	}
+
+	.tile-mode .scrub {
+		margin-top: 20px;
+	}
+
+	.tile-mode .scrub .bar-fill {
+		background: var(--dark-ink);
+	}
+
+	/* Simulated playback keeps its (hidden) controls so the script still binds. */
+	.tile-mode .controls {
+		display: none;
 	}
 
 	.cover {

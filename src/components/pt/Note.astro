@@ -11,7 +11,7 @@ const paragraphs = (node?.blocks ?? []).map((b) => ({ ...b, style: "normal" }));
 ---
 
 <aside class="note">
-	<span class="note-label">NOTE</span>
+	<span class="note-label">Note</span>
 	<div class="note-body">{node ? <PortableText value={paragraphs as any} /> : <p><slot /></p>}</div>
 </aside>
 
@@ -19,22 +19,23 @@ const paragraphs = (node?.blocks ?? []).map((b) => ({ ...b, style: "normal" }));
 	.note {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 20px 24px;
-		border-radius: var(--radius-lg);
+		gap: 10px;
+		margin: 12px 0;
+		padding: 22px 26px;
+		border-radius: var(--radius-md);
 		background: var(--color-brand-soft);
 	}
 
 	.note-label {
-		font-family: var(--font-mono);
-		font-size: 12px;
-		font-weight: 700;
-		letter-spacing: 0.06em;
+		font-family: var(--font-body);
+		font-size: 13px;
+		font-weight: 600;
+		line-height: 1;
 		color: var(--color-brand);
 	}
 
 	.note-body {
-		font-size: 19px;
+		font-size: 18.5px;
 		line-height: 1.55;
 		text-wrap: pretty;
 	}

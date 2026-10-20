@@ -38,7 +38,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		{
 			tools.length > 0 && (
 				<section class="section">
-					<SectionLabel label="TOOLS" note={`ls ~/.local/bin | wc -l → ${tools.length}`} rule />
+					<SectionLabel label="Tools" note={`ls ~/.local/bin | wc -l → ${tools.length}`} />
 					<div class="chip-row" data-tool-filter data-stagger>
 						<button type="button" class="chip" data-cat="all" aria-pressed="true">
 							all <span class="count">{tools.length}</span>
@@ -70,7 +70,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		{
 			desk.length > 0 && (
 				<section class="section">
-					<SectionLabel label="DESK" rule />
+					<SectionLabel label="Desk" />
 					<div class="desk" data-stagger>
 						<div class:list={["desk-photo", { placeholder: !hasImage(profile?.desk_photo) }]}>
 							{hasImage(profile?.desk_photo) ? (
@@ -139,7 +139,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 	.section {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--gap);
 	}
 
 	/* Tools --------------------------------------------------------------- */
@@ -153,7 +153,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		padding: 20px;
+		padding: 22px;
 	}
 
 	.tool-head {
@@ -179,7 +179,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 	.tool-cat {
 		padding: 3px 9px;
 		border-radius: var(--radius-pill);
-		border: 1px solid var(--color-border);
+		background: var(--color-surface);
 		font-family: var(--font-mono);
 		font-size: 11px;
 		color: var(--color-muted);
@@ -192,9 +192,8 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 	}
 
 	.tool-name {
-		font-family: var(--font-mono);
-		font-size: 15px;
-		font-weight: 700;
+		font-size: 16px;
+		font-weight: 600;
 	}
 
 	.tool-why {
@@ -208,7 +207,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 	.desk {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-		gap: 20px;
+		gap: var(--gap);
 		align-items: start;
 	}
 
@@ -217,15 +216,13 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		aspect-ratio: 4 / 3;
 		overflow: hidden;
 		border-radius: var(--radius-lg);
-		border: 1px solid var(--color-border);
 		background: var(--color-surface);
 	}
 
 	.desk-list {
 		display: flex;
 		flex-direction: column;
-		padding: 6px 24px;
-		border-radius: var(--radius-lg);
+		padding: 6px var(--pad);
 	}
 
 	.desk-item {
@@ -234,7 +231,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		gap: 4px 18px;
 		align-items: baseline;
 		padding: 16px 0;
-		border-bottom: 1px dashed var(--color-border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.desk-item:last-child {
@@ -245,7 +242,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		flex: 0 0 100px;
 		font-family: var(--font-mono);
 		font-size: 12px;
-		color: var(--syntax-keyword);
+		color: var(--color-faint);
 	}
 
 	.desk-v {

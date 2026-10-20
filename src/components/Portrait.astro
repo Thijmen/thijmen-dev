@@ -1,14 +1,13 @@
 ---
 /**
- * The home hero's portrait: a window around the profile photo, plus an
- * ASCII rendering of it that the script below draws from the loaded image
- * in the site's mono face. A jpg/ascii switch in the title bar swaps the two
- * with a scanline wipe; on fine pointers a lens shows the other layer under
- * the cursor. On load (full motion) one scan passes over the photo.
+ * The home hero's portrait: the profile photo filling a rounded tile, plus
+ * an ASCII rendering of it that the script below draws from the loaded
+ * image in the site's mono face. A photo/ascii chip swaps the two with a
+ * scanline wipe; on fine pointers a lens shows the other layer under the
+ * cursor. On load (full motion) one scan passes over the photo.
  * No JS, or an image the canvas can't read: just the photo.
  */
 import { Image } from "emdash/ui";
-import Window from "./Window.astro";
 
 interface Props {
 	image: { filename?: string; alt?: string };
@@ -20,16 +19,17 @@ interface Props {
 const { image, alt, class: className, ...attrs } = Astro.props;
 ---
 
-<Window title={image.filename || "portrait.jpg"} class:list={["portrait", className]} data-portrait {...attrs}>
-	<div slot="aside" class="modes" role="group" aria-label="Render as" data-modes hidden>
-		<button type="button" data-mode="jpg" aria-pressed="true">jpg</button>
-		<button type="button" data-mode="ascii" aria-pressed="false">ascii</button>
-	</div>
+<figure class:list={["tile", "portrait", className]} data-portrait {...attrs}>
 	<div class="shot" data-mode="jpg">
-		<Image image={image as any} alt={alt ?? image.alt} class="cover-img" sizes="(min-width: 1000px) 420px, 90vw" priority />
+		<Image image={image as any} alt={alt ?? image.alt} class="cover-img" sizes="(min-width: 1000px) 480px, 90vw" priority />
 		<pre class="ascii" aria-hidden="true"></pre>
 	</div>
-</Window>
+	<div class="modes" role="group" aria-label="Render as" data-modes hidden>
+		<button type="button" data-mode="jpg" aria-pressed="true">photo</button>
+		<button type="button" data-mode="ascii" aria-pressed="false">ascii</button>
+	</div>
+	<figcaption class="caption"><slot /></figcaption>
+</figure>
 
 <script>
 	import { motionFull } from "../scripts/motion";
@@ -195,46 +195,69 @@ const { image, alt, class: className, ...attrs } = Astro.props;
 		initial-value: 0px;
 	}
 
+	.portrait {
+		padding: 0;
+		margin: 0;
+	}
+
+	/* The chip floats over the photo in both themes, so it keeps its own light fill. */
 	.modes {
+		position: absolute;
+		z-index: 2;
+		top: 18px;
+		right: 18px;
 		display: flex;
-		gap: 2px;
-		padding: 2px;
-		border: 1px solid var(--color-border);
+		padding: 3px;
 		border-radius: var(--radius-pill);
+		background: oklch(1 0 0 / 0.9);
 	}
 
 	.modes button {
-		padding: 2px 9px;
+		padding: 6px 10px;
 		border: 0;
 		border-radius: var(--radius-pill);
 		background: transparent;
-		color: var(--color-muted);
-		font: inherit;
-		font-size: 11px;
-		line-height: 1.5;
+		color: oklch(0.45 0.02 292);
+		font: 500 11.5px/1 var(--font-mono);
 		cursor: pointer;
 		transition:
 			color var(--transition-fast),
 			background-color var(--transition-fast);
 	}
 
-	.modes button:hover {
-		color: var(--color-text);
+	.modes button[aria-pressed="true"] {
+		background: oklch(0.22 0.03 292);
+		color: #fff;
 	}
 
-	.modes button[aria-pressed="true"] {
-		background: var(--color-brand-soft);
-		color: var(--color-brand);
+	.caption {
+		position: absolute;
+		z-index: 2;
+		left: 18px;
+		bottom: 18px;
+		padding: 10px 14px;
+		border-radius: 12px;
+		background: oklch(1 0 0 / 0.92);
+		font: 500 13px/1 var(--font-body);
+		color: oklch(0.3 0.03 292);
+	}
+
+	.caption:empty {
+		display: none;
 	}
 
 	.shot {
 		--mx: 50%;
 		--my: 42%;
-		position: relative;
-		aspect-ratio: 1;
+		position: absolute;
+		inset: 0;
 		overflow: hidden;
 		container-type: inline-size;
 		background: var(--color-surface);
+	}
+
+	.shot :global(.cover-img) {
+		object-position: 50% 30%;
 	}
 
 	.shot[data-mode="ascii"] {

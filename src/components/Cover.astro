@@ -1,0 +1,67 @@
+---
+/**
+ * Generated cover for a post without an uploaded image: a halftone dot
+ * screen drawn on the server (src/lib/cover.ts), seeded by the slug and
+ * shaped and tinted by the post's rarest tag. Fills its parent's box.
+ * Extra attributes (data-vt-part, style, …) land on the root.
+ */
+import { coverSvg, pickArt, type CoverVariant } from "../lib/cover";
+
+interface Props {
+	slug: string;
+	tags?: string[];
+	variant?: CoverVariant;
+	class?: string;
+}
+
+const { slug, tags = [], variant = "card", class: className, ...attrs } = Astro.props;
+const { hue, shape } = pickArt(slug, tags);
+const svg = coverSvg(slug, tags, variant);
+---
+
+<div class:list={["cover-art", variant, className]} data-hue={hue} data-shape={shape} {...attrs} aria-hidden="true">
+	<Fragment set:html={svg} />
+</div>
+
+<style>
+	.cover-art {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		background: var(--tint, var(--color-surface));
+	}
+
+	.cover-art :global(.ht) {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+
+	.cover-art :global(.ht path) {
+		fill: var(--hue);
+	}
+
+	[data-hue="purple"] {
+		--hue: var(--hue-purple);
+	}
+
+	[data-hue="green"] {
+		--hue: var(--hue-green);
+	}
+
+	[data-hue="blue"] {
+		--hue: var(--hue-blue);
+	}
+
+	[data-hue="orange"] {
+		--hue: var(--hue-orange);
+	}
+
+	.cover-art {
+		--tint: color-mix(in oklch, var(--hue) 12%, var(--color-tile));
+	}
+
+</style>

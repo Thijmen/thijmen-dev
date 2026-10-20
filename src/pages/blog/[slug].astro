@@ -2,24 +2,29 @@
 import { decodeSlug, getEmDashCollection, getEmDashEntry } from "emdash";
 import { Blocks, Image, PortableText } from "emdash/ui";
 import Base from "../../layouts/Base.astro";
+import Cover from "../../components/Cover.astro";
 import { MissingBlock, postSections } from "../../components/blocks";
 import { ptComponents } from "../../components/pt/components";
 import {
+	emphasize,
 	extractHeadings,
 	formatDate,
+	getProfile,
 	hasImage,
 	plainTitle,
 	readingTime,
 	riseWords,
+	toPostSummary,
 	vtKey,
 } from "../../lib/content";
 
 const slug = decodeSlug(Astro.params.slug);
 if (!slug) return Astro.redirect("/404");
 
-const [{ entry: post, cacheHint }, { entries: all, cacheHint: listHint }] = await Promise.all([
+const [{ entry: post, cacheHint }, { entries: all, cacheHint: listHint }, { profile, cacheHint: profileHint }] = await Promise.all([
 	getEmDashEntry("posts", slug),
 	getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 200 }),
+	getProfile(),
 ]);
 
 if (!post) return Astro.redirect("/404");
@@ -27,6 +32,7 @@ if (!post) return Astro.redirect("/404");
 if (Astro.cache?.enabled) {
 	Astro.cache.set(cacheHint);
 	Astro.cache.set(listHint);
+	if (profileHint) Astro.cache.set(profileHint);
 }
 
 const d = post.data;
@@ -42,36 +48,59 @@ const older = index >= 0 && index < all.length - 1 ? all[index + 1] : undefined;
 // Media uploaded through the admin is stored without `src` (the Image
 // component resolves it), so render on hasImage(); `src` only feeds og:image.
 const hasCover = hasImage(d.featured_image);
+const readMin = readingTime(d.content);
+const tagSlugs = tags.map((t) => t.slug);
+
+// Related: other posts sharing a tag, newest first.
+const related = all
+	.filter((e) => e.id !== post.id && ((e.data as any).terms?.tag ?? []).some((t: { slug: string }) => tagSlugs.includes(t.slug)))
+	.slice(0, 3)
+	.map(toPostSummary);
+const olderPost = older ? toPostSummary(older) : undefined;
+const newerPost = newer ? toPostSummary(newer) : undefined;
+
+// A post-specific CTA lives in `sections` (a cta block); without one, fall back to the profile's.
+const hasSectionCta = Array.isArray(d.sections) && d.sections.some((b: any) => b?._type === "cta");
+const cta = !hasSectionCta && profile?.email && profile?.cta_home ? { text: profile.cta_home, email: profile.email } : undefined;
 const coverSrc = hasCover ? (d.featured_image as any).src : undefined;
 // Morph targets for the card → post view transition (styles/motion.css).
 const vt = vtKey("post", post.id);
 ---
-
-<Base title={title} description={d.excerpt} image={coverSrc} type="article" glow="right">
+<Base title={title} description={d.excerpt} image={coverSrc} type="article">
 	<div class="progress" aria-hidden="true"></div>
 	<main class="page post">
-		<header class="post-head" data-hero>
-			<a href="/blog" class="chip back">← cd ../blog</a>
-			<h1 class="title vt-title" style={`--vt-name:${vt}-title`} data-words aria-label={title} set:html={riseWords(d.title)} />
-			<div class="meta">
-				<span class="pill">{formatDate(d.date)}</span>
-				<span class="pill">{readingTime(d.content)} min read</span>
+		<header class="tile post-head" data-hero>
+			<div class="txt">
+				<a href="/blog" class="back">← All posts</a>
+				<h1 class="title vt-title" style={`--vt-name:${vt}-title`} data-words aria-label={title} set:html={riseWords(d.title)} />
+				{d.excerpt && <p class="lede">{d.excerpt}</p>}
+				<div class="meta">
+					<time>{formatDate(d.date)}</time>
+					<span class="sep">·</span>
+					<span>{readMin} min read</span>
+					{
+						tags.length > 0 && <span class="sep">·</span>
+					}
+					{
+						tags.map((t) => (
+							<a href={`/blog?tag=${t.slug}`} class="tag">
+								#{t.slug}
+							</a>
+						))
+					}
+				</div>
+			</div>
+			<figure class="cover vt-cover" style={`--vt-name:${vt}-cover`} data-hero-item style="--hero-i:3">
 				{
-					tags.map((t) => (
-						<a href={`/blog?tag=${t.slug}`} class="tag-soft">
-							#{t.slug}
-						</a>
-					))
+					hasCover ? (
+						<Image image={d.featured_image as any} class="cover-img" priority />
+					) : (
+						<Cover slug={post.id} tags={tagSlugs} variant="hero" />
+					)
 				}
-			</div>
+				{d.cover_caption && <figcaption class="cap">{d.cover_caption}</figcaption>}
+			</figure>
 		</header>
-
-		<figure class="cover" data-hero-item style="--hero-i:3">
-			<div class:list={["cover-frame", "vt-cover", { placeholder: !hasCover }]} style={`--vt-name:${vt}-cover`}>
-				{hasCover ? <Image image={d.featured_image as any} class="cover-img" priority /> : <span>cover.png · 2100×900</span>}
-			</div>
-			{d.cover_caption && <figcaption>{d.cover_caption}</figcaption>}
-		</figure>
 
 		<div class="layout">
 			<article class="article">
@@ -82,46 +111,106 @@ const vt = vtKey("post", post.id);
 				<Blocks value={d.sections} components={postSections} fallback={MissingBlock} />
 
 				{
-					(older || newer) && (
-						<nav class="neighbours" aria-label="More posts" data-stagger>
-							{older ? (
-								<a href={`/blog/${older.id}`} class="card neighbour">
-									<span class="dir">← older</span>
-									<span class="n-title">{plainTitle(older.data.title)}</span>
-								</a>
-							) : (
-								<span />
-							)}
-							{newer && (
-								<a href={`/blog/${newer.id}`} class="card neighbour right">
-									<span class="dir">newer →</span>
-									<span class="n-title">{plainTitle(newer.data.title)}</span>
-								</a>
-							)}
-						</nav>
+					cta && (
+						<a href={`mailto:${cta.email}`} class="tile field cta">
+							<span class="cta-text" set:html={emphasize(cta.text)} />
+							<span class="cta-mail">{cta.email} →</span>
+						</a>
 					)
 				}
 			</article>
 
-			<aside class="card toc" data-reveal>
+			<aside class="rail">
 				{
 					headings.length > 0 && (
-						<>
-							<div class="toc-label">CONTENTS</div>
-							<nav class="toc-links">
+						<nav class="tile toc" aria-label="Contents" data-read-min={readMin}>
+							<div class="tile-label">Contents</div>
+							<div class="toc-links">
 								<span class="toc-glide" aria-hidden="true" />
-								{headings.map((h) => (
-									<a href={`#${h.id}`}>{h.text}</a>
+								{headings.map((h, i) => (
+									<a href={`#${h.id}`}>
+										<span class="n">{String(i + 1).padStart(2, "0")}</span>
+										<span>{h.text}</span>
+									</a>
 								))}
-							</nav>
-						</>
+							</div>
+							<div class="read">
+								<span class="bar">
+									<i />
+								</span>
+								<span class="left">{readMin} min left</span>
+							</div>
+						</nav>
 					)
 				}
-				<div class="toc-actions">
-					<button type="button" class="mini" data-copy-link>copy link</button>
-				</div>
+				{
+					related.length > 0 && (
+						<section class="tile related">
+							<div class="tile-label">Related</div>
+							<div class="related-list">
+								{related.map((r) => (
+									<a href={r.url}>
+										<span class="thumb">
+											{r.image ? <Image image={r.image as any} class="cover-img" /> : <Cover slug={r.slug} tags={r.tags.map((t) => t.slug)} variant="thumb" />}
+										</span>
+										<span>
+											<span class="t" set:html={r.titleHtml} />
+											<span class="d">{r.date}</span>
+										</span>
+									</a>
+								))}
+							</div>
+						</section>
+					)
+				}
+				<button type="button" class="tile copy" data-copy-link>
+					<span class="copy-label">Copy link</span>
+					<span class="go" aria-hidden="true">
+						<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M5.5 8.5l3-3M6 3.5l.8-.8a2.5 2.5 0 013.5 3.5l-.8.8M8 10.5l-.8.8a2.5 2.5 0 01-3.5-3.5l.8-.8" />
+						</svg>
+					</span>
+				</button>
 			</aside>
 		</div>
+
+		{
+			(olderPost || newerPost) && (
+				<nav class="neighbours" aria-label="More posts" data-stagger>
+					{[
+						{ p: olderPost, dir: "← Older" },
+						{ p: newerPost, dir: "Newer →" },
+					].map(
+						({ p, dir }) =>
+							p && (
+								<a href={p.url} class="tile neighbour">
+									<div class="tile-label">
+										<span>{dir}</span>
+										<span class="go" aria-hidden="true">
+											<svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+												<path d="M3.5 9.5l6-6M4.5 3.5h5v5" />
+											</svg>
+										</span>
+									</div>
+									<span class="n-thumb">
+										{p.image ? <Image image={p.image as any} class="cover-img" /> : <Cover slug={p.slug} tags={p.tags.map((t) => t.slug)} variant="hero" />}
+									</span>
+									<span class="n-title" set:html={p.titleHtml} />
+									<span class="n-meta">
+										{p.date}
+										{p.tag && (
+											<>
+												<span class="sep">·</span>
+												<span class="tag">#{p.tag}</span>
+											</>
+										)}
+									</span>
+								</a>
+							),
+					)}
+				</nav>
+			)
+		}
 	</main>
 </Base>
 
@@ -138,6 +227,20 @@ const vt = vtKey("post", post.id);
 	// CONTENTS scrollspy: highlight the section being read; the highlight
 	// slides between entries.
 	const links = [...document.querySelectorAll<HTMLAnchorElement>(".toc-links a")];
+	const toc = document.querySelector<HTMLElement>(".toc");
+	const readBar = toc?.querySelector<HTMLElement>(".read i");
+	const readLeft = toc?.querySelector<HTMLElement>(".read .left");
+	const readMin = Number(toc?.dataset.readMin ?? 0);
+	// How far through the article the reader is: the bar and "N min left".
+	function readProgress() {
+		const art = document.querySelector<HTMLElement>(".article");
+		if (!art || !readBar || !readLeft) return;
+		const r = art.getBoundingClientRect();
+		const p = Math.max(0, Math.min(1, (innerHeight * 0.6 - r.top) / r.height));
+		readBar.style.width = `${Math.round(p * 100)}%`;
+		const left = Math.ceil(readMin * (1 - p));
+		readLeft.textContent = p >= 0.98 ? "done" : `${Math.max(left, 1)} min left`;
+	}
 	const heads = links.map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))));
 	const glide = document.querySelector<HTMLElement>(".toc-glide");
 	let active = -2;
@@ -179,18 +282,21 @@ const vt = vtKey("post", post.id);
 				ticking = false;
 				if (!scrollDriven) progress();
 				spy();
+				readProgress();
 			});
 		},
 		{ passive: true },
 	);
 	if (!scrollDriven) progress();
 	spy();
+	readProgress();
 
 	document.querySelector<HTMLButtonElement>("[data-copy-link]")?.addEventListener("click", (e) => {
 		const btn = e.currentTarget as HTMLButtonElement;
 		navigator.clipboard?.writeText(location.href).catch(() => {});
-		btn.textContent = "copied ✓";
-		setTimeout(() => (btn.textContent = "copy link"), 1400);
+		const label = btn.querySelector<HTMLElement>(".copy-label") ?? btn;
+		label.textContent = "Copied ✓";
+		setTimeout(() => (label.textContent = "Copy link"), 1400);
 	});
 </script>
 
@@ -230,27 +336,41 @@ const vt = vtKey("post", post.id);
 	}
 
 	.post {
-		padding-top: clamp(40px, 6vw, 72px);
+		padding-top: 8px;
+		gap: 48px;
 	}
 
+	/* Header tile: text left, cover right ---------------------------------- */
 	.post-head {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 46%;
+		min-height: 440px;
+		padding: 0;
+	}
+
+	.txt {
 		display: flex;
 		flex-direction: column;
-		gap: 22px;
-		max-width: 920px;
+		align-items: flex-start;
+		padding: clamp(28px, 4vw, 44px) clamp(24px, 4vw, 48px) clamp(26px, 3.4vw, 40px);
 	}
 
 	.back {
-		align-self: flex-start;
-		padding: 6px 12px;
+		font-size: 14px;
+		color: var(--color-faint);
+	}
+
+	.back:hover {
+		color: var(--color-text);
+		text-decoration: none;
 	}
 
 	.title {
-		margin: 0;
+		margin: 30px 0 0;
 		font-family: var(--font-heading);
-		font-size: clamp(44px, 6vw, 76px);
-		line-height: 1.02;
-		font-weight: 400;
+		font-size: clamp(38px, 4.6vw, 58px);
+		line-height: 1;
+		font-weight: 450;
 		letter-spacing: -0.025em;
 		text-wrap: balance;
 	}
@@ -260,137 +380,275 @@ const vt = vtKey("post", post.id);
 		color: var(--color-brand);
 	}
 
-	.meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		font-family: var(--font-mono);
-		font-size: 12px;
+	.lede {
+		margin: 22px 0 0;
+		max-width: 30em;
+		font-size: 18.5px;
+		line-height: 1.5;
 		color: var(--color-muted);
+		text-wrap: pretty;
 	}
 
-	.pill {
-		padding: 5px 11px;
-		border-radius: var(--radius-pill);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+	.meta {
+		margin-top: auto;
+		padding-top: 28px;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px 8px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-faint);
+	}
+
+	.sep {
+		opacity: 0.5;
+	}
+
+	.tag {
+		color: var(--color-brand);
 	}
 
 	.cover {
+		position: relative;
 		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.cover-frame {
-		width: 100%;
-		aspect-ratio: 21 / 9;
+		min-height: 260px;
 		overflow: hidden;
-		border-radius: var(--radius-xl);
-		border: 1px solid var(--color-border);
-		font-size: 13px;
+		background: var(--color-surface);
 	}
 
-	figcaption {
-		font-family: var(--font-mono);
-		font-size: 12px;
+	.cover :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.cap {
+		position: absolute;
+		left: 18px;
+		bottom: 18px;
+		z-index: 1;
+		max-width: calc(100% - 36px);
+		padding: 8px 12px;
+		border-radius: var(--radius-sm);
+		background: var(--color-tile);
+		font-size: 13px;
 		color: var(--color-muted);
 	}
 
+	@media (max-width: 860px) {
+		.post-head {
+			grid-template-columns: 1fr;
+			min-height: 0;
+		}
+
+		.cover {
+			order: -1;
+			aspect-ratio: 16 / 9;
+		}
+	}
+
+	/* Body + rail ------------------------------------------------------------ */
 	.layout {
-		display: flex;
-		flex-wrap: wrap-reverse;
-		gap: 48px 72px;
-		align-items: flex-start;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 296px;
+		gap: 48px 56px;
+		align-items: start;
 	}
 
 	.article {
-		flex: 1 1 560px;
-		max-width: 700px;
 		min-width: 0;
+		max-width: 700px;
 		display: flex;
 		flex-direction: column;
-		gap: 56px;
+		gap: 40px;
 	}
 
-	/* Prose (shared rules in components.css) ----------------------------- */
+	@media (min-width: 1100px) {
+		/* Room on the left for the hanging h2 numerals. */
+		.article {
+			margin-left: 76px;
+		}
+	}
+
+	/* Prose (shared rules in components.css) */
+	.prose {
+		counter-reset: sec;
+		font-size: 20.5px;
+		line-height: 1.66;
+		gap: 22px;
+	}
+
 	.prose > :global(p:first-child) {
-		font-size: 24px;
-		line-height: 1.55;
+		font-size: 22px;
+		line-height: 1.6;
 	}
 
-	/* Neighbours ----------------------------------------------------------- */
-	.neighbours {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-		gap: 16px;
+	.prose :global(h2) {
+		position: relative;
+		margin: 28px 0 -4px;
+		font-family: var(--font-body);
+		font-size: 27px;
+		line-height: 1.15;
+		font-weight: 600;
+		letter-spacing: -0.03em;
+		counter-increment: sec;
 	}
 
-	.neighbour {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		padding: 20px 22px;
-		border-radius: var(--radius-lg);
-	}
-
-	.neighbour.right {
-		text-align: right;
-	}
-
-	.dir {
-		font-family: var(--font-mono);
-		font-size: 12px;
-		color: var(--color-muted);
-	}
-
-	.n-title {
-		font-family: var(--font-heading);
-		font-size: 21px;
-		line-height: 1.25;
-	}
-
-	/* Contents aside ------------------------------------------------------- */
-	.toc {
-		flex: 0 1 260px;
-		/* The row is wrap-reverse, so flex-end is the top edge. */
-		align-self: flex-end;
-		position: sticky;
-		top: calc(var(--header-offset, 0px) + 24px);
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		padding: 22px;
+	.prose :global(h2::before) {
+		content: counter(sec, decimal-leading-zero);
+		display: block;
+		margin-bottom: 6px;
 		font-size: 14px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		color: var(--color-brand);
+		font-variant-numeric: tabular-nums;
 	}
 
-	.toc-label {
-		font-family: var(--font-mono);
-		font-size: 12px;
-		font-weight: 700;
-		letter-spacing: 0.06em;
+	@media (min-width: 1100px) {
+		.prose :global(h2::before) {
+			position: absolute;
+			right: calc(100% + 20px);
+			top: -2px;
+			margin: 0;
+			font-size: 32px;
+			line-height: 1;
+			letter-spacing: -0.05em;
+		}
+	}
+
+	.prose :global(p code),
+	.prose :global(li code) {
+		background: var(--color-tile);
 		color: var(--color-brand);
+		border: 0;
+	}
+
+	/* TL;DR: the list after an h2 "TL;DR" becomes a tile with big numerals. */
+	.prose :global(h2[id^="tl-dr"] + ul),
+	.prose :global(h2[id^="tl-dr"] + ol) {
+		counter-reset: tl;
+		margin: 0;
+		padding: 10px 28px;
+		list-style: none;
+		gap: 0;
+		border-radius: var(--radius-lg);
+		background: var(--color-tile);
+	}
+
+	.prose :global(h2[id^="tl-dr"] + ul > li),
+	.prose :global(h2[id^="tl-dr"] + ol > li) {
+		counter-increment: tl;
+		display: grid;
+		grid-template-columns: 48px 1fr;
+		align-items: baseline;
+		padding: 14px 0;
+		font-size: 19px;
+		line-height: 1.45;
+	}
+
+	.prose :global(h2[id^="tl-dr"] + ul > li + li),
+	.prose :global(h2[id^="tl-dr"] + ol > li + li) {
+		border-top: 1px solid var(--color-border);
+	}
+
+	.prose :global(h2[id^="tl-dr"] + ul > li::before),
+	.prose :global(h2[id^="tl-dr"] + ol > li::before) {
+		content: counter(tl);
+		font-family: var(--font-body);
+		font-size: 34px;
+		font-weight: 600;
+		line-height: 0.9;
+		letter-spacing: -0.05em;
+		color: var(--color-brand);
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* Fallback CTA (no cta block in sections) */
+	.cta {
+		gap: 20px;
+		text-decoration: none;
+	}
+
+	.cta:hover {
+		text-decoration: none;
+	}
+
+	.cta-text {
+		font-family: var(--font-heading);
+		font-size: 27px;
+		line-height: 1.15;
+		text-wrap: balance;
+	}
+
+	.cta-text :global(em) {
+		color: oklch(0.9 0.06 300);
+	}
+
+	.cta-mail {
+		align-self: flex-start;
+		padding: 11px 16px;
+		border-radius: var(--radius-pill);
+		background: var(--color-on-field);
+		color: var(--color-field);
+		font-size: 13.5px;
+		font-weight: 600;
+	}
+
+	/* Rail ------------------------------------------------------------------ */
+	.rail {
+		position: sticky;
+		top: calc(var(--header-offset, 0px) + 16px);
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap);
+	}
+
+	.rail .tile {
+		padding: 22px 22px 20px;
+		border-radius: 20px;
 	}
 
 	.toc-links {
 		position: relative;
+		margin-top: 6px;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
 	}
 
 	.toc-links a {
 		position: relative;
+		display: grid;
+		grid-template-columns: 30px 1fr;
 		margin: 0 -10px;
-		padding: 6px 10px;
+		padding: 7px 10px;
 		border-radius: var(--radius-sm);
-		color: var(--color-text);
+		font-size: 14.5px;
+		line-height: 1.35;
+		color: var(--color-muted);
 		transition: color var(--dur-fast);
 	}
 
+	.toc-links a .n {
+		font-size: 13px;
+		font-weight: 600;
+		line-height: 1.5;
+		color: var(--color-faint);
+		font-variant-numeric: tabular-nums;
+	}
+
 	.toc-links a.is-active {
+		color: var(--color-text);
+	}
+
+	.toc-links a.is-active .n {
 		color: var(--color-brand);
+	}
+
+	.toc-links a:hover {
+		text-decoration: none;
+		color: var(--color-text);
 	}
 
 	.toc-glide {
@@ -401,7 +659,7 @@ const vt = vtKey("post", post.id);
 		height: var(--h, 0);
 		translate: var(--x, 0) var(--y, 0);
 		border-radius: var(--radius-sm);
-		background: var(--color-brand-soft);
+		background: var(--color-surface);
 		opacity: 0;
 		transition:
 			translate var(--dur-move) var(--ease-out),
@@ -413,39 +671,171 @@ const vt = vtKey("post", post.id);
 		opacity: 1;
 	}
 
-	.toc-links a:hover {
+	.read {
+		margin-top: 14px;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-faint);
+	}
+
+	.read .bar {
+		flex: 1;
+		height: 4px;
+		border-radius: 2px;
 		background: var(--color-surface);
+	}
+
+	.read i {
+		display: block;
+		width: 0;
+		height: 100%;
+		border-radius: 2px;
+		background: var(--color-brand);
+	}
+
+	.related-list {
+		margin-top: 6px;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.related-list a {
+		display: grid;
+		grid-template-columns: 44px 1fr;
+		gap: 12px;
+		align-items: center;
+		padding: 8px 0;
+		color: var(--color-text);
+	}
+
+	.related-list a + a {
+		border-top: 1px solid var(--color-border);
+	}
+
+	.related-list a:hover {
 		text-decoration: none;
 	}
 
-	.toc-actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		padding-top: 12px;
-		border-top: 1px solid var(--color-border);
-		font-family: var(--font-mono);
-		font-size: 12px;
+	.thumb {
+		position: relative;
+		width: 44px;
+		height: 44px;
+		overflow: hidden;
+		border-radius: 11px;
+		background: var(--color-surface);
 	}
 
-	.mini {
-		padding: 5px 10px;
-		border-radius: var(--radius-pill);
-		border: 1px solid var(--color-border);
-		background: var(--color-bg);
-		color: var(--color-text);
+	.thumb :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.related-list .t {
+		display: block;
+		font-family: var(--font-heading);
+		font-size: 16.5px;
+		line-height: 1.22;
+	}
+
+	.related-list .t :global(em) {
+		font-style: italic;
+		color: var(--color-brand);
+	}
+
+	.related-list .d {
+		display: block;
+		margin-top: 4px;
+		font-family: var(--font-mono);
+		font-size: 11.5px;
+		color: var(--color-faint);
+	}
+
+	.copy {
+		width: 100%;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		border: 0;
 		font: inherit;
+		font-size: 14px;
+		color: var(--color-muted);
+		text-align: left;
 		cursor: pointer;
 	}
 
-	.mini:hover {
-		border-color: var(--color-brand);
-		text-decoration: none;
+	.copy:hover {
+		color: var(--color-text);
 	}
 
 	@media (max-width: 959px) {
-		.toc {
-			position: static;
+		.layout {
+			grid-template-columns: minmax(0, 1fr);
 		}
+
+		.article {
+			margin-left: 0;
+			max-width: none;
+		}
+
+		/* The rail drops below the article. */
+		.rail {
+			position: static;
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+		}
+	}
+
+	/* Older / newer ---------------------------------------------------------- */
+	.neighbours {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+		gap: var(--gap);
+	}
+
+	.neighbour {
+		gap: 0;
+		min-height: 230px;
+	}
+
+	.n-thumb {
+		position: relative;
+		margin-top: 14px;
+		height: 90px;
+		overflow: hidden;
+		border-radius: var(--radius-md);
+		background: var(--color-surface);
+	}
+
+	.n-thumb :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.n-title {
+		margin-top: 16px;
+		font-family: var(--font-heading);
+		font-size: 21px;
+		line-height: 1.18;
+		letter-spacing: -0.01em;
+		text-wrap: balance;
+	}
+
+	.n-title :global(em) {
+		font-style: italic;
+		color: var(--color-brand);
+	}
+
+	.n-meta {
+		margin-top: 8px;
+		display: flex;
+		gap: 8px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-faint);
 	}
 </style>

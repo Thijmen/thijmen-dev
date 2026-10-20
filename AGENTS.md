@@ -18,7 +18,7 @@ The admin UI is at `http://localhost:4321/_emdash/admin`.
 | `src/live.config.ts`     | EmDash loader registration (boilerplate -- don't modify)                           |
 | `seed/seed.json`         | Schema definition + demo content (collections, fields, taxonomies, menus, widgets) |
 | `emdash-env.d.ts`        | Generated types for collections (auto-regenerated on dev server start)             |
-| `src/layouts/Base.astro` | Base layout: EmDash head, theme + motion boot script, `SiteHeader` / `SiteFooter`, glow |
+| `src/layouts/Base.astro` | Base layout: EmDash head, theme + motion boot script, `SiteHeader` / `SiteFooter` |
 | `src/lib/content.ts`     | Shared helpers: `getProfile()`, `toPostSummary()`, `emphasize()`, `riseWords()`, `vtKey()`, reading time |
 | `src/styles/motion.css`  | Shared motion: view transitions, hero entrance, reveals, cards (see Motion below)    |
 | `src/scripts/motion.ts`  | Motion runtime: reveal observer, count-ups, spotlight, image fade-in, card morph names |
@@ -86,13 +86,13 @@ Public pages are served from [Workers Cache](https://developers.cloudflare.com/w
 
 ## This Site
 
-Personal site of Thijmen Stavenuiter, Staff Engineer: a blog, resume, open-source projects and a /uses page. The design came from a claude.ai/design project ("Responsive Preview"). Its voice is an engineer's terminal: `$ ls -lt blog/`, `~/.profile` windows, git-log timelines, `man thijmen`, a ⌘K command palette. Near-monochrome surfaces with one purple accent.
+Personal site of Thijmen Stavenuiter, Staff Engineer: a blog, resume, open-source projects and a /uses page. The design came from a claude.ai/design project ("Responsive Preview"). Its voice is an engineer's terminal: `$ ls -lt blog/`, `~/.profile` windows, git-log timelines, `man thijmen`, a ⌘K command palette. Neutral tiles with one purple accent.
 
 ## Pages
 
 | Page     | Path           | What it shows                                                                                           |
 | -------- | -------------- | ------------------------------------------------------------------------------------------------------- |
-| Home     | `/`            | Status pill, big serif name, intro, the portrait window (`Portrait`, jpg/ascii) with the `~/.profile` window overlapping it; WRITING (1 feature + 3 rows); HISTORY; 2 featured projects; mail CTA |
+| Home     | `/`            | Bento grid of tiles: intro (status pill, big name, intro, `$ man thijmen`), the portrait (`Portrait`, photo/ascii chip), latest post, now playing, local time, more writing, featured projects, open-source stars, `git log` career, uses, the purple mail CTA. Components in `src/components/home/` |
 | Blog     | `/blog`        | `wc -l` kicker, tag chips (`?tag=slug`, server-side), latest post as a wide feature card, grid of the rest |
 | Post     | `/blog/[slug]` | Progress bar, title (with `*accent*`), date/read-time/tag chips, 21:9 cover, Portable Text body, `sections` blocks, sticky CONTENTS aside, older/newer |
 | Resume   | `/resume`      | Name + role, Download PDF (`window.print()`, print CSS hides chrome), full git-log timeline, `skills.yml`, contact card |
@@ -108,7 +108,7 @@ Old portfolio routes redirect: `/work` → `/projects`, `/work/<slug>` → that 
 - `posts`: `title` (may contain `*emphasis*`), `date` (datetime, used for ordering), `excerpt`, `featured_image`, `cover_caption`, `content` (Portable Text). Taxonomy `tag`. Reading time is computed, not stored.
 - `projects`: `title` (repo name), `summary`, `featured_image`, `language`, `project_status` (select: active/maintained/archived), `stars`, `install`, `url`, `featured` (boolean, home page), `position`.
 - `posts.sections` and `projects.body` are `blocks` fields, as is `pages.body`.
-- `pages`: `title` (`*accent*`), `kicker`, `lede`, `glow` (left/right), `description` (SEO), `og_image`, `body` (blocks). Served at `/<slug>`.
+- `pages`: `title` (`*accent*`), `kicker`, `lede`, `glow` (left/right; unused since the tile redesign), `description` (SEO), `og_image`, `body` (blocks). Served at `/<slug>`.
 - `roles`: `title`, `org`, `period`, `commit_hash`, `ref`, `summary`, `highlights` (json string[]), `additions`, `deletions`, `stack` (json string[]), `position`.
 - `tools`, `desk_items`, `tracks`, `playlists`: small ordered lists for `/uses`, all sorted by `position`.
 - Spotify (`src/lib/spotify.ts`) feeds SOUNDTRACK: now playing / last played, top tracks (`short_term`) and, per `playlists` entry, name/cover/`N tracks · Xh Ym` from its `url` (a Spotify playlist URL). CMS `tracks` and playlist `title`/`meta` are the fallback when Spotify is unconfigured or fails; then the player simulates playback as before. Responses are memoised in the Workers Cache API (now playing 20s, top tracks 1h, playlists 6h). Since Spotify's Feb 2026 API changes, track counts only come back for playlists the account owns.
@@ -127,18 +127,24 @@ Gotchas found while building this:
 
 ## Visual character
 
-Three faces, loaded through the Fonts API in `astro.config.mjs`:
-- **Newsreader** (`--font-heading`): serif for display titles, card titles, post body and italic accents. It loads as a variable font with its `opsz` axis (6–72), so big titles get the fine display cut and body text the sturdier text cut. Without the axis Google serves the static text cut, which looks heavy at display sizes.
-- **Geist** (`--font-body`): UI and body sans.
-- **JetBrains Mono** (`--font-mono`): kickers, meta lines, chips, terminal windows and code.
+Calm bento: the page is a soft lilac-grey field, content sits on it as plain filled **tiles** (`.tile` / `.card`: no outline, no shadow, 24px radius), and colour comes from the art (halftone covers, the photo) rather than the UI. One purple accent, plus one solid purple "field" tile per page (the mail CTA). The terminal voice lives in the copy; the chrome keeps only two or three winks (`$ man thijmen`, `$ git log --oneline`, the ⌘K palette).
 
-Colour is oklch: near-white/near-black lilac-tinted neutrals and one purple accent (`--color-brand`) with a soft tint (`--color-brand-soft`). Headings mark an accent phrase in italic brand colour. Editors write `*phrase*` in CMS text and `emphasize()` renders it. A soft radial glow sits behind the top of each page (`glow="left" | "right"` on `Base`). The syntax colours (`--syntax-*`) are the only other hues; they are for code and terminal windows.
+Three faces, loaded through the Fonts API in `astro.config.mjs`:
+- **Geist** (`--font-body`): UI, project names and the 106px/800 name on the home page, big tabular numerals (`.big-num`: clock, stars, counts).
+- **Newsreader** (`--font-heading`): serif for display titles, post titles, post body and italic `*accent*` phrases. Variable with its `opsz` axis (6–72).
+- **JetBrains Mono** (`--font-mono`): meta lines (dates, read time, tags), code and the winks only.
+
+Colour is oklch with `light-dark()` tokens in `tokens.css`: `--color-bg` (the page; dark is L 0.25, never near-black), `--color-tile` (cards), `--color-surface` (inset: chips, thumbs, code spans), `--color-muted` / `--color-faint` (text), `--color-border` (hairlines inside tiles), `--color-brand` (the accent) and `--color-field` (the solid purple tile). `--dark-tile*` is the fixed-dark surface for code and the player (dark in both themes). `--hue-purple|green|blue|orange` are used only by covers. The `--syntax-*` hues are for code, and for diff lines.
+
+**Covers.** A post without a `featured_image` gets a server-drawn halftone SVG (`src/lib/cover.ts`, `Cover.astro`): the slug seeds the art, the post's rarest tag picks the shape and hue (llm = attention arcs/purple, distributed-systems = graph/blue, tooling = contours/orange, payments = ripples/green). An uploaded image always wins.
+
+Headings mark an accent phrase in italic brand colour. Editors write `*phrase*` in CMS text and `emphasize()` renders it (`PostSummary.titleHtml` for post titles).
 
 Theme: `data-theme="light" | "dark"` on `<html>`, stored in `localStorage["ts-theme"]` and falling back to the OS preference. Toggle with the header button, the palette, or the `t` key; with full motion the new theme grows as a circle from the button (a same-document View Transition).
 
 ## Motion
 
-Lively but quick, modelled on aulianza.com/portfolio: everything you touch reacts and content arrives, but nothing loops except the cursor, the equalizer, the glow drift and the status ping. Vanilla CSS plus one ~4 KB script; no animation library.
+Lively but quick, modelled on aulianza.com/portfolio: everything you touch reacts and content arrives, but nothing loops except the cursor, the equalizer and the status ping. Vanilla CSS plus one ~4 KB script; no animation library.
 
 - **Contract.** The boot script in `Base.astro` sets `<html data-motion="full" | "reduced">` before paint: `reduced` for `prefers-reduced-motion` or `localStorage["ts-motion"] = "off"` (palette: `set motion=off` / `set motion=on`; the OS setting always wins). No attribute = no JS: nothing is hidden or animated. A `DOMContentLoaded` failsafe drops the attribute if `motion.ts` never ran.
 - **Tokens** (`tokens.css`): timings (`--dur-*`, `--ease-out`, `--stagger`, `--type-char`) always apply; distances (`--rise-y`, `--lift`, `--word-y`, `--img-blur`, …) are 0 unless `data-motion="full"`. So one rule like `translate: 0 var(--rise-y)` is a fade under reduced motion. Only loops and JS effects check for `full` themselves.
@@ -151,7 +157,7 @@ Lively but quick, modelled on aulianza.com/portfolio: everything you touch react
   - `data-print` + `--lines` on a `Window`; lines (`.line`, gutter spans, `[data-line]`) carry `--line` and print in, 600ms at most.
   - `data-count` on a number (`412`, `1.2k`, `48,213`): counts up, ending on the exact server string.
 - **Calm zone:** nothing inside a post's `.prose` reveals; only its code windows print in. `sections` blocks animate.
-- **Automatic:** link cards (`a.card`, `.card.hoverable`) lift 3px under a brand-soft spotlight on fine pointers; `img.cover-img` / `.frame img` fade and de-blur in once loaded (priority images excluded); the glow drifts; the status dot pings.
+- **Automatic:** link cards (`a.card`, `.card.hoverable`) lift 3px under a brand-soft spotlight on fine pointers; `img.cover-img` / `.frame img` fade and de-blur in once loaded (priority images excluded); the status dot pings.
 - **Portrait** (`Portrait.astro`): the script draws an ASCII version of the photo from the loaded image (canvas, so the media must be same-origin or CORS-readable; otherwise the toggle stays hidden and it's just the photo). It sits on a fixed-dark screen in both themes. The jpg/ascii toggle works under any motion setting; the scanline wipe, the one scan after load and the hover lens need full motion (the lens also a fine pointer).
 - **Header:** sticks and, past 80px, condenses into a floating blurred pill (badge only). Its height never changes; `--header-offset` feeds `scroll-padding-top` and the post TOC. Never give `.site-header` a transform, filter, backdrop-filter or will-change: it holds the fixed palette and back-to-top button. The nav highlight, TOC and Soundtrack queue use one sliding highlight each.
 - **Page transitions:** `@view-transition { navigation: auto }` crossfades every navigation (Chrome, Safari 18.2+; Firefox hard-loads). Post and project cards carry `data-vt="<post|project>-<slug>"` (`vtKey()`) and `data-vt-part="cover|title"`; `motion.ts` names only the clicked card's parts at `pageswap`, so lists never hold duplicates (a duplicate name makes Chrome skip the transition). The post or project page names its `.vt-cover` / `.vt-title` (`--vt-name`) only when `html.vt-morph` says it arrived from a card. Never put static names on list cards.
@@ -159,7 +165,7 @@ Lively but quick, modelled on aulianza.com/portfolio: everything you touch react
 
 ## Customisation
 
-Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Corners use the token scale only: `xl` 22 (wide features, big windows, floating panels), `lg` 18 (cards, windows), `md` 12 (tiles inside a card), `sm` 8 (thumbs), `pill`. Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.card`, `.accent-card`, `.prose`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
+Design tokens live in `src/styles/tokens.css` (`light-dark()` pairs, pinned by `data-theme`). Corners use the token scale only: `xl` 28 (floating panels, big windows), `lg` 24 (tiles, windows), `md` 14 (things inside a tile), `sm` 10 (thumbs), `pill`. Spacing: `--gap` 16 between tiles, `--pad` 28 inside them. Shared building blocks (`.page`, `.hero`, `.display`, `.kicker`, `.btn`, `.chip`, `.tile`/`.card`, `.tile-label`, `.go`, `.big-num`, `.accent-card`/`.tile.field`, `.prose`, `.placeholder`, `.cursor`) live in `src/styles/components.css`. Both are in `@layer base`, so unlayered overrides in `src/styles/theme.css` always win.
 
 Components (`src/components/`): `SiteHeader` (sticky nav pill with a sliding highlight, ☰ menu below 760px, ⌘K palette, `↑ gg` back-to-top, keyboard shortcuts; one vanilla client script), `SiteFooter`, `Kicker` (the typing `$ cmd` line over a hero title), `Window` (terminal chrome), `SectionLabel`, `Timeline` (compact/full), `PostCard` (feature/row/grid), `ProjectCard` (full/compact, optional `href`), `Soundtrack` (the Spotify player; `/uses` and the `now_playing` block), `Portrait` (the home hero photo window with its ASCII layer). Portable Text overrides are in `pt/`: `Block` (h2 ids for the TOC, NOTE callout), `Note`, `CodeBlock` (window chrome, line numbers, copy button), and `components.ts` (the map shared by posts and the `prose` block). Block renderers are in `blocks/`, all framed by `BlockSection` (optional SectionLabel; `narrow` = the 700px reading measure).
 
@@ -219,7 +225,9 @@ Config and ops:
 
 ## What not to do
 
-- Don't add a second accent colour or coloured section backgrounds. The purple accent, its soft tint and the fixed-dark player card are the whole palette.
+- Don't add a second accent colour or coloured section backgrounds. The purple accent, its soft tint, the one solid purple tile and the fixed-dark code/player tiles are the whole palette; cover hues live in the art only.
+- Don't pile terminal chrome back on (status bars, pane borders, key hints, `[ buttons ]`). A mono command label on one or two tiles is the limit.
+- Don't outline tiles; they are plain fills on the page.
 - Don't use drop shadows on cards. Shadows exist only on floating layers (menu dropdown, palette). The condensed header pill and the back-to-top button don't get one either.
 - Don't hardcode copy that belongs in the `profile` entry or a collection. The site is meant to be fully CMS-driven.
 - Don't write generic copy ("Welcome to my blog"). Keep it specific and dry, in the terminal/git voice.
