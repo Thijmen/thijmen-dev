@@ -18,3 +18,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm build
+
+  # The registry edition of the AI writer (plugins/ai-writer-lite): its own
+  # manifest check, typecheck, tests through EmDash's sandbox, and bundle.
+  ai-writer-lite:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/ai-writer-lite
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run test
+      - run: pnpm run bundle

@@ -1,0 +1,57 @@
+{
+	"$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
+
+	"slug": "ai-writer-lite",
+	// Placeholder: set this to your Atmosphere account's DID (or handle) before
+	// the first publish. `emdash-plugin publish` refuses to run when it doesn't
+	// match the logged-in account.
+	"publisher": "did:plc:placeholder000000000000",
+
+	"license": "MIT",
+	"author": { "name": "Thijmen Stavenuiter" },
+	"security": { "email": "thijmenstavenuiter@gmail.com" },
+
+	"name": "AI Writer Lite",
+	"description": "Write drafts from a brief with Workers AI or any model on AI Gateway. Fills empty fields from the editor. Never publishes.",
+	"keywords": ["ai", "writing", "drafts", "cloudflare", "workers-ai"],
+	"sections": {
+		"installation": { "file": "./docs/setup.md" },
+	},
+
+	// Trust contract. Changing any of these needs a version bump: installed
+	// sites consented to the old one.
+	"capabilities": [
+		// Create drafts (New with AI) and save draft changes (editor panel). Implies content:read.
+		"content:write",
+		// Read an entry's pending draft revision, so the panel sees what the editor shows.
+		"content:revisions:read",
+		// Which fields a collection has, to decide what the writer may fill.
+		"schema:read",
+		// Existing tags or categories, for suggestions only. Never assigned.
+		"taxonomies:read",
+		// Model calls to Cloudflare's AI API.
+		"network:request",
+	],
+	"allowedHosts": ["api.cloudflare.com"],
+	"storage": {
+		"runs": { "indexes": ["createdAt"] },
+	},
+
+	"admin": {
+		"pages": [
+			{ "path": "/new", "label": "New with AI", "icon": "magic-wand", "group": "AI writer" },
+			{ "path": "/runs", "label": "AI runs", "icon": "list", "group": "AI writer" },
+			{ "path": "/settings", "label": "Settings", "icon": "settings", "group": "AI writer" },
+		],
+		"editorPanels": [{ "id": "write", "title": "AI writer", "route": "editor/write", "order": 20 }],
+		// Only the token is declared: it marks the value for encryption. The
+		// other settings live together under one key, written by the settings page.
+		"settingsSchema": {
+			"apiToken": { "type": "secret", "label": "Cloudflare API token" },
+		},
+	},
+
+	"release": {
+		"requires": { "env:emdash": ">=1.3.0" },
+	},
+}

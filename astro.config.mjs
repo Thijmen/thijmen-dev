@@ -6,6 +6,12 @@ import { aiWriter } from "@thijmen/plugin-ai-writer";
 import { defineConfig, fontProviders } from "astro/config";
 import emdash from "emdash/astro";
 
+import { previewSandboxedPlugins } from "./scripts/preview-plugins.mjs";
+
+// Preview deploys also load plugins/ai-writer-lite in EmDash's plugin sandbox
+// (empty on production and locally; see scripts/preview-plugins.mjs).
+const sandboxed = await previewSandboxedPlugins();
+
 export default defineConfig({
 	output: "server",
 	// Workers AI (ai-writer plugin) only runs remotely, and wrangler's remote
@@ -43,6 +49,9 @@ export default defineConfig({
 			}),
 			// Writes whole entries from a brief with Workers AI (plugins/ai-writer).
 			plugins: [aiWriter()],
+			// The module path, not sandbox(): that helper only checks the top-level
+			// wrangler config, and the LOADER binding exists in `previews` only.
+			...(sandboxed.length ? { sandboxed, sandboxRunner: "@emdash-cms/cloudflare/sandbox" } : {}),
 		}),
 	],
 	redirects: {
