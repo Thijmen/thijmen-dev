@@ -43,7 +43,7 @@ if (Astro.cache?.enabled) {
 	Astro.cache.set(latestHint);
 }
 
-const siteTitle = settings?.title || "Thijmen Stavenuiter";
+const siteTitle = settings?.title ?? "";
 const fullTitle = title ? `${title} · ${siteTitle}` : siteTitle;
 const siteDescription = settings?.tagline || "";
 const nav = (menu?.items ?? []).map((i) => ({ label: i.label, url: i.url }));

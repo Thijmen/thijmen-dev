@@ -1066,6 +1066,151 @@
 					"slug": "portrait",
 					"label": "Portrait (home hero)",
 					"type": "image"
+				},
+				{
+					"slug": "ui_title_resume",
+					"label": "UI: Tab title: resume",
+					"type": "string"
+				},
+				{
+					"slug": "ui_title_blog",
+					"label": "UI: Tab title: blog",
+					"type": "string"
+				},
+				{
+					"slug": "ui_title_projects",
+					"label": "UI: Tab title: projects",
+					"type": "string"
+				},
+				{
+					"slug": "ui_title_uses",
+					"label": "UI: Tab title: uses",
+					"type": "string"
+				},
+				{
+					"slug": "ui_title_not_found",
+					"label": "UI: Tab title: 404",
+					"type": "string"
+				},
+				{
+					"slug": "ui_404_hint",
+					"label": "UI: 404 hint (⌘K is rendered as a key)",
+					"type": "string"
+				},
+				{
+					"slug": "ui_hero_cta_blog",
+					"label": "UI: Home: blog button",
+					"type": "string"
+				},
+				{
+					"slug": "ui_hero_cta_resume",
+					"label": "UI: Home: resume button",
+					"type": "string"
+				},
+				{
+					"slug": "ui_latest_badge",
+					"label": "UI: Latest post badge",
+					"type": "string"
+				},
+				{
+					"slug": "ui_more_writing",
+					"label": "UI: Home: more writing label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_posts_unit",
+					"label": "UI: Home: posts count unit",
+					"type": "string"
+				},
+				{
+					"slug": "ui_oss_label",
+					"label": "UI: Home: open source tile label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_uses_label",
+					"label": "UI: Home: uses tile label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_projects_label",
+					"label": "UI: Home: projects tile label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_contact_label",
+					"label": "UI: Home: contact card label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_resume_download",
+					"label": "UI: Resume: download button",
+					"type": "string"
+				},
+				{
+					"slug": "ui_resume_contact",
+					"label": "UI: Resume: contact button",
+					"type": "string"
+				},
+				{
+					"slug": "ui_history_label",
+					"label": "UI: Resume: history label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_speaking_label",
+					"label": "UI: Resume: speaking label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_speaking_posts",
+					"label": "UI: Resume: posts link text (after the count)",
+					"type": "string"
+				},
+				{
+					"slug": "ui_tools_label",
+					"label": "UI: Uses: tools label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_desk_label",
+					"label": "UI: Uses: desk label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_desk_placeholder",
+					"label": "UI: Uses: desk photo placeholder",
+					"type": "string"
+				},
+				{
+					"slug": "ui_blog_empty",
+					"label": "UI: Blog: empty state",
+					"type": "string"
+				},
+				{
+					"slug": "ui_projects_empty",
+					"label": "UI: Projects: empty state",
+					"type": "string"
+				},
+				{
+					"slug": "ui_queue_title",
+					"label": "UI: Soundtrack: queue title",
+					"type": "string"
+				},
+				{
+					"slug": "ui_queue_note",
+					"label": "UI: Soundtrack: queue note",
+					"type": "string"
+				},
+				{
+					"slug": "ui_soundtrack_label",
+					"label": "UI: Soundtrack: default label",
+					"type": "string"
+				},
+				{
+					"slug": "ui_note_label",
+					"label": "UI: Post note callout label",
+					"type": "string"
 				}
 			]
 		}
@@ -2376,7 +2521,36 @@
 					"projects_intro": "Small tools that solved a real annoyance, and a few that solved an imaginary one very thoroughly.",
 					"uses_title": "Uses*.json*",
 					"uses_intro": "The tools, soundtrack and small rituals behind the work. Last updated when someone asked what font my terminal uses.",
-					"soundtrack_note": "via spotify"
+					"soundtrack_note": "via spotify",
+					"ui_title_resume": "Resume",
+					"ui_title_blog": "Blog",
+					"ui_title_projects": "Projects",
+					"ui_title_uses": "Uses",
+					"ui_title_not_found": "Not found",
+					"ui_404_hint": "It may have moved, or it never existed. Try ⌘K or one of these:",
+					"ui_hero_cta_blog": "Read the blog",
+					"ui_hero_cta_resume": "Resume",
+					"ui_latest_badge": "Latest post",
+					"ui_more_writing": "More writing",
+					"ui_posts_unit": "posts",
+					"ui_oss_label": "Open source",
+					"ui_uses_label": "Uses",
+					"ui_projects_label": "Projects",
+					"ui_contact_label": "Say hello",
+					"ui_resume_download": "Download PDF",
+					"ui_resume_contact": "Get in touch",
+					"ui_history_label": "History",
+					"ui_speaking_label": "Speaking & writing",
+					"ui_speaking_posts": "posts on this blog",
+					"ui_tools_label": "Tools",
+					"ui_desk_label": "Desk",
+					"ui_desk_placeholder": "desk.jpg",
+					"ui_blog_empty": "No posts yet.",
+					"ui_projects_empty": "Nothing here yet.",
+					"ui_queue_title": "On repeat",
+					"ui_queue_note": "last 30 days",
+					"ui_soundtrack_label": "SOUNDTRACK",
+					"ui_note_label": "Note"
 				}
 			}
 		],

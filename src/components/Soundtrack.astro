@@ -7,7 +7,7 @@
 import { getEmDashCollection } from "emdash";
 import { Image } from "emdash/ui";
 import SectionLabel from "./SectionLabel.astro";
-import { ARROW_SVG, hasImage } from "../lib/content";
+import { ARROW_SVG, getProfile, hasImage } from "../lib/content";
 import { getNowPlaying, getPlaylist, getTopTracks } from "../lib/spotify";
 
 interface Props {
@@ -19,7 +19,8 @@ interface Props {
 	variant?: "page" | "tile";
 }
 
-const { label = "SOUNDTRACK", note, showQueue = true, variant = "page" } = Astro.props;
+const { profile } = await getProfile();
+const { label = profile?.ui_soundtrack_label ?? "", note, showQueue = true, variant = "page" } = Astro.props;
 const tile = variant === "tile";
 const showPlaylists = Astro.props.showPlaylists ?? !tile;
 
@@ -212,8 +213,8 @@ const playlists = (playlistsRes?.entries ?? []).map((e, i) => {
 					<div class="card queue">
 						{!live && <span class="q-glide" aria-hidden="true" />}
 						<div class="queue-head">
-							<span class="queue-title">On repeat</span>
-							<span class="mono-muted">last 30 days</span>
+							<span class="queue-title">{profile?.ui_queue_title}</span>
+							<span class="mono-muted">{profile?.ui_queue_note}</span>
 						</div>
 						{tracks.map((t, i) => {
 							const Tag = live ? (t.url ? "a" : "div") : "button";

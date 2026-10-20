@@ -1,12 +1,15 @@
 ---
 import Base from "../layouts/Base.astro";
 import Kicker from "../components/Kicker.astro";
-import { riseWords } from "../lib/content";
+import { getProfile, riseWords } from "../lib/content";
 
+const { profile } = await getProfile();
+const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const path = Astro.url.pathname;
+const hint = esc(profile?.ui_404_hint ?? "").replace(/⌘K/g, "<kbd>⌘K</kbd>");
 ---
 
-<Base title="Not found" glow="left">
+<Base title={profile?.ui_title_not_found} glow="left">
 	<main class="page">
 		<div class="hero" data-hero>
 			<Kicker cmd={`cd ${path}`} />
@@ -14,7 +17,7 @@ const path = Astro.url.pathname;
 			<p class="lede">
 				<span class="mono">cd: no such file or directory: {path}</span>
 			</p>
-			<p class="lede">It may have moved, or it never existed. Try <kbd>⌘K</kbd> or one of these:</p>
+			<p class="lede" set:html={hint} />
 			<div class="links">
 				<a href="/" class="btn btn-primary">cd ~</a>
 				<a href="/blog" class="btn">ls blog/</a>
@@ -29,7 +32,7 @@ const path = Astro.url.pathname;
 		overflow-wrap: anywhere;
 	}
 
-	kbd {
+	:global(kbd) {
 		font-family: var(--font-mono);
 		font-size: 0.85em;
 		color: var(--color-text);

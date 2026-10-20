@@ -14,10 +14,10 @@ if (Astro.cache?.enabled) {
 	Astro.cache.set(cacheHint);
 	if (profileHint) Astro.cache.set(profileHint);
 }
-const projectsTitle = profile?.projects_title || "Projects *& open source.*";
+const projectsTitle = profile?.projects_title ?? "";
 ---
 
-<Base title="Projects" description={profile?.projects_intro} glow="left">
+<Base title={profile?.ui_title_projects} description={profile?.projects_intro} glow="left">
 	<main class="page">
 		<div class="hero" data-hero>
 			<Kicker cmd="ls -la projects/" />
@@ -38,7 +38,7 @@ const projectsTitle = profile?.projects_title || "Projects *& open source.*";
 					))}
 				</div>
 			) : (
-				<p class="lede">Nothing here yet.</p>
+				<p class="lede">{profile?.ui_projects_empty}</p>
 			)
 		}
 	</main>

@@ -9,7 +9,7 @@ const { value } = Astro.props;
 ---
 
 <Soundtrack
-	label={value.label || "SOUNDTRACK"}
+	label={value.label || undefined}
 	note={value.note || undefined}
 	showQueue={value.show_queue !== false}
 	showPlaylists={value.show_playlists !== false}

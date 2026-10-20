@@ -22,10 +22,10 @@ if (Astro.cache?.enabled) {
 const tools = toolsRes.entries.map((e) => e.data);
 const categories = [...new Set(tools.map((t) => t.category).filter(Boolean))] as string[];
 const desk = deskRes.entries.map((e) => e.data);
-const usesTitle = profile?.uses_title || "Uses*.json*";
+const usesTitle = profile?.uses_title ?? "";
 ---
 
-<Base title="Uses" description={profile?.uses_intro} glow="right">
+<Base title={profile?.ui_title_uses} description={profile?.uses_intro} glow="right">
 	<main class="page uses">
 		<div class="hero" data-hero>
 			<Kicker cmd="jq . uses.json" />
@@ -38,7 +38,7 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		{
 			tools.length > 0 && (
 				<section class="section">
-					<SectionLabel label="Tools" note={`ls ~/.local/bin | wc -l → ${tools.length}`} />
+					<SectionLabel label={profile?.ui_tools_label ?? ""} note={`ls ~/.local/bin | wc -l → ${tools.length}`} />
 					<div class="chip-row" data-tool-filter data-stagger>
 						<button type="button" class="chip" data-cat="all" aria-pressed="true">
 							all <span class="count">{tools.length}</span>
@@ -70,13 +70,13 @@ const usesTitle = profile?.uses_title || "Uses*.json*";
 		{
 			desk.length > 0 && (
 				<section class="section">
-					<SectionLabel label="Desk" />
+					<SectionLabel label={profile?.ui_desk_label ?? ""} />
 					<div class="desk" data-stagger>
 						<div class:list={["desk-photo", { placeholder: !hasImage(profile?.desk_photo) }]}>
 							{hasImage(profile?.desk_photo) ? (
 								<Image image={profile!.desk_photo as any} class="cover-img" />
 							) : (
-								<span>desk.jpg</span>
+								<span>{profile?.ui_desk_placeholder}</span>
 							)}
 						</div>
 						<div class="card desk-list">

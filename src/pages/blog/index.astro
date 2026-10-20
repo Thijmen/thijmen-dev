@@ -30,10 +30,10 @@ if (Astro.cache?.enabled) {
 const total = entries.length;
 const posts = entries.map(toPostSummary).filter((p) => !active || p.tags.some((t) => t.slug === active));
 const [feature, ...rest] = posts;
-const blogTitle = profile?.blog_title || "Writing *from production.*";
+const blogTitle = profile?.blog_title ?? "";
 ---
 
-<Base title="Blog" description={profile?.blog_intro} glow="left">
+<Base title={profile?.ui_title_blog} description={profile?.blog_intro} glow="left">
 	<main class="page blog">
 		<div class="head">
 			<div class="hero" data-hero>
@@ -61,7 +61,7 @@ const blogTitle = profile?.blog_title || "Writing *from production.*";
 			}
 		</nav>
 
-		{feature ? <PostCard post={feature} variant="feature" data-reveal /> : <p class="lede">No posts yet.</p>}
+		{feature ? <PostCard post={feature} variant="feature" data-reveal /> : <p class="lede">{profile?.ui_blog_empty}</p>}
 
 		{
 			rest.length > 0 && (

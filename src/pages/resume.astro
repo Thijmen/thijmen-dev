@@ -20,7 +20,7 @@ if (Astro.cache?.enabled) {
 	Astro.cache.set(postsRes.cacheHint);
 }
 
-const name = settings?.title || "Thijmen Stavenuiter";
+const name = settings?.title ?? "";
 const roles = rolesRes.entries.map((e) => e.data);
 const postCount = postsRes.entries.length;
 const skills = asArray<{ k: string; items: string[] | string }>(profile?.skills);
@@ -28,7 +28,7 @@ const email = profile?.email;
 const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
 ---
 
-<Base title="Resume" description={profile?.resume_intro} glow="right">
+<Base title={profile?.ui_title_resume} description={profile?.resume_intro} glow="right">
 	<main class="page resume">
 		<header class="head">
 			<div class="head-row">
@@ -38,15 +38,15 @@ const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(
 					{profile?.status_line && <span class="role">{profile.status_line}</span>}
 				</div>
 				<div class="actions" data-hero-item style="--hero-i:3">
-					<button type="button" class="btn btn-primary" data-print>Download PDF ↓</button>
-					{email && <a href={`mailto:${email}`} class="btn">Get in touch</a>}
+					<button type="button" class="btn btn-primary" data-print>{profile?.ui_resume_download} ↓</button>
+					{email && <a href={`mailto:${email}`} class="btn">{profile?.ui_resume_contact}</a>}
 				</div>
 			</div>
 		</header>
 
 		<div class="layout">
 			<section class="card history" data-reveal>
-				<SectionLabel label="History" note="git log --stat" />
+				<SectionLabel label={profile?.ui_history_label ?? ""} note="git log --stat" />
 				<Timeline roles={roles as any} variant="full" />
 			</section>
 
@@ -66,9 +66,9 @@ const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(
 					)
 				}
 				<div class="card speaking">
-					<div class="label">Speaking &amp; writing</div>
+					<div class="label">{profile?.ui_speaking_label}</div>
 					<a href="/blog" class="posts-link">
-						<span data-count>{postCount}</span> posts on this blog →
+						<span data-count>{postCount}</span> {profile?.ui_speaking_posts} →
 					</a>
 					{profile?.speaking_note && <span class="muted">{profile.speaking_note}</span>}
 				</div>

@@ -2,10 +2,12 @@
 /** Uses tile: one featured tool and the rest as chips. Reads the same `tools` collection as /uses. */
 import { getEmDashCollection } from "emdash";
 import Go from "./Go.astro";
+import { getProfile } from "../../lib/content";
 
 const res = await getEmDashCollection("tools", { orderBy: { position: "asc" }, limit: 40 });
 if (Astro.cache?.enabled) Astro.cache.set(res.cacheHint);
 
+const { profile } = await getProfile();
 const tools = res.entries.map((e) => e.data);
 const [lead, ...rest] = tools;
 const chips = rest.slice(0, 9);
@@ -15,7 +17,7 @@ const chips = rest.slice(0, 9);
 	lead && (
 		<a href="/uses" class="tile uses" data-reveal>
 			<div class="tile-label">
-				<span>Uses</span>
+				<span>{profile?.ui_uses_label}</span>
 				<Go />
 			</div>
 			<div class="spec">

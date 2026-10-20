@@ -9,7 +9,7 @@
  */
 import { Image } from "emdash/ui";
 import Cover from "./Cover.astro";
-import { vtKey, type PostSummary } from "../lib/content";
+import { getProfile, vtKey, type PostSummary } from "../lib/content";
 
 interface Props {
 	post: PostSummary;
@@ -17,6 +17,8 @@ interface Props {
 	/** Legacy: `feature` used to be stacked unless `wide`. It is now always wide. */
 	wide?: boolean;
 }
+
+const { profile } = await getProfile();
 
 // Anything else (data-reveal, …) lands on the root link.
 const { post, variant = "grid", wide: _wide, ...attrs } = Astro.props;
@@ -59,7 +61,7 @@ const coverVariant = variant === "row" ? "thumb" : variant === "grid" ? "card" :
 					) : (
 						<Cover slug={post.slug} tags={tags} variant={coverVariant} />
 					)}
-					{(variant === "latest" || variant === "feature") && <span class="badge">Latest post</span>}
+					{(variant === "latest" || variant === "feature") && <span class="badge">{profile?.ui_latest_badge}</span>}
 					{variant !== "grid" && (
 						<span class="go" aria-hidden="true">
 							<svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">

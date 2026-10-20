@@ -27,7 +27,7 @@ if (Astro.cache?.enabled) {
 	for (const r of [postsRes, rolesRes, projectsRes]) Astro.cache.set(r.cacheHint);
 }
 
-const name = settings?.title || "Thijmen Stavenuiter";
+const name = settings?.title ?? "";
 const [first, ...restNames] = name.split(" ");
 const portrait = hasImage(profile?.portrait) ? profile!.portrait! : undefined;
 const allPosts = postsRes.entries.map(toPostSummary);
@@ -58,8 +58,8 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 				/>
 				{profile?.hero_intro && <p class="lede">{profile.hero_intro}</p>}
 				<div class="ctas">
-					<a href="/blog" class="btn btn-primary">Read the blog <span aria-hidden="true">→</span></a>
-					<a href="/resume" class="btn">Resume</a>
+					<a href="/blog" class="btn btn-primary">{profile?.ui_hero_cta_blog} <span aria-hidden="true">→</span></a>
+					<a href="/resume" class="btn">{profile?.ui_hero_cta_resume}</a>
 					<Kicker cmd={`man ${first.toLowerCase()}`} cursor />
 				</div>
 			</section>
@@ -92,9 +92,9 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 				moreWriting.length > 0 && (
 					<section class="tile writing" data-reveal>
 						<div class="tile-label">
-							<span>More writing</span>
+							<span>{profile?.ui_more_writing}</span>
 							<a href="/blog" class="count">
-								<span class="big-num n">{allPosts.length}</span>posts <Go />
+								<span class="big-num n">{allPosts.length}</span>{profile?.ui_posts_unit} <Go />
 							</a>
 						</div>
 						<div class="rows">
@@ -130,7 +130,7 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 				email && (
 					<a href={`mailto:${email}`} class="tile field contact" data-reveal>
 						<div class="tile-label">
-							<span>Say hello</span>
+							<span>{profile?.ui_contact_label}</span>
 							<Go />
 						</div>
 						{profile?.cta_home && <p class="cta" set:html={emphasize(profile.cta_home)} />}

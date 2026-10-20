@@ -1,12 +1,13 @@
 ---
 /** Open-source tile: the stars total across repos, and bars for the top four. */
 import Go from "./Go.astro";
-import { formatStars, parseStars } from "../../lib/content";
+import { formatStars, getProfile, parseStars } from "../../lib/content";
 
 interface Props {
 	projects: Array<{ title: string; stars?: string; project_status?: string }>;
 }
 
+const { profile } = await getProfile();
 const withStars = Astro.props.projects
 	.map((p) => ({ name: p.title, label: String(p.stars ?? ""), n: parseStars(p.stars), archived: (p.project_status ?? "") === "archived" }))
 	.filter((p) => p.n > 0)
@@ -20,7 +21,7 @@ const max = top[0]?.n || 1;
 	withStars.length > 0 && (
 		<a href="/projects" class="tile stars" data-reveal>
 			<div class="tile-label">
-				<span>Open source</span>
+				<span>{profile?.ui_oss_label}</span>
 				<Go />
 			</div>
 			<div class="big-num total">

@@ -5,13 +5,15 @@
  * `node`); a single blockquote comes through Block.astro as slotted content.
  */
 import { PortableText } from "emdash/ui";
+import { getProfile } from "../../lib/content";
 
 const { node } = Astro.props as { node?: { blocks?: Array<Record<string, unknown>> } };
+const { profile } = await getProfile();
 const paragraphs = (node?.blocks ?? []).map((b) => ({ ...b, style: "normal" }));
 ---
 
 <aside class="note">
-	<span class="note-label">Note</span>
+	<span class="note-label">{profile?.ui_note_label}</span>
 	<div class="note-body">{node ? <PortableText value={paragraphs as any} /> : <p><slot /></p>}</div>
 </aside>
 

@@ -7,7 +7,7 @@
  */
 import { Image } from "emdash/ui";
 import Go from "./home/Go.astro";
-import { hasImage, vtKey } from "../lib/content";
+import { getProfile, hasImage, vtKey } from "../lib/content";
 import { renderDiagram } from "../lib/diagram";
 
 export interface Project {
@@ -32,6 +32,7 @@ interface Props {
 }
 
 const { project: p, variant = "full", showImage = true, href, class: className } = Astro.props;
+const { profile } = await getProfile();
 const titleHref = href ?? p.url;
 const status = (p.project_status ?? "active").toLowerCase();
 // Screenshot + name morph into the case study when it exists (motion.ts).
@@ -77,7 +78,7 @@ const sentence = /\s/.test(p.title);
 	variant === "tile" ? (
 		<a href={href ?? p.url ?? "/projects"} class:list={["tile", "ptile", className]} data-vt={vt} data-reveal>
 			<div class="tile-label">
-				<span>Projects</span>
+				<span>{profile?.ui_projects_label}</span>
 				<span class="state">
 					<i class:list={["dot", status]} />
 					{status}
