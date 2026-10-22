@@ -303,6 +303,74 @@ export interface Post {
   terms?: Record<string, TaxonomyTerm[]>;
 }
 
+export interface ProfileTilesTileTextV1Block {
+  _type: "tile_text";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "body": PortableTextBlock[];
+  "size"?: "quarter" | "third" | "half" | "two-thirds" | "full" | null;
+  "tall"?: boolean | null;
+}
+
+export type ProfileTilesTileTextBlock = ProfileTilesTileTextV1Block;
+
+export interface ProfileTilesTilePostsV1Block {
+  _type: "tile_posts";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "tag"?: string | null;
+  "limit"?: number | null;
+  "size"?: "quarter" | "third" | "half" | "two-thirds" | "full" | null;
+  "tall"?: boolean | null;
+}
+
+export type ProfileTilesTilePostsBlock = ProfileTilesTilePostsV1Block;
+
+export interface ProfileTilesTileLinkV1Block {
+  _type: "tile_link";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "title": string;
+  "description"?: string | null;
+  "url": string;
+  "image"?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } } | null;
+  "size"?: "quarter" | "third" | "half" | "two-thirds" | "full" | null;
+  "tall"?: boolean | null;
+}
+
+export type ProfileTilesTileLinkBlock = ProfileTilesTileLinkV1Block;
+
+export interface ProfileTilesTilePhotoV1Block {
+  _type: "tile_photo";
+  _version: 1;
+  _key: string;
+  "image": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  "caption"?: string | null;
+  "url"?: string | null;
+  "size"?: "quarter" | "third" | "half" | "two-thirds" | "full" | null;
+  "tall"?: boolean | null;
+}
+
+export type ProfileTilesTilePhotoBlock = ProfileTilesTilePhotoV1Block;
+
+export interface ProfileTilesTileListV1Block {
+  _type: "tile_list";
+  _version: 1;
+  _key: string;
+  "label"?: string | null;
+  "items"?: { "key": string; "value": string; "url"?: string | null }[] | null;
+  "updated"?: string | null;
+  "size"?: "quarter" | "third" | "half" | "two-thirds" | "full" | null;
+  "tall"?: boolean | null;
+}
+
+export type ProfileTilesTileListBlock = ProfileTilesTileListV1Block;
+
+export type ProfileTilesBlock = ProfileTilesTileTextBlock | ProfileTilesTilePostsBlock | ProfileTilesTileLinkBlock | ProfileTilesTilePhotoBlock | ProfileTilesTileListBlock;
+
 export interface Profile {
   id: string;
   slug: string | null;
@@ -328,6 +396,7 @@ export interface Profile {
   soundtrack_note?: string;
   desk_photo?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   portrait?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
+  tiles?: ProfileTilesBlock[];
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;

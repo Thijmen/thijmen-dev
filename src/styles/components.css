@@ -332,9 +332,17 @@
 		margin: 0;
 	}
 
+	/* A hairline in a soft tint of the link colour; full strength on hover. */
 	.prose a {
 		text-decoration: underline;
-		text-underline-offset: 3px;
+		text-decoration-thickness: 1px;
+		text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+		text-underline-offset: 0.22em;
+		transition: text-decoration-color var(--dur-fast);
+	}
+
+	.prose a:hover {
+		text-decoration-color: currentColor;
 	}
 
 	.prose img {

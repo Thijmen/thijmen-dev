@@ -1,0 +1,101 @@
+---
+/** A linked card: optional image bleeding off the top, a serif title and a line of description. */
+import { Image } from "emdash/ui";
+import { emphasize, hasImage } from "../../lib/content";
+import HomeTile from "./HomeTile.astro";
+
+interface Props {
+	value: {
+		label?: string | null;
+		title: string;
+		description?: string | null;
+		url: string;
+		image?: unknown;
+		size?: string | null;
+		tall?: boolean | null;
+	};
+}
+
+const { value: v } = Astro.props;
+const image = hasImage(v.image) ? v.image : undefined;
+---
+
+<HomeTile size={v.size} fallbackSize="third" tall={v.tall} href={v.url} label={v.label} class:list={["link", { "has-image": image }]}>
+	{
+		image && (
+			<div class="img">
+				<Image image={image as any} class="cover-img" />
+			</div>
+		)
+	}
+	<div class="txt">
+		<h3 set:html={emphasize(v.title)} />
+		{v.description && <p>{v.description}</p>}
+	</div>
+</HomeTile>
+
+<style>
+	.txt {
+		margin-top: auto;
+		padding-top: 20px;
+	}
+
+	h3 {
+		margin: 0;
+		font-family: var(--font-heading);
+		font-weight: 400;
+		font-size: clamp(26px, 8cqi, 38px);
+		line-height: 1.1;
+		letter-spacing: -0.015em;
+		text-wrap: balance;
+	}
+
+	h3 :global(em) {
+		color: var(--color-brand);
+	}
+
+	p {
+		margin: 10px 0 0;
+		max-width: 30em;
+		font-size: 14.5px;
+		line-height: 1.45;
+		color: var(--color-muted);
+		text-wrap: pretty;
+	}
+
+	/* With an image: it fills the top of the tile, edge to edge, and the label
+	   floats on it. */
+	:global(.home-tile.has-image) {
+		padding-top: 0;
+	}
+
+	:global(.home-tile.has-image > .tile-label) {
+		position: absolute;
+		inset: 14px 14px auto;
+		z-index: 1;
+	}
+
+	:global(.home-tile.has-image > .tile-label > span:first-child:not(:empty)) {
+		padding: 7px 12px;
+		border-radius: var(--radius-pill);
+		background: var(--color-tile);
+		color: var(--color-text);
+	}
+
+	.img {
+		margin: 0 calc(-1 * var(--pad));
+		flex: 1 1 160px;
+		min-height: 160px;
+		position: relative;
+		overflow: hidden;
+		background: var(--color-surface);
+	}
+
+	.img :global(img) {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+</style>

@@ -47,6 +47,11 @@ const { name, email, github, linkedin } = Astro.props;
 
 	.links a {
 		color: var(--color-muted);
+		transition: color var(--dur-fast);
+	}
+
+	.links a:hover {
+		color: var(--color-brand);
 	}
 
 	.keys {

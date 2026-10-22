@@ -1,0 +1,90 @@
+---
+/** Key/value lines, like a /now list: a mono key, the value in the serif. */
+import { sanitizeHref } from "emdash";
+import { formatDate } from "../../lib/content";
+import HomeTile from "./HomeTile.astro";
+
+interface Props {
+	value: {
+		label?: string | null;
+		items?: Array<{ key: string; value: string; url?: string | null }> | null;
+		updated?: string | null;
+		size?: string | null;
+		tall?: boolean | null;
+	};
+}
+
+const { value: v } = Astro.props;
+const items = v.items ?? [];
+const updated = v.updated ? formatDate(v.updated) : "";
+---
+
+{
+	items.length > 0 && (
+		<HomeTile size={v.size} fallbackSize="third" tall={v.tall} label={v.label} class="list">
+			<dl data-stagger>
+				{items.map((i) => (
+					<div>
+						<dt>{i.key}</dt>
+						<dd>{i.url ? <a href={sanitizeHref(i.url)}>{i.value}</a> : i.value}</dd>
+					</div>
+				))}
+			</dl>
+			{updated && <p class="updated">updated {updated}</p>}
+		</HomeTile>
+	)
+}
+
+<style>
+	/* One grid for all lines, so the key column is as wide as the longest key. */
+	dl {
+		margin: 10px 0 0;
+		display: grid;
+		grid-template-columns: auto 1fr;
+		column-gap: 16px;
+	}
+
+	dl > div {
+		grid-column: 1 / -1;
+		display: grid;
+		grid-template-columns: subgrid;
+		align-items: baseline;
+		padding: 10px 0;
+		border-top: 1px solid var(--color-border);
+	}
+
+	dl > div:first-child {
+		border-top: 0;
+	}
+
+	dt {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+		color: var(--color-faint);
+	}
+
+	dd {
+		margin: 0;
+		font-family: var(--font-heading);
+		font-size: 17px;
+		line-height: 1.3;
+		text-wrap: pretty;
+	}
+
+	dd a {
+		color: var(--color-text);
+		transition: color var(--dur-fast);
+	}
+
+	dd a:hover {
+		color: var(--color-brand);
+	}
+
+	.updated {
+		margin: auto 0 0;
+		padding-top: 12px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-faint);
+	}
+</style>

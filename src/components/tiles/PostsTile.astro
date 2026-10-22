@@ -1,0 +1,68 @@
+---
+/**
+ * The latest posts as rows, optionally for one tag ("On distributed systems").
+ * The label row links to the full list: /blog, filtered by the tag if set.
+ */
+import { getEmDashCollection } from "emdash";
+import Go from "../home/Go.astro";
+import PostCard from "../PostCard.astro";
+import { toPostSummary } from "../../lib/content";
+import HomeTile from "./HomeTile.astro";
+
+interface Props {
+	value: {
+		label?: string | null;
+		tag?: string | null;
+		limit?: number | null;
+		size?: string | null;
+		tall?: boolean | null;
+	};
+}
+
+const { value: v } = Astro.props;
+const tag = v.tag?.trim().replace(/^#/, "") || null;
+const limit = Math.min(Math.max(v.limit || 3, 1), 8);
+
+// Filtered here, as on /blog: the blog is small enough to load whole.
+const { entries, cacheHint } = await getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 200 });
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+
+const matching = entries.map(toPostSummary).filter((p) => !tag || p.tags.some((t) => t.slug === tag));
+const posts = matching.slice(0, limit);
+const href = tag ? `/blog?tag=${encodeURIComponent(tag)}` : "/blog";
+---
+
+{
+	posts.length > 0 && (
+		<HomeTile size={v.size} fallbackSize="half" tall={v.tall} label={v.label || (tag ? `#${tag}` : "Writing")} class="posts">
+			<a slot="aside" href={href} class="all">
+				{matching.length} {matching.length === 1 ? "post" : "posts"} <Go />
+			</a>
+			<div class="rows" data-stagger>
+				{posts.map((p) => (
+					<PostCard post={p} variant="row" />
+				))}
+			</div>
+		</HomeTile>
+	)
+}
+
+<style>
+	.all {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		color: var(--color-muted);
+		transition: color var(--dur-fast);
+	}
+
+	.all:hover {
+		color: var(--color-text);
+	}
+
+	.rows {
+		margin-top: 8px;
+		display: flex;
+		flex-direction: column;
+	}
+</style>
