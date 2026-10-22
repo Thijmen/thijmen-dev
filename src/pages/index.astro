@@ -1,22 +1,22 @@
 ---
 import { getEmDashCollection, getSiteSettings } from "emdash";
+import { Blocks } from "emdash/ui";
 import Base from "../layouts/Base.astro";
 import Kicker from "../components/Kicker.astro";
 import PostCard from "../components/PostCard.astro";
 import Portrait from "../components/Portrait.astro";
 import ProjectCard from "../components/ProjectCard.astro";
-import Soundtrack from "../components/Soundtrack.astro";
 import Timeline from "../components/Timeline.astro";
 import Go from "../components/home/Go.astro";
-import LocalTime from "../components/home/LocalTime.astro";
-import StarsTile from "../components/home/StarsTile.astro";
 import UsesTile from "../components/home/UsesTile.astro";
+import { MissingBlock } from "../components/blocks";
+import { homeTiles } from "../components/tiles";
 import { asArray, emphasize, getProfile, hasImage, projectHref, riseWords, toPostSummary } from "../lib/content";
 
 const [settings, { profile, cacheHint: profileHint }, postsRes, rolesRes, projectsRes] = await Promise.all([
 	getSiteSettings(),
 	getProfile(),
-	// The whole (small) blog: the count comes from it, the tiles take the first four.
+	// The whole (small) blog: the count comes from it, the tiles take the first six.
 	getEmDashCollection("posts", { orderBy: { date: "desc" }, limit: 200 }),
 	getEmDashCollection("roles", { orderBy: { position: "asc" }, limit: 3 }),
 	getEmDashCollection("projects", { orderBy: { position: "asc" }, limit: 50 }),
@@ -32,14 +32,13 @@ const [first, ...restNames] = name.split(" ");
 const portrait = hasImage(profile?.portrait) ? profile!.portrait! : undefined;
 const allPosts = postsRes.entries.map(toPostSummary);
 const [latest, ...more] = allPosts;
-const moreWriting = more.slice(0, 3);
+const moreWriting = more.slice(0, 5);
 const roles = rolesRes.entries.map((e) => e.data);
-// Featured projects get a tile each; every project with stars feeds the stars tile.
+// Featured projects share one row: one, two or three tiles.
 const featured = projectsRes.entries
 	.filter((e) => e.data.featured)
-	.slice(0, 2)
+	.slice(0, 3)
 	.map((e) => ({ data: e.data, href: projectHref(e) }));
-const allProjects = projectsRes.entries.map((e) => e.data);
 const email = profile?.email;
 // "status" is one of the hero's ~/.profile lines in the CMS; it captions the photo.
 const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l) => l.k === "status")?.v;
@@ -78,15 +77,11 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 
 			{
 				latest && (
-					<div class="area-latest" data-reveal>
-						<PostCard post={latest} variant="latest" />
+					<div class:list={["area-latest", { solo: moreWriting.length === 0 }]} data-reveal>
+						<PostCard post={latest} variant={moreWriting.length ? "latest" : "feature"} />
 					</div>
 				)
 			}
-
-			<Soundtrack variant="tile" />
-
-			<LocalTime />
 
 			{
 				moreWriting.length > 0 && (
@@ -106,9 +101,7 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 				)
 			}
 
-			{featured.map((p, i) => <ProjectCard project={p.data as any} variant="tile" href={p.href} class={`area-project-${i}`} />)}
-
-			<StarsTile projects={allProjects as any} />
+			{featured.map((p) => <ProjectCard project={p.data as any} variant="tile" href={p.href} class={`area-project of-${featured.length}`} />)}
 
 			{
 				roles.length > 0 && (
@@ -138,6 +131,9 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 					</a>
 				)
 			}
+
+			{/* Editor-made tiles (profile → Home tiles) flow in after the fixed ones. */}
+			{profile?.tiles && <Blocks value={profile.tiles} components={homeTiles} fallback={MissingBlock} />}
 		</div>
 	</main>
 </Base>
@@ -151,83 +147,99 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 		padding: 0 var(--gutter) 24px;
 	}
 
-	/* The bento: 12 columns, rows that grow with their content. Each tile has
-	   a fixed place on desktop; below 1024px it is 6 columns, below 640px a
-	   single column in reading order. */
+	/* The bento: 12 columns, auto-placed in source order. Each tile spans a
+	   fixed share of a row; below 1024px it is 6 columns, below 640px a single
+	   column in reading order. `dense` lets a small CMS tile fill a gap a
+	   missing tile left. */
 	.bento {
 		display: grid;
 		grid-template-columns: repeat(12, minmax(0, 1fr));
-		grid-template-rows: minmax(500px, auto) minmax(244px, auto) minmax(296px, auto) minmax(330px, auto) minmax(316px, auto);
+		grid-auto-rows: minmax(240px, auto);
+		grid-auto-flow: row dense;
 		gap: var(--gap);
 	}
 
 	.intro {
-		grid-area: 1 / 1 / 2 / 8;
+		grid-column: span 7;
+		min-height: 500px;
 	}
 	.bento > :global(.area-portrait) {
-		grid-area: 1 / 8 / 2 / 13;
+		grid-column: span 5;
 	}
 	/* Without a portrait the intro takes the whole top row. */
 	.intro.solo {
 		grid-column: 1 / -1;
 	}
 	.area-latest {
-		grid-area: 2 / 1 / 4 / 6;
+		grid-column: span 5;
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
 	}
+	.area-latest.solo {
+		grid-column: 1 / -1;
+	}
 	.area-latest > :global(.tile) {
 		flex: 1;
 	}
-	.bento > :global(.nowplaying) {
-		grid-area: 2 / 6 / 3 / 10;
-	}
-	.bento > :global([data-local-time]) {
-		grid-area: 2 / 10 / 3 / 13;
-	}
 	.writing {
-		grid-area: 3 / 6 / 4 / 13;
+		grid-column: span 7;
 	}
-	.bento > :global(.area-project-0) {
-		grid-area: 4 / 1 / 5 / 6;
+	.bento > :global(.area-project) {
+		grid-column: span 6;
+		min-height: 260px;
 	}
-	.bento > :global(.area-project-1) {
-		grid-area: 4 / 6 / 5 / 10;
+	.bento > :global(.area-project.of-1) {
+		grid-column: 1 / -1;
 	}
-	.bento > :global(.stars) {
-		grid-area: 4 / 10 / 5 / 13;
+	.bento > :global(.area-project.of-3) {
+		grid-column: span 4;
 	}
 	.career {
-		grid-area: 5 / 1 / 6 / 6;
+		grid-column: span 5;
 	}
 	.bento > :global(.uses) {
-		grid-area: 5 / 6 / 6 / 10;
+		grid-column: span 4;
 	}
 	.contact {
-		grid-area: 5 / 10 / 6 / 13;
+		grid-column: span 3;
+	}
+
+	/* CMS tiles: HomeTile sets --span (of 12) and --tspan (of 6) from the block's width. */
+	.bento > :global(.home-tile) {
+		grid-column: span var(--span, 4);
+	}
+	.bento > :global(.home-tile.tall) {
+		grid-row: span 2;
 	}
 
 	@media (max-width: 1023px) {
 		.bento {
 			grid-template-columns: repeat(6, minmax(0, 1fr));
-			grid-template-rows: none;
 			grid-auto-rows: auto;
 		}
 
 		.bento > :global(*) {
-			grid-area: auto !important;
 			grid-column: span 3 !important;
 		}
 
 		.intro,
 		.area-latest,
-		.writing {
+		.writing,
+		.career,
+		.bento > :global(.area-project.of-1),
+		.bento > :global(.area-project.of-3) {
 			grid-column: span 6 !important;
+		}
+
+		.bento > :global(.home-tile) {
+			grid-column: span var(--tspan, 3) !important;
+			grid-row: auto;
 		}
 
 		.intro {
 			order: -2;
+			min-height: 0;
 		}
 		.bento > :global(.area-portrait) {
 			order: -1;
@@ -236,7 +248,8 @@ const status = asArray<{ k: string; v: string }>(profile?.profile_lines).find((l
 	}
 
 	@media (max-width: 639px) {
-		.bento > :global(*) {
+		.bento > :global(*),
+		.bento > :global(.home-tile) {
 			grid-column: 1 / -1 !important;
 		}
 		.bento > :global(.area-portrait) {

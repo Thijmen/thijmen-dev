@@ -498,6 +498,293 @@
 					]
 				}
 			]
+		},
+		{
+			"slug": "tile_text",
+			"label": "Text tile",
+			"description": "A few sentences of rich text: what you're working on, an announcement, a note. Links allowed.",
+			"category": "Home tiles",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Tile label",
+							"type": "string"
+						},
+						{
+							"slug": "body",
+							"label": "Text",
+							"type": "portableText",
+							"required": true
+						},
+						{
+							"slug": "size",
+							"label": "Width (quarter 3/12, third 4/12, half, two-thirds 8/12, full)",
+							"type": "select",
+							"defaultValue": "half",
+							"validation": {
+								"options": [
+									"quarter",
+									"third",
+									"half",
+									"two-thirds",
+									"full"
+								]
+							}
+						},
+						{
+							"slug": "tall",
+							"label": "Tall (two rows on desktop)",
+							"type": "boolean",
+							"defaultValue": false
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "tile_posts",
+			"label": "Posts tile",
+			"description": "The latest posts, optionally for one tag, as rows with a link to the full list.",
+			"category": "Home tiles",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Tile label",
+							"type": "string"
+						},
+						{
+							"slug": "tag",
+							"label": "Tag slug (empty = all posts)",
+							"type": "string"
+						},
+						{
+							"slug": "limit",
+							"label": "Posts",
+							"type": "integer",
+							"defaultValue": 3,
+							"validation": {
+								"min": 1,
+								"max": 8
+							}
+						},
+						{
+							"slug": "size",
+							"label": "Width (quarter 3/12, third 4/12, half, two-thirds 8/12, full)",
+							"type": "select",
+							"defaultValue": "half",
+							"validation": {
+								"options": [
+									"quarter",
+									"third",
+									"half",
+									"two-thirds",
+									"full"
+								]
+							}
+						},
+						{
+							"slug": "tall",
+							"label": "Tall (two rows on desktop)",
+							"type": "boolean",
+							"defaultValue": false
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "tile_link",
+			"label": "Link tile",
+			"description": "A linked card: a talk, an article elsewhere, a repo. Optional image on top.",
+			"category": "Home tiles",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Tile label",
+							"type": "string"
+						},
+						{
+							"slug": "title",
+							"label": "Title (*accent*)",
+							"type": "string",
+							"required": true
+						},
+						{
+							"slug": "description",
+							"label": "Description",
+							"type": "text"
+						},
+						{
+							"slug": "url",
+							"label": "Link",
+							"type": "url",
+							"required": true
+						},
+						{
+							"slug": "image",
+							"label": "Image",
+							"type": "image"
+						},
+						{
+							"slug": "size",
+							"label": "Width (quarter 3/12, third 4/12, half, two-thirds 8/12, full)",
+							"type": "select",
+							"defaultValue": "third",
+							"validation": {
+								"options": [
+									"quarter",
+									"third",
+									"half",
+									"two-thirds",
+									"full"
+								]
+							}
+						},
+						{
+							"slug": "tall",
+							"label": "Tall (two rows on desktop)",
+							"type": "boolean",
+							"defaultValue": false
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "tile_photo",
+			"label": "Photo tile",
+			"description": "A photo filling the tile, with a caption chip.",
+			"category": "Home tiles",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "image",
+							"label": "Image",
+							"type": "image",
+							"required": true
+						},
+						{
+							"slug": "caption",
+							"label": "Caption",
+							"type": "string"
+						},
+						{
+							"slug": "url",
+							"label": "Link",
+							"type": "url"
+						},
+						{
+							"slug": "size",
+							"label": "Width (quarter 3/12, third 4/12, half, two-thirds 8/12, full)",
+							"type": "select",
+							"defaultValue": "third",
+							"validation": {
+								"options": [
+									"quarter",
+									"third",
+									"half",
+									"two-thirds",
+									"full"
+								]
+							}
+						},
+						{
+							"slug": "tall",
+							"label": "Tall (two rows on desktop)",
+							"type": "boolean",
+							"defaultValue": false
+						}
+					]
+				}
+			]
+		},
+		{
+			"slug": "tile_list",
+			"label": "List tile",
+			"description": "Key/value lines, like a /now list: reading, building, learning.",
+			"category": "Home tiles",
+			"currentVersion": 1,
+			"versions": [
+				{
+					"version": 1,
+					"fields": [
+						{
+							"slug": "label",
+							"label": "Tile label",
+							"type": "string"
+						},
+						{
+							"slug": "items",
+							"label": "Lines",
+							"type": "repeater",
+							"validation": {
+								"minItems": 1,
+								"maxItems": 8,
+								"subFields": [
+									{
+										"slug": "key",
+										"label": "Key",
+										"type": "string",
+										"required": true
+									},
+									{
+										"slug": "value",
+										"label": "Value",
+										"type": "string",
+										"required": true
+									},
+									{
+										"slug": "url",
+										"label": "Link",
+										"type": "url"
+									}
+								]
+							}
+						},
+						{
+							"slug": "updated",
+							"label": "Last updated",
+							"type": "datetime"
+						},
+						{
+							"slug": "size",
+							"label": "Width (quarter 3/12, third 4/12, half, two-thirds 8/12, full)",
+							"type": "select",
+							"defaultValue": "third",
+							"validation": {
+								"options": [
+									"quarter",
+									"third",
+									"half",
+									"two-thirds",
+									"full"
+								]
+							}
+						},
+						{
+							"slug": "tall",
+							"label": "Tall (two rows on desktop)",
+							"type": "boolean",
+							"defaultValue": false
+						}
+					]
+				}
+			]
 		}
 	],
 	"collections": [
@@ -1066,6 +1353,21 @@
 					"slug": "portrait",
 					"label": "Portrait (home hero)",
 					"type": "image"
+				},
+				{
+					"slug": "tiles",
+					"label": "Home tiles (after the fixed tiles on /)",
+					"type": "blocks",
+					"validation": {
+						"allowedTypes": [
+							"tile_text",
+							"tile_posts",
+							"tile_link",
+							"tile_photo",
+							"tile_list"
+						],
+						"maxItems": 24
+					}
 				}
 			]
 		}
@@ -2376,7 +2678,77 @@
 					"projects_intro": "Small tools that solved a real annoyance, and a few that solved an imaginary one very thoroughly.",
 					"uses_title": "Uses*.json*",
 					"uses_intro": "The tools, soundtrack and small rituals behind the work. Last updated when someone asked what font my terminal uses.",
-					"soundtrack_note": "via spotify"
+					"soundtrack_note": "via spotify",
+					"tiles": [
+						{
+							"_type": "tile_text",
+							"_version": 1,
+							"_key": "t-text-currently",
+							"label": "Currently",
+							"body": [
+								{
+									"_type": "block",
+									"_key": "tc1",
+									"style": "normal",
+									"markDefs": [],
+									"children": [
+										{
+											"_type": "span",
+											"_key": "tc1s",
+											"text": "Placeholder: the thing at work that takes most of my head right now, in two or three dry sentences.",
+											"marks": []
+										}
+									]
+								},
+								{
+									"_type": "block",
+									"_key": "tc2",
+									"style": "normal",
+									"markDefs": [
+										{
+											"_key": "tc2l",
+											"_type": "link",
+											"href": "/blog/your-llm-integration-is-a-distributed-system"
+										}
+									],
+									"children": [
+										{
+											"_type": "span",
+											"_key": "tc2a",
+											"text": "Placeholder: what I'm writing about next. The last one was ",
+											"marks": []
+										},
+										{
+											"_type": "span",
+											"_key": "tc2b",
+											"text": "Your LLM integration is a distributed system now",
+											"marks": [
+												"tc2l"
+											]
+										},
+										{
+											"_type": "span",
+											"_key": "tc2c",
+											"text": ".",
+											"marks": []
+										}
+									]
+								}
+							],
+							"size": "half",
+							"tall": false
+						},
+						{
+							"_type": "tile_posts",
+							"_version": 1,
+							"_key": "t-posts-ds",
+							"label": "On distributed systems",
+							"tag": "distributed-systems",
+							"limit": 3,
+							"size": "half",
+							"tall": false
+						}
+					]
 				}
 			}
 		],

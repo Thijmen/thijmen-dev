@@ -179,24 +179,6 @@ export function plainTitle(text: unknown): string {
 	return String(text ?? "").replace(/\*([^*]+)\*/g, "$1");
 }
 
-/** "1.2k" → 1200, "412" → 412, "1,284" → 1284. Anything unreadable is 0. */
-export function parseStars(v: unknown): number {
-	const m = String(v ?? "")
-		.trim()
-		.toLowerCase()
-		.replace(/,/g, "")
-		.match(/^(\d+(?:\.\d+)?)\s*(k|m)?$/);
-	if (!m) return 0;
-	return Math.round(Number(m[1]) * (m[2] === "k" ? 1_000 : m[2] === "m" ? 1_000_000 : 1));
-}
-
-/** 2231 → "2.2k", 412 → "412". */
-export function formatStars(n: number): string {
-	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
-	if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
-	return String(n);
-}
-
 /** The shared round ↗ glyph (see `.go` in components.css). */
 export const ARROW_SVG =
 	'<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10 10 4M5 4h5v5"/></svg>';

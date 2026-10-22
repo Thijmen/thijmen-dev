@@ -162,13 +162,13 @@ const pageCtx = createPublicPageContext({
 						color 0.2s;
 				}
 
+				/* No underline, not even on hover: whole tiles and cards are links,
+				   and an underline would run through every line inside them. Links
+				   show hover through colour, the ↗ circle or the card lift instead;
+				   only links inside running text (.prose) are underlined. */
 				a {
 					color: var(--color-brand);
 					text-decoration: none;
-				}
-
-				a:hover {
-					text-decoration: underline;
 				}
 
 				img {

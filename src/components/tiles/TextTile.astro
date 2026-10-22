@@ -1,0 +1,39 @@
+---
+/** A few sentences of rich text in the serif: what you're on right now, an announcement, a note. */
+import { PortableText } from "emdash/ui";
+import { ptComponents } from "../pt/components";
+import HomeTile from "./HomeTile.astro";
+
+interface Props {
+	value: {
+		label?: string | null;
+		body: unknown;
+		size?: string | null;
+		tall?: boolean | null;
+	};
+}
+
+const { value: v } = Astro.props;
+const hasBody = Array.isArray(v.body) && v.body.length > 0;
+---
+
+{
+	hasBody && (
+		<HomeTile size={v.size} fallbackSize="half" tall={v.tall} label={v.label} class="text">
+			<div class="prose body">
+				<PortableText value={v.body as any} components={ptComponents as any} />
+			</div>
+		</HomeTile>
+	)
+}
+
+<style>
+	/* The post body's prose, at tile size. */
+	.body {
+		margin-top: 14px;
+		gap: 14px;
+		font-size: 19px;
+		line-height: 1.5;
+		max-width: 34em;
+	}
+</style>

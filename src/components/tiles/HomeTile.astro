@@ -1,0 +1,56 @@
+---
+/**
+ * Frame for a CMS tile on the home page (profile → Home tiles): a `.tile` that
+ * joins the bento grid with its width and height from the block, a label row,
+ * and the ↗ when it links somewhere. A tile holding links of its own (posts,
+ * rich text) can't be a link itself; it puts its "see all" link in the
+ * `aside` slot, on the right of the label row. The bento in pages/index.astro reads
+ * `--span` (desktop, of 12) and `--tspan` (tablet, of 6).
+ */
+import { sanitizeHref } from "emdash";
+import Go from "../home/Go.astro";
+
+interface Props {
+	size?: string | null;
+	fallbackSize: Size;
+	tall?: boolean | null;
+	href?: string | null;
+	label?: string | null;
+	class?: string;
+}
+
+type Size = keyof typeof SPANS;
+
+const SPANS = {
+	quarter: [3, 3],
+	third: [4, 3],
+	half: [6, 6],
+	"two-thirds": [8, 6],
+	full: [12, 6],
+} as const;
+
+const { size, fallbackSize, tall, href, label, class: className } = Astro.props;
+const [span, tspan] = SPANS[(size && size in SPANS ? size : fallbackSize) as Size];
+const link = href ? sanitizeHref(href) : undefined;
+const Tag = link ? "a" : "section";
+const aside = Astro.slots.has("aside");
+---
+
+<Tag href={link} class:list={["tile", "home-tile", { tall }, className]} style={`--span:${span};--tspan:${tspan}`} data-reveal>
+	{
+		(label || link || aside) && (
+			<div class="tile-label">
+				<span>{label}</span>
+				{link && <Go />}
+				<slot name="aside" />
+			</div>
+		)
+	}
+	<slot />
+</Tag>
+
+<style>
+	.home-tile {
+		container-type: inline-size;
+	}
+</style>
