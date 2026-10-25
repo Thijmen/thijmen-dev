@@ -5,7 +5,7 @@
  * and the install command; `full` (projects page) adds the screenshot and
  * stars; `compact` is name + blurb + language.
  */
-import { Image } from "emdash/ui";
+import SizedImage from "./SizedImage.astro";
 import Go from "./home/Go.astro";
 import { hasImage, langHue as hueOf, vtKey } from "../lib/content";
 import { renderDiagram } from "../lib/diagram";
@@ -60,6 +60,9 @@ if (variant === "tile" && Array.isArray(p.body)) {
 			};
 	}
 }
+// The screenshot's width in the projects grid (auto-fill, 340px minimum):
+// three columns on desktop, two on tablets, one below that.
+const SHOT_SIZES = "(min-width: 1180px) 360px, (min-width: 780px) 46vw, 92vw";
 // A repo-style name is set heavy; a sentence is set in the serif.
 const sentence = /\s/.test(p.title);
 ---
@@ -115,7 +118,7 @@ const sentence = /\s/.test(p.title);
 			{showImage && (
 				<div class="shot" data-vt-part={vt && "cover"}>
 					{hasImage(p.featured_image) ? (
-						<Image image={p.featured_image as any} class="cover-img" />
+						<SizedImage image={p.featured_image} class="cover-img" width={720} sizes={SHOT_SIZES} />
 					) : (
 						<span class="shot-empty">{p.title}.png</span>
 					)}
