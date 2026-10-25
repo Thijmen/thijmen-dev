@@ -1,0 +1,35 @@
+---
+/**
+ * EmDash's `<Image>` for an image shown smaller than its upload.
+ *
+ * By default EmDash hands Astro the original dimensions, so the srcset runs
+ * up to twice the upload's width and `sizes` claims the full viewport: a card
+ * on a big retina screen downloads a near-original file. `width` is the
+ * widest the image is ever shown, in CSS px (the srcset stops at 2x that);
+ * `sizes` tells the browser how wide it is per breakpoint.
+ */
+import { Image } from "emdash/ui";
+
+interface Props {
+	image: unknown;
+	/** Widest the image is ever displayed, in CSS px. */
+	width: number;
+	/** Display width per breakpoint, as in the `sizes` attribute. */
+	sizes: string;
+	class?: string;
+	priority?: boolean;
+	alt?: string;
+}
+
+const { image, width, sizes, ...attrs } = Astro.props;
+const img = image as { width?: number; height?: number };
+
+// Scale the original down to `width`, keeping its aspect ratio. Without known
+// dimensions (or for an image already that small) EmDash's defaults stay.
+let size: { width: number; height: number } | undefined;
+if (img.width && img.height && img.width > width) {
+	size = { width, height: Math.round((width * img.height) / img.width) };
+}
+---
+
+<Image image={image as any} sizes={sizes} {...size} {...attrs} />
