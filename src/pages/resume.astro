@@ -5,25 +5,33 @@ import Kicker from "../components/Kicker.astro";
 import SectionLabel from "../components/SectionLabel.astro";
 import Timeline from "../components/Timeline.astro";
 import Window from "../components/Window.astro";
-import { asArray, emphasize, getProfile, riseWords } from "../lib/content";
+import { asArray, emphasize, getProfile, langHue, projectHref, riseWords } from "../lib/content";
 
-const [settings, { profile, cacheHint: profileHint }, rolesRes, postsRes] = await Promise.all([
+const [settings, { profile, cacheHint: profileHint }, rolesRes, postsRes, projectsRes] = await Promise.all([
 	getSiteSettings(),
 	getProfile(),
 	getEmDashCollection("roles", { orderBy: { position: "asc" } }),
 	getEmDashCollection("posts", { limit: 200 }),
+	getEmDashCollection("projects", { orderBy: { position: "asc" }, limit: 50 }),
 ]);
 
 if (Astro.cache?.enabled) {
 	if (profileHint) Astro.cache.set(profileHint);
 	Astro.cache.set(rolesRes.cacheHint);
 	Astro.cache.set(postsRes.cacheHint);
+	Astro.cache.set(projectsRes.cacheHint);
 }
 
 const name = settings?.title || "Thijmen Stavenuiter";
 const roles = rolesRes.entries.map((e) => e.data);
 const postCount = postsRes.entries.length;
 const skills = asArray<{ k: string; items: string[] | string }>(profile?.skills);
+// A few projects for the sidebar: featured ones first, then by position.
+const projects = [...projectsRes.entries]
+	.sort((a, b) => Number(Boolean(b.data.featured)) - Number(Boolean(a.data.featured)))
+	.slice(0, 4)
+	.map((e) => ({ data: e.data, href: projectHref(e) ?? e.data.url ?? "/projects" }));
+const projectCount = projectsRes.entries.length;
 const email = profile?.email;
 const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
 ---
@@ -63,6 +71,34 @@ const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(
 								))}
 							</div>
 						</Window>
+					)
+				}
+				{
+					projects.length > 0 && (
+						<section class="card projects">
+							<div class="label">Open source</div>
+							<ul class="proj-list">
+								{projects.map((p) => (
+									<li>
+										<a href={p.href} class="proj">
+											<span class="proj-name">{p.data.title}</span>
+											{p.data.summary && <span class="proj-desc">{p.data.summary}</span>}
+											{p.data.language && (
+												<span class="proj-lang">
+													<i style={`--lc:${langHue(p.data.language)}`} />
+													{p.data.language}
+												</span>
+											)}
+										</a>
+									</li>
+								))}
+							</ul>
+							{projectCount > projects.length && (
+								<a href="/projects" class="proj-all">
+									All <span data-count>{projectCount}</span> projects →
+								</a>
+							)}
+						</section>
 					)
 				}
 				<div class="card speaking">
@@ -195,6 +231,92 @@ const bare = (url?: string) => url?.replace(/^https?:\/\/(www\.)?/, "").replace(
 	.muted {
 		font-size: 14px;
 		color: var(--color-muted);
+	}
+
+	.projects {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: var(--pad);
+	}
+
+	.proj-list {
+		display: flex;
+		flex-direction: column;
+		margin: 0 -12px;
+		padding: 0;
+		list-style: none;
+	}
+
+	.proj {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 2px 12px;
+		padding: 10px 12px;
+		border-radius: var(--radius-md);
+		color: var(--color-text);
+		text-decoration: none;
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+
+	.proj-name {
+		font-weight: 700;
+		font-size: 15px;
+		letter-spacing: -0.02em;
+		overflow-wrap: anywhere;
+	}
+
+	.proj-desc {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		font-size: 13px;
+		line-height: 1.4;
+		color: var(--color-muted);
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	.proj-lang {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-faint);
+	}
+
+	.proj-lang i {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--lc);
+	}
+
+	.proj:hover {
+		text-decoration: none;
+	}
+
+	.proj:hover .proj-name {
+		color: var(--color-brand);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.proj:hover {
+			background: var(--color-surface);
+		}
+	}
+
+	.proj-all {
+		font-family: var(--font-mono);
+		font-size: 13px;
+		color: var(--color-muted);
+	}
+
+	.proj-all:hover {
+		color: var(--color-brand);
+		text-decoration: none;
 	}
 
 	.contact {
