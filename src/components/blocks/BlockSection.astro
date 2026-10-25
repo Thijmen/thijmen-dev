@@ -2,8 +2,11 @@
 /**
  * Shared frame for a block: an optional mono section label over the content.
  * `narrow` caps the width at the reading measure used by post bodies.
+ * A labelled block is also an anchor (`#what-it-solves`, slugify(label)):
+ * a project's CONTENTS links to it (blockSections() in lib/content.ts).
  */
 import SectionLabel from "../SectionLabel.astro";
+import { slugify } from "../../lib/content";
 
 interface Props {
 	label?: string | null;
@@ -14,9 +17,10 @@ interface Props {
 }
 
 const { label, note, narrow = false, reveal = true } = Astro.props;
+const id = label ? slugify(label) || undefined : undefined;
 ---
 
-<section class:list={["block", { narrow }]} data-reveal={reveal ? "" : undefined}>
+<section id={id} class:list={["block", { narrow }]} data-reveal={reveal ? "" : undefined}>
 	{label && <SectionLabel label={label} note={note} />}
 	<slot />
 </section>

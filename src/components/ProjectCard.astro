@@ -7,7 +7,7 @@
  */
 import { Image } from "emdash/ui";
 import Go from "./home/Go.astro";
-import { hasImage, vtKey } from "../lib/content";
+import { hasImage, langHue as hueOf, vtKey } from "../lib/content";
 import { renderDiagram } from "../lib/diagram";
 
 export interface Project {
@@ -37,16 +37,7 @@ const status = (p.project_status ?? "active").toLowerCase();
 // Screenshot + name morph into the case study when it exists (motion.ts).
 const vt = href ? vtKey("project", href.split("/").pop() ?? "") : undefined;
 
-// A language's dot colour: a hue per language, kept inside the cover palette.
-const LANG_HUES: Record<string, string> = {
-	rust: "var(--hue-orange)",
-	go: "var(--hue-blue)",
-	kotlin: "var(--hue-purple)",
-	typescript: "var(--hue-blue)",
-	python: "var(--hue-green)",
-	java: "var(--hue-orange)",
-};
-const langHue = LANG_HUES[(p.language ?? "").toLowerCase()] ?? "var(--color-faint)";
+const langHue = hueOf(p.language);
 
 // Tile teaser: the case study's first block, when it is a diagram or a
 // short terminal block (a diff reads best). Nothing else is invented.

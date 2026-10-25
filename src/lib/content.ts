@@ -113,6 +113,49 @@ export function hasImage(img: unknown): boolean {
 	return Boolean(v.src || v.id);
 }
 
+// A language's dot colour: a hue per language, kept inside the cover palette.
+const LANG_HUES: Record<string, string> = {
+	rust: "var(--hue-orange)",
+	go: "var(--hue-blue)",
+	kotlin: "var(--hue-purple)",
+	typescript: "var(--hue-blue)",
+	python: "var(--hue-green)",
+	java: "var(--hue-orange)",
+};
+
+/** The dot colour for a project's language; faint ink for languages without a hue. */
+export function langHue(language: unknown): string {
+	return LANG_HUES[String(language ?? "").toLowerCase()] ?? "var(--color-faint)";
+}
+
+/** A repo URL as a short label: `Thijmen/huubhuub` on GitHub, else host + path. */
+export function repoLabel(url: unknown): string {
+	try {
+		const u = new URL(String(url));
+		const path = u.pathname.replace(/^\/+|\/+$/g, "");
+		if (u.hostname === "github.com" || u.hostname === "www.github.com") return path || u.hostname;
+		return path ? `${u.hostname}/${path}` : u.hostname;
+	} catch {
+		return String(url ?? "");
+	}
+}
+
+/**
+ * A case study's CONTENTS: one entry per labelled block, in order. The id
+ * is the anchor BlockSection puts on that block (slugify(label)); a label
+ * that repeats is listed once and links to its first block.
+ */
+export function blockSections(blocks: unknown): Array<{ id: string; label: string }> {
+	const seen = new Set<string>();
+	return asArray<{ label?: unknown }>(blocks).flatMap((b) => {
+		const label = typeof b?.label === "string" ? b.label.trim() : "";
+		const id = slugify(label);
+		if (!id || seen.has(id)) return [];
+		seen.add(id);
+		return [{ id, label }];
+	});
+}
+
 /**
  * Escape plain CMS text and turn `*phrase*` into <em>phrase</em>, so
  * editors can mark the italic accent in headings ("Writing *from production.*").
