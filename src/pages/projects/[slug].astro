@@ -1,13 +1,17 @@
 ---
 /**
- * Project case study: the card's fields as a header, then the `body` blocks.
+ * Project case study, laid out like a repo page: the title and the `body`
+ * blocks (the README) on the left, a sticky rail on the right with an About
+ * card (cover, credit, facts, install) and CONTENTS from the block labels.
+ * Below 960px the About card sits between the title and the body.
  * Cards only link here when the project has blocks (see projectHref()).
  */
 import { decodeSlug, getEmDashEntry, sanitizeHref } from "emdash";
 import { Blocks, Image } from "emdash/ui";
 import Base from "../../layouts/Base.astro";
+import Go from "../../components/home/Go.astro";
 import { MissingBlock, projectBody } from "../../components/blocks";
-import { hasImage, riseWords, vtKey } from "../../lib/content";
+import { blockSections, hasImage, langHue, repoLabel, riseWords, vtKey } from "../../lib/content";
 
 const slug = decodeSlug(Astro.params.slug);
 if (!slug) return Astro.redirect("/404");
@@ -20,7 +24,12 @@ const d = project.data;
 const status = (d.project_status ?? "active").toLowerCase();
 // Admin uploads are stored without `src`: render on hasImage(); `src` only feeds og:image.
 const hasCover = hasImage(d.featured_image);
-const coverSrc = hasCover ? (d.featured_image as { src?: string }).src : undefined;
+const cover = d.featured_image as { src?: string; caption?: string } | undefined;
+const coverSrc = hasCover ? cover?.src : undefined;
+// The image's caption from the media library doubles as the photo credit.
+const credit = hasCover ? cover?.caption?.trim() : undefined;
+const source = d.url ? sanitizeHref(d.url) : undefined;
+const sections = blockSections(d.body);
 // Morph targets for the card → case study view transition (styles/motion.css).
 const vt = vtKey("project", project.id);
 ---
@@ -31,32 +40,98 @@ const vt = vtKey("project", project.id);
 			<a href="/projects" class="chip back">← All projects</a>
 			<h1 class="display name vt-title" style={`--vt-name:${vt}-title`} data-words aria-label={d.title} set:html={riseWords(d.title)} />
 			{d.summary && <p class="lede">{d.summary}</p>}
-			<div class="meta">
-				<span class:list={["pill", "status", status]}>{status}</span>
-				{d.language && <span class="pill">● {d.language}</span>}
-				{
-					d.stars && (
-						<span class="pill">
-							★ <span data-count>{d.stars}</span>
-						</span>
-					)
-				}
-				{d.url && <a href={sanitizeHref(d.url)} class="pill repo">source ↗</a>}
-			</div>
-			{d.install && (
-				<div class="install">
-					<span class="sigil">$</span> {d.install}
-				</div>
-			)}
 		</header>
 
-		{
-			hasCover && (
-				<div class="cover vt-cover" data-hero-item style={`--vt-name:${vt}-cover;--hero-i:6`}>
-					<Image image={d.featured_image as any} class="cover-img" priority />
+		<aside class="rail" aria-label={`About ${d.title}`}>
+			<section class:list={["tile", "about", { "has-shot": hasCover }]} data-hero-item style="--hero-i:3">
+				{
+					hasCover ? (
+						<figure class="shot">
+							<div class="frame vt-cover" style={`--vt-name:${vt}-cover`}>
+								<Image image={d.featured_image as any} class="cover-img" sizes="(min-width: 960px) 300px, (min-width: 600px) 40vw, 92vw" priority />
+							</div>
+							{credit && <figcaption class="credit">{credit}</figcaption>}
+						</figure>
+					) : (
+						<div class="tile-label">About</div>
+					)
+				}
+				<div class="info">
+					<dl class="facts">
+						<div>
+							<dt>Status</dt>
+							<dd>
+								<i class:list={["dot", status]} aria-hidden="true" />
+								{status}
+							</dd>
+						</div>
+						{
+							d.language && (
+								<div>
+									<dt>Language</dt>
+									<dd>
+										<i class="dot" style={`--dot:${langHue(d.language)}`} aria-hidden="true" />
+										{d.language}
+									</dd>
+								</div>
+							)
+						}
+						{
+							d.stars && (
+								<div>
+									<dt>Stars</dt>
+									<dd>
+										★ <span data-count>{d.stars}</span>
+									</dd>
+								</div>
+							)
+						}
+						{
+							source && (
+								<div>
+									<dt>Source</dt>
+									<dd>
+										<a href={source} class="repo">
+											<span class="repo-name">{repoLabel(d.url)}</span>
+											<Go />
+										</a>
+									</dd>
+								</div>
+							)
+						}
+					</dl>
+					{
+						d.install && (
+							<div class="install">
+								<code>
+									<span class="sigil">$</span> {d.install}
+								</code>
+								<button type="button" class="copy" data-copy-install={d.install}>
+									copy
+								</button>
+							</div>
+						)
+					}
 				</div>
-			)
-		}
+			</section>
+
+			{
+				sections.length > 1 && (
+					<nav class="tile toc" aria-label="Contents" data-hero-item style="--hero-i:4">
+						<div class="tile-label">Contents</div>
+						<div class="toc-links">
+							<span class="toc-glide" aria-hidden="true" />
+							{sections.map((s, i) => (
+								<a href={`#${s.id}`}>
+									<span class="n">{String(i + 1).padStart(2, "0")}</span>
+									<span>{s.label}</span>
+								</a>
+							))}
+						</div>
+					</nav>
+				)
+			}
+		</aside>
 
 		<div class="body">
 			<Blocks value={d.body} components={projectBody} fallback={MissingBlock} />
@@ -64,7 +139,105 @@ const vt = vtKey("project", project.id);
 	</main>
 </Base>
 
+<script>
+	// CONTENTS scrollspy, as on the post page: highlight the section being
+	// read; one highlight slides between the entries.
+	const toc = document.querySelector<HTMLElement>(".project .toc");
+	const links = [...(toc?.querySelectorAll<HTMLAnchorElement>(".toc-links a") ?? [])];
+	const targets = links.map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))));
+	const glide = toc?.querySelector<HTMLElement>(".toc-glide");
+	let active = -2;
+
+	function spy() {
+		const line = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-offset")) || 0) + 80;
+		let i = -1;
+		targets.forEach((t, k) => t && t.getBoundingClientRect().top <= line && (i = k));
+		if (targets.length && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) i = targets.length - 1;
+		if (i === active) return;
+		const jump = active < 0;
+		active = i;
+		links.forEach((a, k) => {
+			a.classList.toggle("is-active", k === i);
+			if (k === i) a.setAttribute("aria-current", "true");
+			else a.removeAttribute("aria-current");
+		});
+		const a = links[i];
+		if (!glide) return;
+		if (!a) return glide.classList.remove("on");
+		if (jump) glide.style.transition = "none";
+		glide.style.setProperty("--x", `${a.offsetLeft}px`);
+		glide.style.setProperty("--y", `${a.offsetTop}px`);
+		glide.style.setProperty("--w", `${a.offsetWidth}px`);
+		glide.style.setProperty("--h", `${a.offsetHeight}px`);
+		if (jump) {
+			void glide.offsetWidth;
+			glide.style.transition = "";
+		}
+		glide.classList.add("on");
+	}
+
+	if (links.length) {
+		let ticking = false;
+		addEventListener(
+			"scroll",
+			() => {
+				if (ticking) return;
+				ticking = true;
+				requestAnimationFrame(() => {
+					ticking = false;
+					spy();
+				});
+			},
+			{ passive: true },
+		);
+		spy();
+	}
+
+	// The whole rail sticks while it fits under the header; otherwise only
+	// CONTENTS does (.is-tall, see .rail below).
+	const rail = document.querySelector<HTMLElement>(".project .rail");
+	const parts = [...(rail?.children ?? [])] as HTMLElement[];
+	function fitRail() {
+		if (!rail || !parts.length) return;
+		const height = parts[parts.length - 1].getBoundingClientRect().bottom - parts[0].getBoundingClientRect().top;
+		const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-offset")) || 0;
+		rail.classList.toggle("is-tall", height + offset + 32 > innerHeight);
+	}
+	if (rail) {
+		const ro = new ResizeObserver(fitRail);
+		parts.forEach((p) => ro.observe(p));
+		addEventListener("resize", fitRail, { passive: true });
+		// By load the header has published --header-offset.
+		addEventListener("load", fitRail);
+	}
+
+	// Its own attribute: CodeBlock's script claims every [data-copy] on the page.
+	document.querySelectorAll<HTMLButtonElement>("[data-copy-install]").forEach((btn) => {
+		btn.addEventListener("click", () => {
+			navigator.clipboard?.writeText(btn.dataset.copyInstall ?? "").catch(() => {});
+			btn.textContent = "copied ✓";
+			setTimeout(() => (btn.textContent = "copy"), 1400);
+		});
+	});
+</script>
+
 <style>
+	/* Layout: title and body on the left, the rail beside both ------------- */
+	.project {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 320px;
+		grid-template-areas:
+			"hero rail"
+			"body rail";
+		grid-template-rows: auto 1fr;
+		align-items: start;
+		gap: 44px 56px;
+	}
+
+	.hero {
+		grid-area: hero;
+	}
+
 	.back {
 		align-self: flex-start;
 		padding: 6px 12px;
@@ -79,60 +252,294 @@ const vt = vtKey("project", project.id);
 		overflow-wrap: anywhere;
 	}
 
-	.meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		font-family: var(--font-mono);
-		font-size: 12px;
-		color: var(--color-muted);
-	}
-
-	.pill {
-		padding: 5px 11px;
-		border-radius: var(--radius-pill);
-		background: var(--color-tile);
-		color: inherit;
-		text-decoration: none;
-	}
-
-	a.pill:hover {
-		color: var(--color-brand);
-	}
-
-	.status.active {
-		background: var(--color-brand-soft);
-		color: var(--color-brand);
-	}
-
-	.status.maintained {
-		color: var(--syntax-string);
-	}
-
-	.install {
-		overflow-x: auto;
-		white-space: nowrap;
-		padding: 12px 16px;
-		border-radius: var(--radius-md);
-		background: var(--dark-tile);
-		font-family: var(--font-mono);
-		font-size: 13px;
-		color: var(--dark-ink-2);
-	}
-
-	.sigil {
-		color: var(--color-brand);
-	}
-
-	.cover {
-		aspect-ratio: 21 / 9;
-		overflow: hidden;
-		border-radius: var(--radius-lg);
-	}
-
 	.body {
+		grid-area: body;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 56px;
+	}
+
+	/* Rail ----------------------------------------------------------------- */
+	/* Sticky under the header while it fits in the window. When it doesn't
+	   (.is-tall, from the script), the About card scrolls away with the title
+	   and CONTENTS sticks on its own. */
+	.rail {
+		grid-area: rail;
+		position: sticky;
+		top: calc(var(--header-offset, 0px) + 16px);
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap);
+	}
+
+	.rail.is-tall {
+		position: static;
+		align-self: stretch;
+	}
+
+	.rail.is-tall .toc {
+		position: sticky;
+		top: calc(var(--header-offset, 0px) + 16px);
+	}
+
+	.rail .tile {
+		border-radius: 20px;
+	}
+
+	.about {
+		padding: 10px 10px 16px;
+	}
+
+	.about:not(.has-shot) {
+		padding-top: 18px;
+	}
+
+	.about:not(.has-shot) .tile-label {
+		padding: 0 12px;
+	}
+
+	.shot {
+		margin: 0;
+	}
+
+	.frame {
+		position: relative;
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+		border-radius: var(--radius-md);
+		background: var(--color-surface);
+	}
+
+	.frame :global(img) {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.credit {
+		margin: 9px 10px 0;
+		font-size: 12px;
+		line-height: 1.4;
+		color: var(--color-faint);
+	}
+
+	.facts {
+		margin: 4px 12px 0;
+	}
+
+	.facts > div {
+		display: grid;
+		grid-template-columns: 84px minmax(0, 1fr);
+		align-items: center;
+		min-height: 44px;
+		padding: 7px 0;
+	}
+
+	.facts > div + div {
+		border-top: 1px solid var(--color-border);
+	}
+
+	.facts dt {
+		font-size: 13px;
+		color: var(--color-faint);
+	}
+
+	.facts dd {
+		margin: 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+		font-size: 14px;
+		font-weight: 500;
+	}
+
+	.dot {
+		flex: none;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--dot, var(--syntax-string));
+	}
+
+	.dot.archived {
+		--dot: var(--color-faint);
+	}
+
+	.repo {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		color: var(--color-text);
+	}
+
+	.repo:hover {
+		text-decoration: none;
+	}
+
+	.repo-name {
+		min-width: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.repo :global(.go) {
+		margin-left: auto;
+		width: 26px;
+		height: 26px;
+	}
+
+	/* The install command: a fixed-dark strip, like code tiles. */
+	.install {
+		margin: 8px 2px 0;
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		padding: 10px 12px 10px 14px;
+		border-radius: var(--radius-md);
+		background: var(--dark-tile);
+		font-family: var(--font-mono);
+	}
+
+	/* A long command wraps anywhere, so the `$` keeps its line. */
+	.install code {
+		flex: 1;
+		min-width: 0;
+		font: inherit;
+		font-size: 12px;
+		line-height: 1.5;
+		color: var(--dark-ink-2);
+		word-break: break-all;
+	}
+
+	.sigil {
+		color: var(--player-accent);
+	}
+
+	.copy {
+		flex: none;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--dark-ink-2);
+		font: inherit;
+		font-size: 12px;
+		line-height: 1.5;
+		cursor: pointer;
+		transition: color var(--dur-fast);
+	}
+
+	.copy:hover {
+		color: var(--dark-ink);
+	}
+
+	/* CONTENTS (the post page's, with the block labels as entries) */
+	.toc {
+		padding: 22px 22px 20px;
+	}
+
+	.toc-links {
+		position: relative;
+		margin-top: 6px;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.toc-links a {
+		position: relative;
+		display: grid;
+		grid-template-columns: 30px 1fr;
+		margin: 0 -10px;
+		padding: 7px 10px;
+		border-radius: var(--radius-sm);
+		font-size: 14.5px;
+		line-height: 1.35;
+		color: var(--color-muted);
+		transition: color var(--dur-fast);
+	}
+
+	.toc-links a .n {
+		font-size: 13px;
+		font-weight: 600;
+		line-height: 1.5;
+		color: var(--color-faint);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.toc-links a.is-active {
+		color: var(--color-text);
+	}
+
+	.toc-links a.is-active .n {
+		color: var(--color-brand);
+	}
+
+	.toc-links a:hover {
+		text-decoration: none;
+		color: var(--color-text);
+	}
+
+	.toc-glide {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: var(--w, 0);
+		height: var(--h, 0);
+		translate: var(--x, 0) var(--y, 0);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		opacity: 0;
+		transition:
+			translate var(--dur-move) var(--ease-out),
+			height var(--dur-move) var(--ease-out),
+			opacity var(--dur-fast);
+	}
+
+	.toc-glide:global(.on) {
+		opacity: 1;
+	}
+
+	/* One column: the About card between the title and the body ------------- */
+	@media (max-width: 959px) {
+		.project {
+			grid-template-columns: minmax(0, 1fr);
+			grid-template-areas:
+				"hero"
+				"rail"
+				"body";
+			grid-template-rows: none;
+			gap: 36px;
+		}
+
+		.rail {
+			position: static;
+		}
+
+		/* The section labels follow right below; no need for a list of them. */
+		.toc {
+			display: none;
+		}
+	}
+
+	/* Tablets: the card turns sideways, picture left. */
+	@media (min-width: 600px) and (max-width: 959px) {
+		.about.has-shot {
+			display: grid;
+			grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+			column-gap: 16px;
+			align-items: start;
+			padding: 10px;
+		}
+	}
+
+	@media (max-width: 599px) {
+		.frame {
+			aspect-ratio: 16 / 10;
+		}
 	}
 </style>
