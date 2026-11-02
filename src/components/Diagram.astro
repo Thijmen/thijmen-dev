@@ -32,11 +32,15 @@ const { svg, title, caption } = Astro.props;
 		gap: 12px;
 	}
 
+	/* The window is dark in both themes, so the diagram's token colours
+	   (light-dark() pairs, resolved where the SVG uses them) take their dark
+	   values here too. */
 	.diagram-body {
 		display: flex;
 		justify-content: center;
 		padding: 8px;
 		overflow-x: auto;
+		color-scheme: dark;
 	}
 
 	/* Scale down to the column; never up past the drawn size. */
