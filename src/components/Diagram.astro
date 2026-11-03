@@ -34,20 +34,35 @@ const { svg, title, caption } = Astro.props;
 
 	/* The window is dark in both themes, so the diagram's token colours
 	   (light-dark() pairs, resolved where the SVG uses them) take their dark
-	   values here too. */
+	   values here too. A soft brand light falls on it from the top edge. */
 	.diagram-body {
+		position: relative;
 		display: flex;
 		justify-content: center;
 		padding: 8px;
 		overflow-x: auto;
 		color-scheme: dark;
+		background: radial-gradient(ellipse 70% 85% at 50% 0%, color-mix(in oklab, var(--color-field) 22%, transparent), transparent 75%);
 	}
 
-	/* Scale down to the column; never up past the drawn size. */
+	/* The covers' halftone, faint, fading out towards the edges. */
+	.diagram-body::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(circle, color-mix(in oklab, var(--dark-ink) 10%, transparent) 1px, transparent 1.5px) 0 0 / 14px 14px;
+		mask-image: radial-gradient(ellipse 65% 75% at 50% 40%, #000 15%, transparent 80%);
+		pointer-events: none;
+	}
+
+	/* Scale down to the column; never up past the drawn size. Visible
+	   overflow keeps the accent glow from being cut at the drawing's edge. */
 	.diagram-body :global(svg.mermaid-svg) {
+		position: relative;
 		display: block;
 		max-width: 100%;
 		height: auto;
+		overflow: visible;
 	}
 
 	.diagram-body :global(svg.mermaid-svg text) {
