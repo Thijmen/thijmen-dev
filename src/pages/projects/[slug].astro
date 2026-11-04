@@ -3,22 +3,31 @@
  * Project case study, laid out like a repo page: the title and the `body`
  * blocks (the README) on the left, a sticky rail on the right with an About
  * card (cover, credit, facts, install) and CONTENTS from the block labels.
- * Below 960px the About card sits between the title and the body.
+ * Below 960px the About card sits between the title and the body, and the
+ * random-project tile moves below the body.
  * Cards only link here when the project has blocks (see projectHref()).
  */
-import { decodeSlug, getEmDashEntry, sanitizeHref } from "emdash";
+import { decodeSlug, getEmDashCollection, getEmDashEntry, sanitizeHref } from "emdash";
 import { Blocks, Image } from "emdash/ui";
 import Base from "../../layouts/Base.astro";
 import Go from "../../components/home/Go.astro";
+import Cover from "../../components/Cover.astro";
+import SizedImage from "../../components/SizedImage.astro";
 import { MissingBlock, projectBody } from "../../components/blocks";
-import { blockSections, hasImage, langHue, repoLabel, riseWords, vtKey } from "../../lib/content";
+import { blockSections, emphasize, hasImage, langHue, projectHref, repoLabel, riseWords, vtKey } from "../../lib/content";
 
 const slug = decodeSlug(Astro.params.slug);
 if (!slug) return Astro.redirect("/404");
 
-const { entry: project, cacheHint } = await getEmDashEntry("projects", slug);
+const [{ entry: project, cacheHint }, { entries: allProjects, cacheHint: listHint }] = await Promise.all([
+	getEmDashEntry("projects", slug),
+	getEmDashCollection("projects", { orderBy: { position: "asc" } }),
+]);
 if (!project) return Astro.redirect("/404");
-if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+if (Astro.cache?.enabled) {
+	Astro.cache.set(cacheHint);
+	Astro.cache.set(listHint);
+}
 
 const d = project.data;
 const status = (d.project_status ?? "active").toLowerCase();
@@ -32,6 +41,18 @@ const source = d.url ? sanitizeHref(d.url) : undefined;
 const sections = blockSections(d.body);
 // Morph targets for the card → case study view transition (styles/motion.css).
 const vt = vtKey("project", project.id);
+
+// Random project: the other case studies (a repo link would take the visitor
+// off the site). All are rendered, starting with the next one by position;
+// the inline script under the tile shows one at random, so the cached page
+// still varies per visit.
+const here = allProjects.findIndex((e) => e.id === project.id);
+const picks = [...allProjects.slice(here + 1), ...allProjects.slice(0, Math.max(here, 0))]
+	.filter((e) => e.id !== project.id)
+	.flatMap((e) => {
+		const href = projectHref(e);
+		return href ? [{ entry: e, href }] : [];
+	});
 ---
 
 <Base title={d.title} description={d.summary} image={coverSrc} glow="left">
@@ -116,19 +137,67 @@ const vt = vtKey("project", project.id);
 			</section>
 
 			{
-				sections.length > 1 && (
-					<nav class="tile toc" aria-label="Contents" data-hero-item style="--hero-i:4">
-						<div class="tile-label">Contents</div>
-						<div class="toc-links">
-							<span class="toc-glide" aria-hidden="true" />
-							{sections.map((s, i) => (
-								<a href={`#${s.id}`}>
-									<span class="n">{String(i + 1).padStart(2, "0")}</span>
-									<span>{s.label}</span>
-								</a>
-							))}
-						</div>
-					</nav>
+				(sections.length > 1 || picks.length > 0) && (
+					<div class="rail-follow">
+						{sections.length > 1 && (
+							<nav class="tile toc" aria-label="Contents" data-hero-item style="--hero-i:4">
+								<div class="tile-label">Contents</div>
+								<div class="toc-links">
+									<span class="toc-glide" aria-hidden="true" />
+									{sections.map((s, i) => (
+										<a href={`#${s.id}`}>
+											<span class="n">{String(i + 1).padStart(2, "0")}</span>
+											<span>{s.label}</span>
+										</a>
+									))}
+								</div>
+							</nav>
+						)}
+						{picks.length > 0 && (
+							<div class="picks" data-hero-item style="--hero-i:5">
+								{picks.map(({ entry: e, href }, i) => {
+									const pvt = vtKey("project", e.id);
+									const title = String(e.data.title ?? "");
+									return (
+										<a href={href} class="tile pick" data-vt={pvt} hidden={i > 0}>
+											<div class="tile-label">
+												<span>Random project</span>
+												<Go />
+											</div>
+											<span class="pick-shot" data-vt-part="cover">
+												{hasImage(e.data.featured_image) ? (
+													<SizedImage image={e.data.featured_image} class="cover-img" width={560} sizes="(min-width: 960px) 300px, (min-width: 600px) 40vw, 92vw" />
+												) : (
+													<Cover slug={e.id} />
+												)}
+											</span>
+											<span class:list={["pick-name", { sentence: /\s/.test(title) }]} data-vt-part="title" set:html={emphasize(title)} />
+											{e.data.summary && <span class="pick-desc">{e.data.summary}</span>}
+											{e.data.language && (
+												<span class="pick-meta">
+													<i class="dot" style={`--dot:${langHue(e.data.language)}`} aria-hidden="true" />
+													{e.data.language}
+												</span>
+											)}
+										</a>
+									);
+								})}
+							</div>
+						)}
+						{
+							// Before paint, so the first pick never flashes. Without JS the next project shows.
+							picks.length > 1 && (
+								<script is:inline>
+									(() => {
+										const picks = document.currentScript?.previousElementSibling?.children;
+										if (!picks) return;
+										const k = Math.floor(Math.random() * picks.length);
+										for (let i = 0; i < picks.length; i++) picks[i].hidden = i !== k;
+									})();
+								</script>
+							)
+						}
+					</div>
 				)
 			}
 		</aside>
@@ -263,7 +332,7 @@ const vt = vtKey("project", project.id);
 	/* Rail ----------------------------------------------------------------- */
 	/* Sticky under the header while it fits in the window. When it doesn't
 	   (.is-tall, from the script), the About card scrolls away with the title
-	   and CONTENTS sticks on its own. */
+	   and CONTENTS + the random project stick on their own. */
 	.rail {
 		grid-area: rail;
 		position: sticky;
@@ -278,9 +347,15 @@ const vt = vtKey("project", project.id);
 		align-self: stretch;
 	}
 
-	.rail.is-tall .toc {
+	.rail.is-tall .rail-follow {
 		position: sticky;
 		top: calc(var(--header-offset, 0px) + 16px);
+	}
+
+	.rail-follow {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap);
 	}
 
 	.rail .tile {
@@ -504,6 +579,89 @@ const vt = vtKey("project", project.id);
 		opacity: 1;
 	}
 
+	/* Random project ------------------------------------------------------ */
+	.pick {
+		gap: 0;
+		padding: 18px 18px 20px;
+	}
+
+	/* .tile sets display, which would beat the attribute. */
+	.pick[hidden] {
+		display: none;
+	}
+
+	.pick .tile-label {
+		padding-left: 4px;
+	}
+
+	.pick-shot {
+		position: relative;
+		display: block;
+		margin-top: 12px;
+		aspect-ratio: 16 / 9;
+		overflow: hidden;
+		border-radius: var(--radius-md);
+		background: var(--color-surface);
+	}
+
+	.pick-shot :global(img) {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.pick-name,
+	.pick-desc,
+	.pick-meta {
+		margin-inline: 4px;
+	}
+
+	/* A repo-style name is set heavy; a sentence in the serif (as ProjectCard). */
+	.pick-name {
+		margin-top: 14px;
+		font-weight: 800;
+		font-size: 22px;
+		letter-spacing: -0.04em;
+		line-height: 1.05;
+		overflow-wrap: anywhere;
+	}
+
+	.pick-name.sentence {
+		font-family: var(--font-heading);
+		font-weight: 400;
+		font-size: 20px;
+		letter-spacing: -0.01em;
+		line-height: 1.2;
+		text-wrap: balance;
+	}
+
+	.pick-name :global(em) {
+		font-style: italic;
+		color: var(--color-brand);
+	}
+
+	.pick-desc {
+		margin-top: 6px;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		overflow: hidden;
+		font-size: 13.5px;
+		line-height: 1.45;
+		color: var(--color-muted);
+	}
+
+	.pick-meta {
+		margin-top: 12px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		color: var(--color-faint);
+	}
+
 	/* One column: the About card between the title and the body ------------- */
 	@media (max-width: 959px) {
 		.project {
@@ -511,13 +669,27 @@ const vt = vtKey("project", project.id);
 			grid-template-areas:
 				"hero"
 				"rail"
-				"body";
+				"body"
+				"more";
 			grid-template-rows: none;
 			gap: 36px;
 		}
 
+		/* The About card stays above the body; the random project goes below it. */
 		.rail {
-			position: static;
+			display: contents;
+		}
+
+		.about {
+			grid-area: rail;
+		}
+
+		.rail-follow {
+			grid-area: more;
+		}
+
+		.rail-follow:not(:has(.picks)) {
+			display: none;
 		}
 
 		/* The section labels follow right below; no need for a list of them. */
@@ -526,8 +698,30 @@ const vt = vtKey("project", project.id);
 		}
 	}
 
-	/* Tablets: the card turns sideways, picture left. */
+	/* Tablets: the cards turn sideways, picture left. */
 	@media (min-width: 600px) and (max-width: 959px) {
+		.pick {
+			display: grid;
+			grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+			grid-template-rows: auto auto auto 1fr;
+			column-gap: 20px;
+			padding: 10px 20px 10px 10px;
+		}
+
+		.pick > * {
+			grid-column: 2;
+		}
+
+		.pick .pick-shot {
+			grid-column: 1;
+			grid-row: 1 / -1;
+			margin-top: 0;
+		}
+
+		.pick .tile-label {
+			margin-top: 8px;
+		}
+
 		.about.has-shot {
 			display: grid;
 			grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
